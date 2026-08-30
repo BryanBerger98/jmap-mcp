@@ -19,7 +19,9 @@ const answering = (status: number, body = sessionBody): typeof fetch =>
       headers: { "Content-Type": "application/json" },
     })) as typeof fetch;
 
-const offline: typeof fetch = () => Promise.reject(new TypeError("fetch failed"));
+/** Shaped like a real undici refusal: a TypeError carrying the socket error as its cause. */
+const offline: typeof fetch = () =>
+  Promise.reject(new TypeError("fetch failed", { cause: new Error("connect ECONNREFUSED") }));
 
 /** Runs discovery and hands back whatever it threw. */
 async function failureOf(fetchImpl: typeof fetch, accountId?: string): Promise<unknown> {
@@ -65,6 +67,17 @@ describe("describeStartupFailure", () => {
     ];
 
     expect(new Set(messages).size).toBe(3);
+  });
+
+  it("does not blame the network for a TypeError raised past the transport", async () => {
+    // A session body without `accounts` reaches `preferred in session.accounts`
+    // and throws a causeless TypeError: the server answered, the URL is fine.
+    const message = describeStartupFailure(
+      await failureOf(answering(200, JSON.stringify({ capabilities: {} })), "acc-1"),
+    );
+
+    expect(message).not.toContain("sessionUrl");
+    expect(message).not.toContain("could not be reached");
   });
 
   it("passes a configuration error through untouched", () => {

@@ -58,8 +58,11 @@ export function describeStartupFailure(error: unknown): string {
   }
 
   // `fetch` reports every transport failure as a TypeError: DNS, TLS, refused
-  // connection. None of them are worth surfacing verbatim.
-  if (error instanceof TypeError) {
+  // connection. None of them are worth surfacing verbatim. The `cause` is what
+  // tells them apart from a plain programming TypeError raised further down the
+  // startup, which `describeStartupFailure` also wraps: undici always attaches
+  // one, the language never does.
+  if (error instanceof TypeError && error.cause !== undefined) {
     return "The JMAP server could not be reached. Check `sessionUrl` and that the host answers from this machine.";
   }
 
