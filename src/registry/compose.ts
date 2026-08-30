@@ -5,7 +5,7 @@ import {
   type StandardSchemaWithJSON,
 } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import type { WritePolicy } from "../config/policy.js";
+import type { OperationClass, WritePolicy } from "../config/policy.js";
 import type { JmapClient } from "../jmap/client.js";
 import type { JmapSession } from "../jmap/session.js";
 import type { ToolDefinition } from "./define-tool.js";
@@ -25,38 +25,80 @@ export interface ComposeReport {
   denied: string[];
 }
 
+export interface ToolSelection {
+  /** The tools that survive the crossing, in registration order. */
+  exposed: ToolDefinition[];
+  /** Every class those tools can still reach: what the surface actually does. */
+  classes: Set<OperationClass>;
+  skipped: { domain: string; missing: string[] }[];
+  denied: string[];
+}
+
 const confirmationSchema = z.object({ confirm: z.boolean() });
 
 /**
- * Crosses the session's capabilities with the configured policy and registers
- * the surviving tools. Runs once, before `connect()`: the specification forbids
- * a tool list that varies during a session.
+ * Crosses the session's capabilities with the configured policy.
+ *
+ * Exported so the initialization instructions can describe the very surface
+ * `compose` registers instead of asserting one: two independent traversals
+ * would drift the day a write domain lands. Pure, and cheap enough to run twice.
  */
-export function compose(input: ComposeInput): ComposeReport {
-  const report: ComposeReport = { registered: [], skipped: [], denied: [] };
+export function selectTools(
+  domains: readonly DomainManifest[],
+  session: JmapSession,
+  policy: WritePolicy,
+): ToolSelection {
+  const selection: ToolSelection = {
+    exposed: [],
+    classes: new Set<OperationClass>(),
+    skipped: [],
+    denied: [],
+  };
 
-  for (const domain of input.domains) {
-    const missing = domain.requires.filter((capability) => !input.session.has(capability));
+  for (const domain of domains) {
+    const missing = domain.requires.filter((capability) => !session.has(capability));
     if (missing.length > 0) {
-      report.skipped.push({ domain: domain.name, missing });
+      selection.skipped.push({ domain: domain.name, missing });
       continue;
     }
 
     for (const tool of domain.tools) {
-      register(input, tool, report);
+      // Every class the tool can reach is denied: registering it would only ever fail.
+      if (isFullyDenied(policy, tool)) {
+        selection.denied.push(tool.name);
+        continue;
+      }
+
+      selection.exposed.push(tool);
+      for (const operation of tool.classes) {
+        // A denied class stays out of reach: the per-call guard refuses it.
+        if (policy[operation] !== "deny") selection.classes.add(operation);
+      }
     }
   }
 
-  return report;
+  return selection;
 }
 
-function register(input: ComposeInput, tool: ToolDefinition, report: ComposeReport): void {
-  // Every class the tool can reach is denied: registering it would only ever fail.
-  if (isFullyDenied(input.policy, tool)) {
-    report.denied.push(tool.name);
-    return;
+/**
+ * Registers the surviving tools. Runs once, before `connect()`: the
+ * specification forbids a tool list that varies during a session.
+ */
+export function compose(input: ComposeInput): ComposeReport {
+  const selection = selectTools(input.domains, input.session, input.policy);
+
+  for (const tool of selection.exposed) {
+    register(input, tool);
   }
 
+  return {
+    registered: selection.exposed.map((tool) => tool.name),
+    skipped: selection.skipped,
+    denied: selection.denied,
+  };
+}
+
+function register(input: ComposeInput, tool: ToolDefinition): void {
   input.server.registerTool(
     tool.name,
     {
@@ -97,8 +139,6 @@ function register(input: ComposeInput, tool: ToolDefinition, report: ComposeRepo
       return { content: [{ type: "text" as const, text: renderResult(result) }] };
     },
   );
-
-  report.registered.push(tool.name);
 }
 
 /**
