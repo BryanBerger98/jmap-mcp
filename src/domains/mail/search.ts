@@ -32,7 +32,7 @@ const ENVELOPE_PROPERTIES = [
  * How much rendered text one page may spend. The client's context is the scarce
  * resource, so the page is cut on size and the rest is handed back as a cursor.
  */
-export const RESULT_BUDGET_CHARS = 4000;
+const RESULT_BUDGET_CHARS = 4000;
 
 /** `queryMaxResults` defaults to 5000 and is advertised nowhere: always send a limit. */
 const MAX_LIMIT = 100;
