@@ -8,7 +8,8 @@ owner: bryan
 # Tests
 
 > [!NOTE]
-> Aucun test n'est écrit et `vitest.config.ts` n'existe pas. La stratégie ci-dessous est arrêtée, pas encore outillée.
+> Outillé : `vitest.config.ts` existe, 16 tests passent sur 3 fichiers.
+> `tests/contract/policy-guard.test.ts` couvre l'invariant de garde ; `tests/fixtures/` est encore vide.
 
 ## 🎯 Stratégie
 

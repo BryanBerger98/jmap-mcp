@@ -1,7 +1,7 @@
 ---
 title: INSTALL — jmap-mcp
 status: draft
-updated: 2026-08-29
+updated: 2026-08-30
 owner: bryan
 ---
 
@@ -145,12 +145,12 @@ jmap-mcp/
 
 Installation manuelle : le framework ne génère aucun fichier de code.
 
-- [ ] Installer Node 24 avec `nvm install` depuis la racine, puis vérifier `node -v` et `pnpm -v`.
-- [ ] Initialiser le dépôt Git, créer le dépôt GitHub public et déposer la licence MIT.
-- [ ] Créer `package.json` : `type: module`, `bin.jmap-mcp`, `engines.node: ">=24"`.
-- [ ] Installer les dépendances d'exécution `@modelcontextprotocol/server` et `zod`, puis les dépendances de développement `typescript`, `vitest`, `@biomejs/biome`.
-- [ ] Vérifier l'unicité de Zod avec `pnpm why zod` et ajouter un `pnpm.overrides` si deux copies apparaissent.
-- [ ] Configurer `tsconfig.json` avec `module: nodenext` et un `rootDir` explicite, sans quoi TypeScript 7 émet `TS5011`.
+- [x] Installer Node 24 avec `nvm install` depuis la racine, puis vérifier `node -v` et `pnpm -v`.
+- [x] Initialiser le dépôt Git, créer le dépôt GitHub public et déposer la licence MIT.
+- [x] Créer `package.json` : `type: module`, `bin.jmap-mcp`, `engines.node: ">=24"`.
+- [x] Installer les dépendances d'exécution `@modelcontextprotocol/server` et `zod`, puis les dépendances de développement `typescript`, `vitest`, `@biomejs/biome`.
+- [x] Vérifier l'unicité de Zod avec `pnpm why zod` et ajouter un `pnpm.overrides` si deux copies apparaissent.
+- [x] Configurer `tsconfig.json` avec `module: nodenext` et un `rootDir` explicite, sans quoi TypeScript 7 émet `TS5011`.
 - [ ] Renseigner `JMAP_SESSION_URL` et `JMAP_BEARER_TOKEN`, puis enregistrer le serveur auprès du client MCP.
 
 ## 🔍 Audit

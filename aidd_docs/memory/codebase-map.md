@@ -8,7 +8,8 @@ owner: bryan
 # Carte du code
 
 > [!NOTE]
-> Aucun code n'est écrit à ce jour. Cette carte décrit la découpe arrêtée au bootstrap, pas un arbre existant.
+> L'arbre existe et compile. Le socle est écrit : configuration, client JMAP, session, registre, pagination, rendu.
+> Les six domaines sont des manifestes à `tools: []` — aucun outil métier n'est encore implémenté.
 
 ## 🗺️ Découpe
 

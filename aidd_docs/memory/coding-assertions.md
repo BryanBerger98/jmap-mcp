@@ -7,18 +7,20 @@ owner: bryan
 
 # Assertions de code
 
-> [!WARNING]
-> Aucune porte n'est câblée : `package.json` n'existe pas encore, donc aucun script n'est exécutable.
-> Ce fichier liste les outils arrêtés, pas des commandes vérifiées.
+## 🔒 Portes câblées
 
-## 🔒 Outils retenus
+Les quatre commandes sont exécutables et passent au vert.
+Node 24 est requis : `nvm use` depuis la racine avant toute commande, sinon pnpm 11 s'interrompt sur `node:sqlite` absent.
 
-| Rôle | Outil |
-| --- | --- |
-| Typage | TypeScript, compilateur natif Go |
-| Lint et format | Biome |
-| Tests | Vitest |
-| Paquets | pnpm |
+| Rôle | Commande | Outil |
+| --- | --- | --- |
+| Typage | `pnpm typecheck` | TypeScript 7, compilateur natif Go |
+| Lint et format | `pnpm lint`, `pnpm format` | Biome 2.5 |
+| Tests | `pnpm test` | Vitest 4 |
+| Build | `pnpm build` | `tsconfig.build.json` vers `dist/` |
+
+Deux `tsconfig` : `tsconfig.json` couvre `src`, `tests` et `vitest.config.ts` en `noEmit`, `tsconfig.build.json` n'émet que `src`.
+Sans ce découpage, l'éditeur signale `vitest/config` introuvable dans les tests.
 
 ## 🛠️ Comportement
 
