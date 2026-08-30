@@ -1,15 +1,46 @@
 import { describe, expect, it } from "vitest";
-import { decodeCursor, encodeCursor, takeWithinBudget } from "../../src/shared/pagination.js";
+import {
+  decodeCursor,
+  encodeCursor,
+  fingerprint,
+  takeWithinBudget,
+} from "../../src/shared/pagination.js";
 
 describe("cursors", () => {
   it("round-trips a cursor", () => {
-    const cursor = { position: 50, queryState: "abc123" };
+    const cursor = { position: 50, queryState: "abc123", criteriaFingerprint: "deadbeef" };
     expect(decodeCursor(encodeCursor(cursor))).toEqual(cursor);
   });
 
   it("returns undefined on a cursor that is not ours", () => {
     expect(decodeCursor("not-a-cursor")).toBeUndefined();
     expect(decodeCursor(Buffer.from('{"position":"x"}').toString("base64url"))).toBeUndefined();
+  });
+
+  it("rejects a cursor from the older shape rather than resuming without criteria", () => {
+    const older = Buffer.from(JSON.stringify({ position: 50, queryState: "abc123" })).toString(
+      "base64url",
+    );
+
+    expect(decodeCursor(older)).toBeUndefined();
+  });
+});
+
+describe("fingerprint", () => {
+  it("ignores key order, so the same criteria fingerprint the same", () => {
+    expect(fingerprint({ from: "a", subject: "b" })).toBe(fingerprint({ subject: "b", from: "a" }));
+  });
+
+  it("separates criteria that differ, including one that was dropped", () => {
+    expect(fingerprint({ from: "a", subject: "b" })).not.toBe(fingerprint({ from: "a" }));
+    expect(fingerprint({ from: "a" })).not.toBe(fingerprint({ from: "b" }));
+    expect(fingerprint(undefined)).not.toBe(fingerprint({ from: "a" }));
+  });
+
+  it("looks through arrays, where a header condition lives", () => {
+    expect(fingerprint({ header: ["Delivered-To", "a@example.com"] })).not.toBe(
+      fingerprint({ header: ["Delivered-To", "b@example.com"] }),
+    );
   });
 });
 

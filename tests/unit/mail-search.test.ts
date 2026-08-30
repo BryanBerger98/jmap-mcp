@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mailSearch } from "../../src/domains/mail/search.js";
 import type { GetResponse, QueryResponse } from "../../src/jmap/types/core.js";
 import type { Email, EmailQueryArguments } from "../../src/jmap/types/mail.js";
-import { decodeCursor, encodeCursor } from "../../src/shared/pagination.js";
+import { decodeCursor, encodeCursor, fingerprint } from "../../src/shared/pagination.js";
 import { fakeTransport, loadFixture } from "../fixtures/client.js";
 
 const query = loadFixture<QueryResponse>("email-query.json");
@@ -10,6 +10,9 @@ const envelopes = loadFixture<GetResponse<Email>>("email-get-envelope.json");
 
 /** The pair of responses a full search consumes, in call order. */
 const answers = (over: Partial<QueryResponse> = {}) => [{ ...query, ...over }, envelopes];
+
+/** What `mail_search` seals into a cursor issued for `{ text: "invoice" }`. */
+const INVOICE_CRITERIA = fingerprint({ text: "invoice" });
 
 describe("mail_search", () => {
   it("refuses an empty input before touching the network", async () => {
@@ -94,13 +97,18 @@ describe("mail_search", () => {
     expect(result.nextCursor).toBeDefined();
     const cursor = decodeCursor(result.nextCursor ?? "");
     expect(cursor?.queryState).toBe("query-state-1");
+    expect(cursor?.criteriaFingerprint).toBe(INVOICE_CRITERIA);
     expect(cursor?.position).toBeGreaterThan(0);
     expect(cursor?.position).toBeLessThan(40);
   });
 
   it("resumes at the position the cursor carries", async () => {
     const { context, requests } = fakeTransport(answers());
-    const cursor = encodeCursor({ position: 25, queryState: "query-state-1" });
+    const cursor = encodeCursor({
+      position: 25,
+      queryState: "query-state-1",
+      criteriaFingerprint: INVOICE_CRITERIA,
+    });
 
     await mailSearch.run({ text: "invoice", cursor }, context);
     const args = requests[0]?.methodCalls[0]?.[1] as EmailQueryArguments;
@@ -110,13 +118,61 @@ describe("mail_search", () => {
 
   it("refuses to page on when the query state moved, rather than serving a false page", async () => {
     const { context } = fakeTransport(answers({ queryState: "query-state-2" }));
-    const cursor = encodeCursor({ position: 25, queryState: "query-state-1" });
+    const cursor = encodeCursor({
+      position: 25,
+      queryState: "query-state-1",
+      criteriaFingerprint: INVOICE_CRITERIA,
+    });
 
     const result = await mailSearch.run({ text: "invoice", cursor }, context);
 
     expect(result.text).toMatch(/^Refused:/);
     expect(result.text).not.toContain("em-001");
     expect(result.nextCursor).toBeUndefined();
+  });
+
+  it("refuses a cursor replayed under other criteria, before touching the network", async () => {
+    const { context, requests } = fakeTransport(answers());
+    const cursor = encodeCursor({
+      position: 25,
+      queryState: "query-state-1",
+      criteriaFingerprint: INVOICE_CRITERIA,
+    });
+
+    const result = await mailSearch.run({ text: "payslip", cursor }, context);
+
+    expect(result.text).toMatch(/^Refused:/);
+    expect(result.text).toContain("other criteria");
+    expect(result.nextCursor).toBeUndefined();
+    expect(requests).toHaveLength(0);
+  });
+
+  it("refuses a cursor sent alone, rather than paging through the whole mailbox", async () => {
+    const { context, requests } = fakeTransport(answers());
+    const cursor = encodeCursor({
+      position: 25,
+      queryState: "query-state-1",
+      criteriaFingerprint: INVOICE_CRITERIA,
+    });
+
+    const result = await mailSearch.run({ cursor }, context);
+
+    expect(result.text).toMatch(/^Refused:/);
+    expect(result.nextCursor).toBeUndefined();
+    expect(requests).toHaveLength(0);
+  });
+
+  it("refuses a cursor from the older shape as unreadable, not as a fresh search", async () => {
+    const { context, requests } = fakeTransport(answers());
+    const older = Buffer.from(
+      JSON.stringify({ position: 25, queryState: "query-state-1" }),
+    ).toString("base64url");
+
+    const result = await mailSearch.run({ text: "invoice", cursor: older }, context);
+
+    expect(result.text).toContain("unreadable");
+    expect(result.nextCursor).toBeUndefined();
+    expect(requests).toHaveLength(0);
   });
 
   it("stops offering a cursor once the server returns a short page", async () => {

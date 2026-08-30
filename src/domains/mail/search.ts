@@ -12,6 +12,7 @@ import {
   DEFAULT_PAGE_SIZE,
   decodeCursor,
   encodeCursor,
+  fingerprint,
   takeWithinBudget,
 } from "../../shared/pagination.js";
 import { renderTable, truncate } from "../../shared/render.js";
@@ -62,7 +63,7 @@ const inputSchema = z.object({
   cursor: z
     .string()
     .optional()
-    .describe("Cursor from a previous page. Resend the same criteria with it."),
+    .describe("Cursor from a previous page. Resend the same criteria with it, or it is refused."),
 });
 
 export const mailSearch = defineTool({
@@ -81,6 +82,7 @@ export const mailSearch = defineTool({
   summarize: () => "Search messages in the account.",
   run: async (input, { client, session }) => {
     const filter = buildFilter(input);
+    const criteriaFingerprint = fingerprint(filter);
     const resumed = input.cursor === undefined ? undefined : decodeCursor(input.cursor);
 
     if (filter === undefined && input.cursor === undefined) {
@@ -88,6 +90,17 @@ export const mailSearch = defineTool({
     }
     if (input.cursor !== undefined && resumed === undefined) {
       return { text: "Refused: that cursor is unreadable. Run the search again from the start." };
+    }
+    // A position only means something inside the result set that produced it.
+    // Checked before the request, so criteria dropped along with the cursor
+    // never turn into a scan of the whole mailbox served under an old position.
+    if (resumed !== undefined && resumed.criteriaFingerprint !== criteriaFingerprint) {
+      return {
+        text:
+          "Refused: that cursor was issued for other criteria, so its position points into a " +
+          "different result set. Resend the criteria of the first page with it, or search again " +
+          "from the start.",
+      };
     }
 
     const limit = input.limit ?? DEFAULT_PAGE_SIZE;
@@ -152,7 +165,11 @@ export const mailSearch = defineTool({
 
     return {
       text,
-      nextCursor: encodeCursor({ position: position + taken.length, queryState: query.queryState }),
+      nextCursor: encodeCursor({
+        position: position + taken.length,
+        queryState: query.queryState,
+        criteriaFingerprint,
+      }),
     };
   },
 });
