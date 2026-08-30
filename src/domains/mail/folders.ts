@@ -6,15 +6,7 @@ import { defineTool } from "../../registry/define-tool.js";
 import { renderTable } from "../../shared/render.js";
 
 /** Explicit, so the server does not hand back properties nothing renders. */
-const PROPERTIES = [
-  "id",
-  "name",
-  "parentId",
-  "role",
-  "sortOrder",
-  "totalEmails",
-  "unreadEmails",
-] as const;
+const PROPERTIES = ["id", "name", "parentId", "role", "totalEmails", "unreadEmails"] as const;
 
 const inputSchema = z.object({
   includeEmpty: z
