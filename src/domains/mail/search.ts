@@ -142,8 +142,12 @@ export const mailSearch = defineTool({
     const table = renderTable(taken.map(toRow), ["received", "from", "subject", "id"]);
     const text = `${header}\n\n${table}`;
 
-    // More on this page, or a full page that may have more behind it.
-    const exhausted = remaining === 0 && query.ids.length < limit;
+    // A short page ends the run, and so does a full page that lands exactly on
+    // the total: without that second test, the last page still hands back a
+    // cursor and the client spends a round trip to be told the set is empty.
+    // `total` is optional in the response, so it can only ever stop earlier.
+    const reachedTotal = query.total !== undefined && position + taken.length >= query.total;
+    const exhausted = remaining === 0 && (query.ids.length < limit || reachedTotal);
     if (exhausted) return { text };
 
     return {

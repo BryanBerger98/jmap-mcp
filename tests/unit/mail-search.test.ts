@@ -128,4 +128,14 @@ describe("mail_search", () => {
     expect(result.nextCursor).toBeUndefined();
     expect(result.text).toContain("3 message(s) match, 3 shown");
   });
+
+  it("stops on a full page that lands exactly on the total, rather than paging into nothing", async () => {
+    const full = { ...query, ids: query.ids.slice(0, 3), total: 3 };
+    const { context } = fakeTransport([full, envelopes]);
+
+    const result = await mailSearch.run({ text: "invoice", limit: 3 }, context);
+
+    expect(result.nextCursor).toBeUndefined();
+    expect(result.text).toContain("3 message(s) match, 3 shown");
+  });
 });
