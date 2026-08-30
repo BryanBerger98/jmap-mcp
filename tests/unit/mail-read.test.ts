@@ -81,6 +81,26 @@ describe("mail_read rendering", () => {
     expect(blockOf(text, "em-100")).not.toContain("body cut at");
   });
 
+  it("calls the ceiling fixed when the cut happened at the maximum", async () => {
+    const { context } = fakeTransport([withText]);
+
+    const { text } = await mailRead.run({ ids: ["em-101"] }, context);
+    const block = blockOf(text, "em-101");
+
+    expect(block).toContain("that ceiling is fixed");
+    expect(block).not.toContain("raising maxBodyBytes");
+  });
+
+  it("invites raising maxBodyBytes only when the cut happened below the maximum", async () => {
+    const { context } = fakeTransport([withText]);
+
+    const { text } = await mailRead.run({ ids: ["em-101"], maxBodyBytes: 500 }, context);
+    const block = blockOf(text, "em-101");
+
+    expect(block).toContain("body cut at 500 bytes");
+    expect(block).toContain(`raising maxBodyBytes, up to ${MAX_BODY_VALUE_BYTES}`);
+  });
+
   it("separates messages by a visible rule, each under its id", async () => {
     const { context } = fakeTransport([withText]);
 

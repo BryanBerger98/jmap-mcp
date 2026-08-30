@@ -117,15 +117,23 @@ function renderMessage(email: Email, maxBytes: number): string {
   });
 
   const body = bodyOf(email);
-  const notes = [
-    body.note,
-    body.isTruncated
-      ? `body cut at ${maxBytes} bytes; ask for the rest by raising maxBodyBytes`
-      : undefined,
-  ].filter((note): note is string => note !== undefined);
+  const notes = [body.note, body.isTruncated ? truncationNote(maxBytes) : undefined].filter(
+    (note): note is string => note !== undefined,
+  );
 
   const footer = notes.length > 0 ? `\n\n[${notes.join(" — ")}]` : "";
   return `${header}\n\n${body.text}${footer}`;
+}
+
+/**
+ * `maxBodyBytes` only lowers the ceiling, so inviting the caller to raise it is
+ * only sound below the ceiling. At the ceiling the same advice buys a zod
+ * rejection and a wasted round trip.
+ */
+function truncationNote(maxBytes: number): string {
+  return maxBytes < MAX_BODY_VALUE_BYTES
+    ? `body cut at ${maxBytes} bytes; ask for the rest by raising maxBodyBytes, up to ${MAX_BODY_VALUE_BYTES}`
+    : `body cut at ${maxBytes} bytes; that ceiling is fixed, the rest of the body is out of this tool's reach`;
 }
 
 interface RenderedBody {
