@@ -131,7 +131,7 @@ export const mailSearch = defineTool({
       };
     }
 
-    const emails = inQueryOrder(query.ids, fetched.list);
+    const emails = inRequestedOrder(query.ids, fetched.list);
     const { taken, remaining } = takeWithinBudget(emails, renderRow, RESULT_BUDGET_CHARS);
 
     const header =
@@ -175,8 +175,12 @@ function buildFilter(input: z.infer<typeof inputSchema>): EmailFilterCondition |
   return Object.keys(filter).length > 0 ? filter : undefined;
 }
 
-/** `Email/get` does not promise the order of `ids`; the query does. */
-function inQueryOrder(ids: Id[], list: Email[]): Email[] {
+/**
+ * `Email/get` does not promise to answer in the order of the `ids` it was given,
+ * so every caller that has an order worth keeping — a query's ranking here, the
+ * caller's own list in `mail_read` — has to restore it from the ids.
+ */
+export function inRequestedOrder(ids: Id[], list: Email[]): Email[] {
   const byId = new Map(list.map((email) => [email.id, email]));
   return ids.map((id) => byId.get(id)).filter((email): email is Email => email !== undefined);
 }

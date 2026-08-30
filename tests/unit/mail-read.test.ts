@@ -110,6 +110,16 @@ describe("mail_read rendering", () => {
     expect(text.indexOf("id: em-100")).toBeLessThan(text.indexOf("id: em-101"));
   });
 
+  it("renders in the order the ids were asked for, not the order the server answered", async () => {
+    const { context } = fakeTransport([withText]);
+
+    // The fixture lists em-100 first, so asking in reverse is the only way this
+    // assertion can tell an ordering from an accident.
+    const { text } = await mailRead.run({ ids: ["em-101", "em-100"] }, context);
+
+    expect(text.indexOf("id: em-101")).toBeLessThan(text.indexOf("id: em-100"));
+  });
+
   it("degrades an HTML-only message to readable text, never to markup", async () => {
     const { context } = fakeTransport([withoutText]);
 

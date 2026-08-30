@@ -10,6 +10,7 @@ import type {
 } from "../../jmap/types/mail.js";
 import { defineTool } from "../../registry/define-tool.js";
 import { htmlToText, renderFields } from "../../shared/render.js";
+import { inRequestedOrder } from "./search.js";
 
 /**
  * The ceiling on one body, in bytes.
@@ -95,7 +96,10 @@ export const mailRead = defineTool({
       ["Email/get", args, "0"],
     );
 
-    const blocks = response.list.map((email) => renderMessage(email, maxBodyValueBytes));
+    // The caller's order carries intent; the server's answer order carries none.
+    const blocks = inRequestedOrder(input.ids, response.list).map((email) =>
+      renderMessage(email, maxBodyValueBytes),
+    );
 
     if (response.notFound.length > 0) {
       blocks.push(`Not found: ${response.notFound.join(", ")}`);
