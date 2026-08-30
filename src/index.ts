@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { loadConfig } from "./config/load.js";
+import { describeStartupFailure } from "./jmap/errors.js";
 import { buildServer } from "./server.js";
 
 async function main(): Promise<void> {
@@ -20,7 +21,8 @@ async function main(): Promise<void> {
   });
 }
 
+// A partial startup does not exist: without a session there is nothing to serve.
 main().catch((error: unknown) => {
-  console.error(`jmap-mcp: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`jmap-mcp: ${describeStartupFailure(error)}`);
   process.exit(1);
 });

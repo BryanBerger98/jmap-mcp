@@ -4,6 +4,7 @@ import { ALL_DOMAINS } from "./domains/index.js";
 import { JmapClient } from "./jmap/client.js";
 import { discoverSession } from "./jmap/session.js";
 import { type ComposeReport, compose } from "./registry/compose.js";
+import { buildInstructions } from "./registry/instructions.js";
 
 export const SERVER_NAME = "jmap-mcp";
 export const SERVER_VERSION = "0.1.0";
@@ -22,9 +23,11 @@ export async function buildServer(
     bearerToken: config.bearerToken,
   });
 
+  // Instructions ride the initialization response, so the client learns which
+  // mailbox it is on without listing or calling a tool.
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
-    { capabilities: { tools: {} } },
+    { capabilities: { tools: {} }, instructions: buildInstructions(session) },
   );
 
   const report = compose({

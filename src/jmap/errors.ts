@@ -45,3 +45,23 @@ export class PolicyError extends Error {
 export function problemToError(problem: JmapProblem): JmapError {
   return new JmapError(problem.type, problem.detail ?? problem.type, problem.status);
 }
+
+/**
+ * Turns a failed startup into a line naming what to fix.
+ *
+ * The server dies on stderr before any client ever sees it, so the message has
+ * to point at the setting to correct — never at a stack trace.
+ */
+export function describeStartupFailure(error: unknown): string {
+  if (error instanceof JmapError && (error.status === 401 || error.status === 403)) {
+    return "The JMAP server refused the credentials. Check `bearerToken`: it may be expired, mistyped, or without access to this account.";
+  }
+
+  // `fetch` reports every transport failure as a TypeError: DNS, TLS, refused
+  // connection. None of them are worth surfacing verbatim.
+  if (error instanceof TypeError) {
+    return "The JMAP server could not be reached. Check `sessionUrl` and that the host answers from this machine.";
+  }
+
+  return error instanceof Error ? error.message : String(error);
+}

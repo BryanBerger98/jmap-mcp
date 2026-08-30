@@ -1,0 +1,49 @@
+{
+  "capabilities": {
+    "urn:ietf:params:jmap:core": {
+      "maxSizeUpload": 52428800,
+      "maxConcurrentUpload": 4,
+      "maxSizeRequest": 10485760,
+      "maxConcurrentRequests": 4,
+      "maxCallsInRequest": 16,
+      "maxObjectsInGet": 500,
+      "maxObjectsInSet": 500,
+      "collationAlgorithms": ["i;ascii-numeric", "i;ascii-casemap", "i;unicode-casemap"]
+    },
+    "urn:ietf:params:jmap:mail": {},
+    "urn:ietf:params:jmap:submission": {
+      "maxDelayedSend": 86400,
+      "submissionExtensions": {}
+    },
+    "urn:stalwart:jmap": {}
+  },
+  "accounts": {
+    "acc-1": {
+      "name": "Bryan Berger",
+      "isPersonal": true,
+      "isReadOnly": false,
+      "accountCapabilities": {
+        "urn:ietf:params:jmap:mail": {
+          "maxMailboxesPerEmail": null,
+          "maxMailboxDepth": null,
+          "maxSizeMailboxName": 255,
+          "maxSizeAttachmentsPerEmail": 52428800,
+          "emailQuerySortOptions": ["receivedAt", "size", "from", "to", "subject", "sentAt"],
+          "mayCreateTopLevelMailbox": true
+        },
+        "urn:ietf:params:jmap:submission": {}
+      }
+    }
+  },
+  "primaryAccounts": {
+    "urn:ietf:params:jmap:core": "acc-1",
+    "urn:ietf:params:jmap:mail": "acc-1",
+    "urn:ietf:params:jmap:submission": "acc-1"
+  },
+  "username": "bryan@example.com",
+  "apiUrl": "https://mail.example.com/jmap/",
+  "downloadUrl": "https://mail.example.com/jmap/download/{accountId}/{blobId}/{name}?accept={type}",
+  "uploadUrl": "https://mail.example.com/jmap/upload/{accountId}/",
+  "eventSourceUrl": "https://mail.example.com/jmap/eventsource/",
+  "state": "session-state-1"
+}
