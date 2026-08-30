@@ -50,18 +50,48 @@ export interface EmailAddress {
   email: string;
 }
 
-/** A message, cut down to the envelope properties the read tools render. */
+/** A decoded body, already cut to `maxBodyValueBytes` by the server. */
+export interface EmailBodyValue {
+  value: string;
+  isEncodingProblem: boolean;
+  isTruncated: boolean;
+}
+
+/** One part of a message body. `partId` keys into `Email.bodyValues`. */
+export interface EmailBodyPart {
+  partId: string | null;
+  blobId: Id | null;
+  type: string;
+  charset: string | null;
+  size: number;
+  name: string | null;
+}
+
+/**
+ * A message.
+ *
+ * Which properties come back is decided by the `properties` the caller asked
+ * for, so anything only `mail_read` requests is optional here: the envelope a
+ * search renders never carries a body.
+ */
 export interface Email {
   id: Id;
   threadId: Id;
-  mailboxIds: Record<Id, boolean>;
   from: EmailAddress[] | null;
   to: EmailAddress[] | null;
   subject: string | null;
   receivedAt: string;
-  preview: string;
   hasAttachment: boolean;
   size: number;
+  mailboxIds?: Record<Id, boolean>;
+  preview?: string;
+  cc?: EmailAddress[] | null;
+  bcc?: EmailAddress[] | null;
+  replyTo?: EmailAddress[] | null;
+  sentAt?: string | null;
+  textBody?: EmailBodyPart[];
+  htmlBody?: EmailBodyPart[];
+  bodyValues?: Record<string, EmailBodyValue>;
 }
 
 /**
@@ -90,4 +120,15 @@ export type EmailQueryArguments = {
   position?: number;
   limit?: number;
   calculateTotal?: boolean;
+};
+
+export type EmailGetArguments = {
+  accountId: Id;
+  ids: Id[];
+  /** Omitting this makes Stalwart pull `bodyStructure` and every body value. */
+  properties?: string[];
+  bodyProperties?: string[];
+  fetchTextBodyValues?: boolean;
+  fetchHTMLBodyValues?: boolean;
+  maxBodyValueBytes?: number;
 };

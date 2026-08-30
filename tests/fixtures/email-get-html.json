@@ -1,0 +1,58 @@
+{
+  "accountId": "acc-1",
+  "state": "email-state-1",
+  "list": [
+    {
+      "id": "em-200",
+      "threadId": "th-200",
+      "from": [{ "name": "Stalwart Labs", "email": "announce@stalw.art" }],
+      "to": [{ "name": "Bryan Berger", "email": "bryan@example.com" }],
+      "cc": null,
+      "bcc": null,
+      "replyTo": null,
+      "subject": "Release v0.16.19 is out",
+      "sentAt": "2026-08-24T09:30:00Z",
+      "receivedAt": "2026-08-24T09:30:22Z",
+      "hasAttachment": false,
+      "size": 28400,
+      "preview": "Release v0.16.19 is out, with a long list of protocol fixes.",
+      "textBody": [],
+      "htmlBody": [
+        {
+          "partId": "1",
+          "blobId": "blob-200-1",
+          "type": "text/html",
+          "charset": "utf-8",
+          "size": 2140,
+          "name": null
+        }
+      ],
+      "bodyValues": {
+        "1": {
+          "value": "<html><head><style>.wrap{color:#333}</style></head><body><div class=\"wrap\"><h1>Release v0.16.19</h1><p>This release fixes <b>protocol</b> handling in JMAP &amp; JMAP over WebSocket.</p><ul><li>Mailbox/query ordering</li><li>Email/get body values</li></ul><p>Read the <a href=\"https://stalw.art/changelog\">changelog</a>.</p></div></body></html>",
+          "isEncodingProblem": false,
+          "isTruncated": false
+        }
+      }
+    },
+    {
+      "id": "em-201",
+      "threadId": "th-201",
+      "from": [{ "name": null, "email": "billing@hosting.example.net" }],
+      "to": [{ "name": "Bryan Berger", "email": "bryan@example.com" }],
+      "cc": null,
+      "bcc": null,
+      "replyTo": null,
+      "subject": "Your invoice for August 2026",
+      "sentAt": "2026-08-01T06:00:00Z",
+      "receivedAt": "2026-08-01T06:00:31Z",
+      "hasAttachment": true,
+      "size": 156200,
+      "preview": "Your invoice for August 2026 is available in your account.",
+      "textBody": [],
+      "htmlBody": [],
+      "bodyValues": {}
+    }
+  ],
+  "notFound": ["em-999"]
+}

@@ -1,0 +1,73 @@
+{
+  "accountId": "acc-1",
+  "state": "email-state-1",
+  "list": [
+    {
+      "id": "em-100",
+      "threadId": "th-100",
+      "from": [{ "name": "Julie Marchand", "email": "julie.marchand@example.org" }],
+      "to": [{ "name": "Bryan Berger", "email": "bryan@example.com" }],
+      "cc": [{ "name": null, "email": "equipe@example.org" }],
+      "bcc": null,
+      "replyTo": null,
+      "subject": "Retour sur le second entretien",
+      "sentAt": "2026-08-27T18:02:11Z",
+      "receivedAt": "2026-08-27T18:02:44Z",
+      "hasAttachment": false,
+      "size": 4180,
+      "preview": "Bonjour Bryan, merci pour votre disponibilité hier.",
+      "textBody": [
+        {
+          "partId": "1",
+          "blobId": "blob-100-1",
+          "type": "text/plain",
+          "charset": "utf-8",
+          "size": 214,
+          "name": null
+        }
+      ],
+      "htmlBody": [],
+      "bodyValues": {
+        "1": {
+          "value": "Bonjour Bryan,\n\nMerci pour votre disponibilité hier. Nous revenons vers vous en début de semaine prochaine.\n\nBien à vous,\nJulie",
+          "isEncodingProblem": false,
+          "isTruncated": false
+        }
+      }
+    },
+    {
+      "id": "em-101",
+      "threadId": "th-101",
+      "from": [{ "name": "The Pragmatic Engineer", "email": "newsletter@pragmaticengineer.com" }],
+      "to": [{ "name": "Bryan Berger", "email": "bryan@example.com" }],
+      "cc": null,
+      "bcc": null,
+      "replyTo": null,
+      "subject": "Weekly digest: what shipped in the JMAP ecosystem",
+      "sentAt": "2026-08-26T07:00:00Z",
+      "receivedAt": "2026-08-26T07:01:09Z",
+      "hasAttachment": true,
+      "size": 91240,
+      "preview": "This week: JMAP calendars reach draft 28, and Stalwart ships v0.16.19.",
+      "textBody": [
+        {
+          "partId": "2",
+          "blobId": "blob-101-2",
+          "type": "text/plain",
+          "charset": "utf-8",
+          "size": 84120,
+          "name": null
+        }
+      ],
+      "htmlBody": [],
+      "bodyValues": {
+        "2": {
+          "value": "This week in the JMAP ecosystem.\n\nCalendars reached draft 28 and the delta is additive, so existing clients keep working. Stalwart shipped v0.16.19 with a long list of protocol fixes, including",
+          "isEncodingProblem": false,
+          "isTruncated": true
+        }
+      }
+    }
+  ],
+  "notFound": []
+}
