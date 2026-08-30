@@ -1,6 +1,6 @@
 ---
 objective: "Un assistant branché sur jmap-mcp cherche, lit et situe les mails d'un compte Stalwart, sans qu'aucun outil d'écriture ne soit exposé."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Lire son courrier depuis l'assistant
