@@ -1,5 +1,5 @@
 import { JmapError } from "./errors.js";
-import { CAPABILITY_CORE, type Id, type Session } from "./types/core.js";
+import { type Account, CAPABILITY_CORE, type Id, type Session } from "./types/core.js";
 
 /**
  * The discovered session. It answers two questions the registry needs before
@@ -20,6 +20,25 @@ export class JmapSession {
   accountHas(capability: string): boolean {
     const account = this.raw.accounts[this.accountId];
     return account !== undefined && capability in account.accountCapabilities;
+  }
+
+  /** The account every tool acts on. Absent means the session was built on a bad id. */
+  get account(): Account {
+    const account = this.raw.accounts[this.accountId];
+    if (account === undefined) {
+      throw new JmapError("about:blank", `Account ${this.accountId} is not in this JMAP session`);
+    }
+    return account;
+  }
+
+  /** The login the session was opened with, not the account name. */
+  get username(): string {
+    return this.raw.username;
+  }
+
+  /** Session-level capability URIs, sorted so the rendering is stable. */
+  capabilities(): string[] {
+    return Object.keys(this.raw.capabilities).sort();
   }
 
   get apiUrl(): string {

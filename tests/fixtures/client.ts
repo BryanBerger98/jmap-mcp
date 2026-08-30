@@ -1,0 +1,56 @@
+import { readFileSync } from "node:fs";
+import { JmapClient } from "../../src/jmap/client.js";
+import { JmapSession } from "../../src/jmap/session.js";
+import type { JmapRequest, JmapResponse, Session } from "../../src/jmap/types/core.js";
+import type { ToolContext } from "../../src/registry/define-tool.js";
+
+/**
+ * A JMAP transport backed by the fixtures on disk.
+ *
+ * No test opens a socket, and every emitted request is kept so a test can
+ * assert on the arguments a tool sent, not only on what it rendered.
+ */
+
+const API_URL = "https://mail.example.com/jmap/";
+
+export function loadFixture<T>(name: string): T {
+  return JSON.parse(readFileSync(new URL(`./${name}`, import.meta.url), "utf8")) as T;
+}
+
+export function fixtureSession(accountId = "acc-1"): JmapSession {
+  return new JmapSession(loadFixture<Session>("session.json"), accountId);
+}
+
+export interface FakeTransport {
+  context: ToolContext;
+  /** Every JMAP request body sent, in order. Its length is the round-trip count. */
+  requests: JmapRequest[];
+}
+
+/**
+ * Builds a tool context whose client answers with `results`, one per method
+ * call in the request, in the order the calls were made.
+ */
+export function fakeTransport(results: unknown[]): FakeTransport {
+  const requests: JmapRequest[] = [];
+
+  const fetchImpl = (async (_url: string, init: { body: string }) => {
+    const request = JSON.parse(init.body) as JmapRequest;
+    requests.push(request);
+
+    const body: JmapResponse = {
+      methodResponses: request.methodCalls.map(([name, , callId], index) => [
+        name,
+        (results[index] ?? {}) as Record<string, unknown>,
+        callId,
+      ]),
+      sessionState: "session-state-1",
+    };
+
+    return new Response(JSON.stringify(body), { status: 200 });
+  }) as unknown as typeof fetch;
+
+  const client = new JmapClient({ apiUrl: API_URL, bearerToken: "a-token", fetchImpl });
+
+  return { context: { client, session: fixtureSession() }, requests };
+}

@@ -38,6 +38,37 @@ export function truncate(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 }
 
+/**
+ * Degrades an HTML body to readable text.
+ *
+ * Deliberately naive, and deliberately dependency-free: the goal is a message
+ * a reader can follow, not a faithful rendering. Blocks that carry no prose are
+ * dropped whole, block-level tags become line breaks, the rest is stripped.
+ */
+export function htmlToText(html: string): string {
+  return (
+    html
+      .replace(/<(script|style|head)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<li\b[^>]*>/gi, "\n- ")
+      .replace(/<\/(p|div|tr|li|h[1-6]|blockquote|table|ul|ol)>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#0?39;|&apos;/gi, "'")
+      // Ampersands last: decoding them first would re-interpret `&amp;lt;`.
+      .replace(/&amp;/gi, "&")
+      .split("\n")
+      .map((line) => line.replace(/[ \t]+/g, " ").trim())
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+  );
+}
+
 function stringify(value: unknown): string {
   if (value === undefined || value === null) return "";
   if (typeof value === "string") return value;

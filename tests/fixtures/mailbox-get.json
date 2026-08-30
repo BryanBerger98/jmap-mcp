@@ -1,0 +1,52 @@
+{
+  "accountId": "acc-1",
+  "state": "mailbox-state-1",
+  "list": [
+    {
+      "id": "mb-inbox",
+      "name": "Inbox",
+      "parentId": null,
+      "role": "inbox",
+      "sortOrder": 0,
+      "totalEmails": 128,
+      "unreadEmails": 7
+    },
+    {
+      "id": "mb-archive",
+      "name": "Archive",
+      "parentId": null,
+      "role": "archive",
+      "sortOrder": 10,
+      "totalEmails": 4210,
+      "unreadEmails": 0
+    },
+    {
+      "id": "mb-newsletters",
+      "name": "Newsletters",
+      "parentId": "mb-archive",
+      "role": null,
+      "sortOrder": 20,
+      "totalEmails": 312,
+      "unreadEmails": 41
+    },
+    {
+      "id": "mb-2024",
+      "name": "2024",
+      "parentId": "mb-newsletters",
+      "role": null,
+      "sortOrder": 30,
+      "totalEmails": 0,
+      "unreadEmails": 0
+    },
+    {
+      "id": "mb-orphan",
+      "name": "Detached",
+      "parentId": "mb-vanished",
+      "role": null,
+      "sortOrder": 40,
+      "totalEmails": 3,
+      "unreadEmails": 1
+    }
+  ],
+  "notFound": []
+}
