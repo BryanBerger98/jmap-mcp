@@ -1,0 +1,131 @@
+import { describe, expect, it } from "vitest";
+import { mailSearch } from "../../src/domains/mail/search.js";
+import type { GetResponse, QueryResponse } from "../../src/jmap/types/core.js";
+import type { Email, EmailQueryArguments } from "../../src/jmap/types/mail.js";
+import { decodeCursor, encodeCursor } from "../../src/shared/pagination.js";
+import { fakeTransport, loadFixture } from "../fixtures/client.js";
+
+const query = loadFixture<QueryResponse>("email-query.json");
+const envelopes = loadFixture<GetResponse<Email>>("email-get-envelope.json");
+
+/** The pair of responses a full search consumes, in call order. */
+const answers = (over: Partial<QueryResponse> = {}) => [{ ...query, ...over }, envelopes];
+
+describe("mail_search", () => {
+  it("refuses an empty input before touching the network", async () => {
+    const { context, requests } = fakeTransport(answers());
+
+    const { text } = await mailSearch.run({}, context);
+
+    expect(text).toMatch(/^Refused:/);
+    expect(requests).toHaveLength(0);
+  });
+
+  it("refuses an unreadable cursor before touching the network", async () => {
+    const { context, requests } = fakeTransport(answers());
+
+    const { text } = await mailSearch.run({ cursor: "not-a-cursor" }, context);
+
+    expect(text).toMatch(/^Refused:/);
+    expect(requests).toHaveLength(0);
+  });
+
+  it("spends exactly one round trip whatever the result count", async () => {
+    const { context, requests } = fakeTransport(answers());
+
+    await mailSearch.run({ from: "stalw.art" }, context);
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.methodCalls.map(([name]) => name)).toEqual(["Email/query", "Email/get"]);
+  });
+
+  it("feeds Email/get from the query through a back-reference, with explicit properties", async () => {
+    const { context, requests } = fakeTransport(answers());
+
+    await mailSearch.run({ from: "stalw.art" }, context);
+    const getArguments = requests[0]?.methodCalls[1]?.[1];
+
+    expect(getArguments?.["#ids"]).toEqual({
+      resultOf: "0",
+      name: "Email/query",
+      path: "/ids",
+    });
+    expect(getArguments?.properties).toContain("receivedAt");
+    expect(getArguments?.properties).not.toContain("bodyStructure");
+  });
+
+  it("always sends a limit, a total request, and the newest-first sort", async () => {
+    const { context, requests } = fakeTransport(answers());
+
+    await mailSearch.run({ from: "stalw.art" }, context);
+    const args = requests[0]?.methodCalls[0]?.[1] as EmailQueryArguments;
+
+    expect(args.limit).toBe(25);
+    expect(args.calculateTotal).toBe(true);
+    expect(args.sort).toEqual([{ property: "receivedAt", isAscending: false }]);
+  });
+
+  it("turns deliveredTo into a Delivered-To header condition, never into `to`", async () => {
+    const { context, requests } = fakeTransport(answers());
+
+    await mailSearch.run({ deliveredTo: "shop@example.com" }, context);
+    const args = requests[0]?.methodCalls[0]?.[1] as EmailQueryArguments;
+
+    expect(args.filter).toEqual({ header: ["Delivered-To", "shop@example.com"] });
+    expect(args.filter?.to).toBeUndefined();
+  });
+
+  it("renders date, sender and subject, and says how many of the total are shown", async () => {
+    const { context } = fakeTransport(answers());
+
+    const { text } = await mailSearch.run({ text: "invoice", limit: 100 }, context);
+
+    expect(text).toContain("137 message(s) match");
+    expect(text).toContain("2026-08-28 00:15");
+    expect(text).toContain("Stalwart Labs");
+    expect(text).toContain("em-001");
+  });
+
+  it("hands back a cursor when the budget cuts the page short", async () => {
+    const { context } = fakeTransport(answers());
+
+    const result = await mailSearch.run({ text: "invoice", limit: 100 }, context);
+
+    expect(result.nextCursor).toBeDefined();
+    const cursor = decodeCursor(result.nextCursor ?? "");
+    expect(cursor?.queryState).toBe("query-state-1");
+    expect(cursor?.position).toBeGreaterThan(0);
+    expect(cursor?.position).toBeLessThan(40);
+  });
+
+  it("resumes at the position the cursor carries", async () => {
+    const { context, requests } = fakeTransport(answers());
+    const cursor = encodeCursor({ position: 25, queryState: "query-state-1" });
+
+    await mailSearch.run({ text: "invoice", cursor }, context);
+    const args = requests[0]?.methodCalls[0]?.[1] as EmailQueryArguments;
+
+    expect(args.position).toBe(25);
+  });
+
+  it("refuses to page on when the query state moved, rather than serving a false page", async () => {
+    const { context } = fakeTransport(answers({ queryState: "query-state-2" }));
+    const cursor = encodeCursor({ position: 25, queryState: "query-state-1" });
+
+    const result = await mailSearch.run({ text: "invoice", cursor }, context);
+
+    expect(result.text).toMatch(/^Refused:/);
+    expect(result.text).not.toContain("em-001");
+    expect(result.nextCursor).toBeUndefined();
+  });
+
+  it("stops offering a cursor once the server returns a short page", async () => {
+    const short = { ...query, ids: query.ids.slice(0, 3), total: 3 };
+    const { context } = fakeTransport([short, envelopes]);
+
+    const result = await mailSearch.run({ text: "invoice" }, context);
+
+    expect(result.nextCursor).toBeUndefined();
+    expect(result.text).toContain("3 message(s) match, 3 shown");
+  });
+});

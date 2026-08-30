@@ -1,0 +1,807 @@
+{
+  "accountId": "acc-1",
+  "state": "email-state-1",
+  "list": [
+    {
+      "id": "em-001",
+      "threadId": "th-001",
+      "from": [
+        {
+          "name": "The Pragmatic Engineer",
+          "email": "newsletter@pragmaticengineer.com"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Weekly digest: what shipped in the JMAP ecosystem this week",
+      "receivedAt": "2026-08-28T00:15:00Z",
+      "hasAttachment": true,
+      "size": 12000
+    },
+    {
+      "id": "em-002",
+      "threadId": "th-002",
+      "from": [
+        {
+          "name": "Stalwart Labs",
+          "email": "announce@stalw.art"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Your invoice for August 2026 is available in your account",
+      "receivedAt": "2026-08-27T01:15:00Z",
+      "hasAttachment": false,
+      "size": 12137
+    },
+    {
+      "id": "em-003",
+      "threadId": "th-003",
+      "from": [
+        {
+          "name": null,
+          "email": "billing@hosting.example.net"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Re: dossier de candidature, retour sur le second entretien",
+      "receivedAt": "2026-08-26T02:15:00Z",
+      "hasAttachment": false,
+      "size": 12274
+    },
+    {
+      "id": "em-004",
+      "threadId": "th-004",
+      "from": [
+        {
+          "name": "Julie Marchand",
+          "email": "julie.marchand@example.org"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Release v0.16.19 is out, with a long list of protocol fixes",
+      "receivedAt": "2026-08-25T03:15:00Z",
+      "hasAttachment": false,
+      "size": 12411
+    },
+    {
+      "id": "em-005",
+      "threadId": "th-005",
+      "from": [
+        {
+          "name": "The Pragmatic Engineer",
+          "email": "newsletter@pragmaticengineer.com"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Reminder: your subscription renews in seven days",
+      "receivedAt": "2026-08-24T04:15:00Z",
+      "hasAttachment": false,
+      "size": 12548
+    },
+    {
+      "id": "em-006",
+      "threadId": "th-006",
+      "from": [
+        {
+          "name": "Stalwart Labs",
+          "email": "announce@stalw.art"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Weekly digest: what shipped in the JMAP ecosystem this week",
+      "receivedAt": "2026-08-23T05:15:00Z",
+      "hasAttachment": false,
+      "size": 12685
+    },
+    {
+      "id": "em-007",
+      "threadId": "th-007",
+      "from": [
+        {
+          "name": null,
+          "email": "billing@hosting.example.net"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Your invoice for August 2026 is available in your account",
+      "receivedAt": "2026-08-22T06:15:00Z",
+      "hasAttachment": false,
+      "size": 12822
+    },
+    {
+      "id": "em-008",
+      "threadId": "th-008",
+      "from": [
+        {
+          "name": "Julie Marchand",
+          "email": "julie.marchand@example.org"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Re: dossier de candidature, retour sur le second entretien",
+      "receivedAt": "2026-08-21T07:15:00Z",
+      "hasAttachment": true,
+      "size": 12959
+    },
+    {
+      "id": "em-009",
+      "threadId": "th-009",
+      "from": [
+        {
+          "name": "The Pragmatic Engineer",
+          "email": "newsletter@pragmaticengineer.com"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Release v0.16.19 is out, with a long list of protocol fixes",
+      "receivedAt": "2026-08-20T08:15:00Z",
+      "hasAttachment": false,
+      "size": 13096
+    },
+    {
+      "id": "em-010",
+      "threadId": "th-010",
+      "from": [
+        {
+          "name": "Stalwart Labs",
+          "email": "announce@stalw.art"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Reminder: your subscription renews in seven days",
+      "receivedAt": "2026-08-19T09:15:00Z",
+      "hasAttachment": false,
+      "size": 13233
+    },
+    {
+      "id": "em-011",
+      "threadId": "th-011",
+      "from": [
+        {
+          "name": null,
+          "email": "billing@hosting.example.net"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Weekly digest: what shipped in the JMAP ecosystem this week",
+      "receivedAt": "2026-08-18T00:15:00Z",
+      "hasAttachment": false,
+      "size": 13370
+    },
+    {
+      "id": "em-012",
+      "threadId": "th-012",
+      "from": [
+        {
+          "name": "Julie Marchand",
+          "email": "julie.marchand@example.org"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Your invoice for August 2026 is available in your account",
+      "receivedAt": "2026-08-17T01:15:00Z",
+      "hasAttachment": false,
+      "size": 13507
+    },
+    {
+      "id": "em-013",
+      "threadId": "th-013",
+      "from": [
+        {
+          "name": "The Pragmatic Engineer",
+          "email": "newsletter@pragmaticengineer.com"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Re: dossier de candidature, retour sur le second entretien",
+      "receivedAt": "2026-08-16T02:15:00Z",
+      "hasAttachment": false,
+      "size": 13644
+    },
+    {
+      "id": "em-014",
+      "threadId": "th-014",
+      "from": [
+        {
+          "name": "Stalwart Labs",
+          "email": "announce@stalw.art"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Release v0.16.19 is out, with a long list of protocol fixes",
+      "receivedAt": "2026-08-15T03:15:00Z",
+      "hasAttachment": false,
+      "size": 13781
+    },
+    {
+      "id": "em-015",
+      "threadId": "th-015",
+      "from": [
+        {
+          "name": null,
+          "email": "billing@hosting.example.net"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Reminder: your subscription renews in seven days",
+      "receivedAt": "2026-08-14T04:15:00Z",
+      "hasAttachment": true,
+      "size": 13918
+    },
+    {
+      "id": "em-016",
+      "threadId": "th-016",
+      "from": [
+        {
+          "name": "Julie Marchand",
+          "email": "julie.marchand@example.org"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Weekly digest: what shipped in the JMAP ecosystem this week",
+      "receivedAt": "2026-08-13T05:15:00Z",
+      "hasAttachment": false,
+      "size": 14055
+    },
+    {
+      "id": "em-017",
+      "threadId": "th-017",
+      "from": [
+        {
+          "name": "The Pragmatic Engineer",
+          "email": "newsletter@pragmaticengineer.com"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Your invoice for August 2026 is available in your account",
+      "receivedAt": "2026-08-12T06:15:00Z",
+      "hasAttachment": false,
+      "size": 14192
+    },
+    {
+      "id": "em-018",
+      "threadId": "th-018",
+      "from": [
+        {
+          "name": "Stalwart Labs",
+          "email": "announce@stalw.art"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Re: dossier de candidature, retour sur le second entretien",
+      "receivedAt": "2026-08-11T07:15:00Z",
+      "hasAttachment": false,
+      "size": 14329
+    },
+    {
+      "id": "em-019",
+      "threadId": "th-019",
+      "from": [
+        {
+          "name": null,
+          "email": "billing@hosting.example.net"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Release v0.16.19 is out, with a long list of protocol fixes",
+      "receivedAt": "2026-08-10T08:15:00Z",
+      "hasAttachment": false,
+      "size": 14466
+    },
+    {
+      "id": "em-020",
+      "threadId": "th-020",
+      "from": [
+        {
+          "name": "Julie Marchand",
+          "email": "julie.marchand@example.org"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Reminder: your subscription renews in seven days",
+      "receivedAt": "2026-08-09T09:15:00Z",
+      "hasAttachment": false,
+      "size": 14603
+    },
+    {
+      "id": "em-021",
+      "threadId": "th-021",
+      "from": [
+        {
+          "name": "The Pragmatic Engineer",
+          "email": "newsletter@pragmaticengineer.com"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Weekly digest: what shipped in the JMAP ecosystem this week",
+      "receivedAt": "2026-08-08T00:15:00Z",
+      "hasAttachment": false,
+      "size": 14740
+    },
+    {
+      "id": "em-022",
+      "threadId": "th-022",
+      "from": [
+        {
+          "name": "Stalwart Labs",
+          "email": "announce@stalw.art"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Your invoice for August 2026 is available in your account",
+      "receivedAt": "2026-08-07T01:15:00Z",
+      "hasAttachment": true,
+      "size": 14877
+    },
+    {
+      "id": "em-023",
+      "threadId": "th-023",
+      "from": [
+        {
+          "name": null,
+          "email": "billing@hosting.example.net"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Re: dossier de candidature, retour sur le second entretien",
+      "receivedAt": "2026-08-06T02:15:00Z",
+      "hasAttachment": false,
+      "size": 15014
+    },
+    {
+      "id": "em-024",
+      "threadId": "th-024",
+      "from": [
+        {
+          "name": "Julie Marchand",
+          "email": "julie.marchand@example.org"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Release v0.16.19 is out, with a long list of protocol fixes",
+      "receivedAt": "2026-08-05T03:15:00Z",
+      "hasAttachment": false,
+      "size": 15151
+    },
+    {
+      "id": "em-025",
+      "threadId": "th-025",
+      "from": [
+        {
+          "name": "The Pragmatic Engineer",
+          "email": "newsletter@pragmaticengineer.com"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Reminder: your subscription renews in seven days",
+      "receivedAt": "2026-08-04T04:15:00Z",
+      "hasAttachment": false,
+      "size": 15288
+    },
+    {
+      "id": "em-026",
+      "threadId": "th-026",
+      "from": [
+        {
+          "name": "Stalwart Labs",
+          "email": "announce@stalw.art"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Weekly digest: what shipped in the JMAP ecosystem this week",
+      "receivedAt": "2026-08-03T05:15:00Z",
+      "hasAttachment": false,
+      "size": 15425
+    },
+    {
+      "id": "em-027",
+      "threadId": "th-027",
+      "from": [
+        {
+          "name": null,
+          "email": "billing@hosting.example.net"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Your invoice for August 2026 is available in your account",
+      "receivedAt": "2026-08-02T06:15:00Z",
+      "hasAttachment": false,
+      "size": 15562
+    },
+    {
+      "id": "em-028",
+      "threadId": "th-028",
+      "from": [
+        {
+          "name": "Julie Marchand",
+          "email": "julie.marchand@example.org"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Re: dossier de candidature, retour sur le second entretien",
+      "receivedAt": "2026-08-01T07:15:00Z",
+      "hasAttachment": false,
+      "size": 15699
+    },
+    {
+      "id": "em-029",
+      "threadId": "th-029",
+      "from": [
+        {
+          "name": "The Pragmatic Engineer",
+          "email": "newsletter@pragmaticengineer.com"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Release v0.16.19 is out, with a long list of protocol fixes",
+      "receivedAt": "2026-08-28T08:15:00Z",
+      "hasAttachment": true,
+      "size": 15836
+    },
+    {
+      "id": "em-030",
+      "threadId": "th-030",
+      "from": [
+        {
+          "name": "Stalwart Labs",
+          "email": "announce@stalw.art"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Reminder: your subscription renews in seven days",
+      "receivedAt": "2026-08-27T09:15:00Z",
+      "hasAttachment": false,
+      "size": 15973
+    },
+    {
+      "id": "em-031",
+      "threadId": "th-031",
+      "from": [
+        {
+          "name": null,
+          "email": "billing@hosting.example.net"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Weekly digest: what shipped in the JMAP ecosystem this week",
+      "receivedAt": "2026-08-26T00:15:00Z",
+      "hasAttachment": false,
+      "size": 16110
+    },
+    {
+      "id": "em-032",
+      "threadId": "th-032",
+      "from": [
+        {
+          "name": "Julie Marchand",
+          "email": "julie.marchand@example.org"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Your invoice for August 2026 is available in your account",
+      "receivedAt": "2026-08-25T01:15:00Z",
+      "hasAttachment": false,
+      "size": 16247
+    },
+    {
+      "id": "em-033",
+      "threadId": "th-033",
+      "from": [
+        {
+          "name": "The Pragmatic Engineer",
+          "email": "newsletter@pragmaticengineer.com"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Re: dossier de candidature, retour sur le second entretien",
+      "receivedAt": "2026-08-24T02:15:00Z",
+      "hasAttachment": false,
+      "size": 16384
+    },
+    {
+      "id": "em-034",
+      "threadId": "th-034",
+      "from": [
+        {
+          "name": "Stalwart Labs",
+          "email": "announce@stalw.art"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Release v0.16.19 is out, with a long list of protocol fixes",
+      "receivedAt": "2026-08-23T03:15:00Z",
+      "hasAttachment": false,
+      "size": 16521
+    },
+    {
+      "id": "em-035",
+      "threadId": "th-035",
+      "from": [
+        {
+          "name": null,
+          "email": "billing@hosting.example.net"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Reminder: your subscription renews in seven days",
+      "receivedAt": "2026-08-22T04:15:00Z",
+      "hasAttachment": false,
+      "size": 16658
+    },
+    {
+      "id": "em-036",
+      "threadId": "th-036",
+      "from": [
+        {
+          "name": "Julie Marchand",
+          "email": "julie.marchand@example.org"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Weekly digest: what shipped in the JMAP ecosystem this week",
+      "receivedAt": "2026-08-21T05:15:00Z",
+      "hasAttachment": true,
+      "size": 16795
+    },
+    {
+      "id": "em-037",
+      "threadId": "th-037",
+      "from": [
+        {
+          "name": "The Pragmatic Engineer",
+          "email": "newsletter@pragmaticengineer.com"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Your invoice for August 2026 is available in your account",
+      "receivedAt": "2026-08-20T06:15:00Z",
+      "hasAttachment": false,
+      "size": 16932
+    },
+    {
+      "id": "em-038",
+      "threadId": "th-038",
+      "from": [
+        {
+          "name": "Stalwart Labs",
+          "email": "announce@stalw.art"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Re: dossier de candidature, retour sur le second entretien",
+      "receivedAt": "2026-08-19T07:15:00Z",
+      "hasAttachment": false,
+      "size": 17069
+    },
+    {
+      "id": "em-039",
+      "threadId": "th-039",
+      "from": [
+        {
+          "name": null,
+          "email": "billing@hosting.example.net"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Release v0.16.19 is out, with a long list of protocol fixes",
+      "receivedAt": "2026-08-18T08:15:00Z",
+      "hasAttachment": false,
+      "size": 17206
+    },
+    {
+      "id": "em-040",
+      "threadId": "th-040",
+      "from": [
+        {
+          "name": "Julie Marchand",
+          "email": "julie.marchand@example.org"
+        }
+      ],
+      "to": [
+        {
+          "name": "Bryan Berger",
+          "email": "bryan@example.com"
+        }
+      ],
+      "subject": "Reminder: your subscription renews in seven days",
+      "receivedAt": "2026-08-17T09:15:00Z",
+      "hasAttachment": false,
+      "size": 17343
+    }
+  ],
+  "notFound": []
+}

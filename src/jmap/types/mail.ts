@@ -44,3 +44,50 @@ export type MailboxGetArguments = {
   ids?: Id[] | null;
   properties?: string[] | null;
 };
+
+export interface EmailAddress {
+  name: string | null;
+  email: string;
+}
+
+/** A message, cut down to the envelope properties the read tools render. */
+export interface Email {
+  id: Id;
+  threadId: Id;
+  mailboxIds: Record<Id, boolean>;
+  from: EmailAddress[] | null;
+  to: EmailAddress[] | null;
+  subject: string | null;
+  receivedAt: string;
+  preview: string;
+  hasAttachment: boolean;
+  size: number;
+}
+
+/**
+ * The handful of RFC 8621 conditions the search exposes, out of the twenty
+ * Stalwart runs. Every field set is ANDed by the server.
+ */
+export type EmailFilterCondition = {
+  from?: string;
+  to?: string;
+  subject?: string;
+  text?: string;
+  /**
+   * Header name alone, or name and value. Stalwart drops a malformed condition
+   * without an error, so a broken tuple silently widens the result set.
+   */
+  header?: [string] | [string, string];
+  inMailbox?: Id;
+  before?: string;
+  after?: string;
+};
+
+export type EmailQueryArguments = {
+  accountId: Id;
+  filter?: EmailFilterCondition;
+  sort?: { property: string; isAscending: boolean }[];
+  position?: number;
+  limit?: number;
+  calculateTotal?: boolean;
+};

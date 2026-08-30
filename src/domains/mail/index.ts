@@ -1,6 +1,7 @@
 import { CAPABILITY_MAIL } from "../../jmap/types/core.js";
 import { defineDomain } from "../../registry/manifest.js";
 import { mailFolders } from "./folders.js";
+import { mailSearch } from "./search.js";
 
 /**
  * search, read, locate.
@@ -11,5 +12,5 @@ import { mailFolders } from "./folders.js";
 export const mailDomain = defineDomain({
   name: "mail",
   requires: [CAPABILITY_MAIL],
-  tools: [mailFolders],
+  tools: [mailSearch, mailFolders],
 });
