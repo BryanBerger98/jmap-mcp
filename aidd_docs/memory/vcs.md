@@ -1,21 +1,18 @@
 ---
 title: VCS
 status: draft
-updated: 2026-08-29
+updated: 2026-08-30
 owner: bryan
 ---
 
 # VCS
 
-> [!WARNING]
-> Le dépôt Git n'est pas initialisé et le dépôt GitHub n'est pas créé.
-> Les conventions ci-dessous s'appliquent dès l'initialisation.
-
 ## ⚙️ Mise en place
 
-- Branche principale : `main`.
-- Plateforme : GitHub, dépôt public.
-- Licence : MIT.
+- Dépôt : `github.com/BryanBerger98/jmap-mcp`, public, distant `origin` en SSH.
+- Branche principale et branche par défaut : `main`.
+- Licence : MIT, fichier `LICENSE` à la racine.
+- Outil en ligne de commande : `gh`.
 
 ## 🌿 Branches
 
@@ -28,6 +25,20 @@ owner: bryan
 - Format : `type(scope): description`.
 - Règles : impératif, minuscule, sujet court.
 - Scope utile : le domaine touché (`mail`, `calendar`, `registry`, `config`).
+
+## 🔀 Pull requests
+
+- Base : toujours `main`, aucun préfixe de branche n'en désigne une autre.
+- Ouverture en draft, la promotion est un geste humain.
+- Aucun template dans le dépôt : celui du skill `aidd-vcs` fait foi.
+- Label de triage déduit du préfixe, posé seulement s'il existe déjà.
+
+| Préfixe | Label |
+| --- | --- |
+| `feat` | `enhancement` |
+| `fix` | `bug` |
+| `docs` | `documentation` |
+| `chore`, `refactor`, `test` | aucun |
 
 ## 🤖 Stratégie de commit
 
