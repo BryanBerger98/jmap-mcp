@@ -105,8 +105,8 @@ describe("the perimeter mark", () => {
     expect(rendered).toContain("camille.pro@example.net [outside perimeter]");
   });
 
-  it("says the perimeter was frozen at startup, where the mark is", () => {
-    expect(renderCard(complete, byId, restricted)).toContain("frozen at startup");
+  it("leaves the freeze notice to the tool, so a block never repeats it", () => {
+    expect(renderCard(complete, byId, restricted)).not.toContain("frozen at startup");
   });
 
   it("puts every address outside an unreadable perimeter, and names the cause", () => {

@@ -22,8 +22,11 @@ export const KIND_GROUP = "group";
  * The perimeter is resolved once, at startup. A card created during the session
  * is found by the search without being inside it yet, and that gap has to be
  * readable where the mark is, not in a changelog.
+ *
+ * Served once per answer, by the tool rather than by the block: a sentence
+ * repeated under every card stops being read by the time it matters.
  */
-const FROZEN_PERIMETER_NOTE =
+export const FROZEN_PERIMETER_NOTE =
   "[perimeter frozen at startup: a card created since is only inside it after a restart]";
 
 /**
@@ -132,7 +135,7 @@ export function renderCard(
 ): string {
   const books = bookNames(card, byId);
 
-  const block = renderFields({
+  return renderFields({
     id: card.id,
     name: displayName(card),
     // Stated only when it is not a person: every other kind changes how the
@@ -152,9 +155,6 @@ export function renderCard(
     created: card.created,
     updated: card.updated,
   });
-
-  // The mark is only worth explaining where a mark was actually rendered.
-  return scope.kind === "anyone" ? block : `${block}\n${FROZEN_PERIMETER_NOTE}`;
 }
 
 /**

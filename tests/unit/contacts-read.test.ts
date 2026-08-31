@@ -116,6 +116,23 @@ describe("contacts_read", () => {
     expect(text).toContain("frozen at startup");
   });
 
+  it("states the freeze once for the whole answer, whatever the card count", async () => {
+    const { context } = fakeTransport(answers());
+    context.recipients = restrictTo({ fromContacts: ["camille@example.org"], allow: [] });
+
+    const { text } = await contactsRead.run({ ids: ["card-1", "card-2", "card-3"] }, context);
+
+    expect(text.match(/frozen at startup/g)).toHaveLength(1);
+  });
+
+  it("says nothing about a freeze when nothing is restricted", async () => {
+    const { context } = fakeTransport(answers());
+
+    const { text } = await contactsRead.run({ ids: ["card-1"] }, context);
+
+    expect(text).not.toContain("frozen at startup");
+  });
+
   it("classifies any call as a read, and counts what it is about to read", () => {
     const { context } = fakeTransport([]);
 
