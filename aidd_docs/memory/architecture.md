@@ -86,6 +86,10 @@ Lire coûte un aller-retour, mais l'alternative est de faire confirmer un envoi 
 `mail_compose` et `mail_send` refont ensuite le contrôle dans `run`, sur les adresses réellement écrites.
 La redondance est voulue : le `precheck` avale une lecture en échec plutôt que de transformer une erreur de transport en refus, donc le dernier mot sur les destinataires lui échappe.
 
+Le périmètre est désormais observable avant d'être subi : sous un scope autre que `anyone`, `contacts_search` et `contacts_read` marquent chaque adresse rendue comme dedans ou dehors.
+Le marquage ne change rien à la règle, il la donne à lire ; la même fonction `isWithinScope` sert l'affichage et le refus, sans quoi les deux dériveraient.
+Il rappelle aussi que le périmètre est figé au démarrage, une fiche créée depuis n'y entrant qu'après un redémarrage.
+
 ## 🔁 Le second chemin vers la confirmation
 
 La classe dit ce que l'appel fait, jamais combien il en fait.
@@ -116,3 +120,5 @@ Un plafond dur de cinquante identifiants par appel s'y ajoute, non réglable, et
 - Une opération destructrice ne prend jamais un filtre en entrée. Stalwart abandonne silencieusement une condition `header` mal formée, et la requête rend alors plus de résultats que demandé.
 - Supprimer un dossier ne supprime jamais son contenu. `onDestroyRemoveEmails` est écrit à faux sur chaque `Mailbox/set` émis, y compris ceux qui ne détruisent rien : un défaut serveur n'est pas une garantie, et l'absence de l'argument ne se voit sur aucun test unitaire.
 - Le README de Stalwart n'est pas fiable sur les révisions de draft : Filenode y est resté à `-03` alors que le code est à `-14`. Le CHANGELOG et le code arbitrent.
+- Les fiches de contact ne se trient pas par nom. Stalwart rend `UnsupportedSort` sur `name`, seuls `created` et `updated` étant indexés pour l'ordre : une pagination stable n'a d'autre choix que la date de création.
+- Les trois champs de nom retombent sur le même index. Filtrer sur `name`, `name/given` ou `name/surname` rend le même résultat, donc chercher un prénom seul est hors de portée du serveur et la description de l'outil doit le dire.

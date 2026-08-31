@@ -113,15 +113,22 @@ Deux écarts assumés au périmètre initial :
 > `Mailbox/set` destroy avec `onDestroyRemoveEmails` détruit les messages en cascade.
 > L'argument est écrit à faux sur chaque requête émise, et un test de contrat le vérifie sur toute la surface.
 
-## 📇 Module 5 — Lecture des contacts
+## 📇 Module 5 — Lecture des contacts ✅
 
 | Aspect | Contenu |
 | --- | --- |
 | Outils | `contacts_search`, `contacts_read` |
 | Classes | `read` |
-| Méthodes | `ContactCard/query`, `ContactCard/get`, `AddressBook/get`, `AddressBook/query` |
+| Méthodes | `ContactCard/query`, `ContactCard/get`, `AddressBook/get` |
 
-Deux écarts à documenter dans la description de l'outil : le tri par nom rend `UnsupportedSort`, et filtrer sur le prénom seul est impossible, les trois champs de nom partageant un index.
+Deux écarts documentés dans la description des outils : le tri par nom rend `UnsupportedSort`, donc les fiches sortent par date de création, et filtrer sur le prénom seul est impossible, les trois champs de nom partageant un index.
+
+Deux questions ouvertes tranchées à la livraison :
+
+- **Deux outils, pas trois.** Aucun outil dédié aux carnets : `AddressBook/query` n'existe pas dans la RFC 9610, et la liste des carnets tient dans l'en-tête que `contacts_search` rend déjà. Un troisième outil aurait coûté une entrée au budget pour une ligne de texte.
+- **Une fiche de groupe est rendue telle quelle**, ses membres listés par uid sans lecture supplémentaire. Déplier un groupe est une lecture en cascade dont le coût dépend de sa taille ; elle revient au module 6, qui écrit les appartenances.
+
+Écart au périmètre initial : le périmètre des destinataires devient observable. Sous un scope autre que `anyone`, les deux outils marquent chaque adresse rendue comme dedans ou dehors, et rappellent que le périmètre est figé au démarrage.
 
 ## ✍️ Module 6 — Écriture des contacts
 
@@ -204,15 +211,16 @@ Octroyer un accès à un tiers est classé `send` : c'est irréversible du point
 
 ## 📊 Budget d'outils
 
-| Tranche | Modules | Outils cumulés |
-| --- | --- | --- |
-| Fondation | 1 | 0 |
-| Mail | 2 à 4 | 10 |
-| Contacts | 5 et 6 | 14 |
-| Agendas | 7 et 8 | 20 |
-| Reste | 9 à 11 | 30 |
+| Tranche | Modules | Outils cumulés | État |
+| --- | --- | --- | --- |
+| Fondation | 1 | 0 | ✅ |
+| Mail | 2 à 4 | 10 | ✅ |
+| Contacts | 5 et 6 | 14 | ⏳ 12 exposés |
+| Agendas | 7 et 8 | 20 | ⏳ |
+| Reste | 9 à 11 | 30 | ⏳ |
 
-Dix outils sont exposés à ce jour sur les vingt-six visés, tous sur le mail : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage`.
+Douze outils sont exposés à ce jour sur les vingt-six visés : dix sur le mail, `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage`, et deux sur les contacts, `contacts_search` et `contacts_read`.
+La tranche contacts en prévoyait quatre : le module 5 n'en a consommé que deux, les deux restants revenant au module 6.
 Le module 1 n'a livré aucun outil, `jmap_session_info` ayant été remplacé par les instructions d'initialisation, qui portent la même information sans coûter une entrée au budget.
 
 La cible est vingt-six, la dégradation étant observée dès trente.

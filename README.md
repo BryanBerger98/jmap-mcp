@@ -4,11 +4,11 @@ Local MCP server that exposes a [Stalwart](https://stalw.art) mail server's JMAP
 
 No data leaves your machine except the exchange with your own server.
 
-> **Status: early.** Mail is the only domain implemented: searching, reading, locating, composing, sending, filing and deleting. The five other domains register nothing yet.
+> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable, and read-only by contract. The four other domains register nothing yet.
 
 ## Tools
 
-Ten tools, all on mail. The class is what the write policy below gates.
+Twelve tools across two domains, mail and contacts. The class is what the write policy below gates.
 
 | Tool | Class | Does |
 | --- | --- | --- |
@@ -22,6 +22,8 @@ Ten tools, all on mail. The class is what the write policy below gates.
 | `mail_flag` | `draft` | Sets or clears `$seen`, `$flagged` and the other standard keywords |
 | `mail_delete` | `draft` or `destroy` | Moves to the trash; `permanent` erases instead |
 | `mail_folder_manage` | `draft` or `destroy` | Creates, renames, moves a folder; `delete` removes one |
+| `contacts_search` | `read` | Searches contact cards, paginated, address books named |
+| `contacts_read` | `read` | Reads up to 20 cards by id, every field included |
 
 `mail_delete` moves messages to the folder carrying the `trash` role, where they stay readable and can be moved back out. Only `permanent: true` erases them, and that call classifies as `destroy`, so it is confirmed. Deleting a folder never takes its messages with it: a folder holding messages, or holding another folder, is refused outright, and every folder write states on the wire that no message is to be removed.
 
@@ -82,6 +84,8 @@ export JMAP_RECIPIENT_ALLOW="ops@example.net,@example.org"
 ```
 
 The perimeter fails closed. When the address books cannot be read — no contacts capability, a failing request, an account holding more cards than the server will hold in memory — every recipient is refused, including one the allow list names. An out-of-perimeter address is refused **before** the confirmation is asked, not after.
+
+Under any scope other than `anyone`, `contacts_search` and `contacts_read` mark each address they render as inside or outside the perimeter, so a refused send can be understood before it is attempted rather than after. The perimeter is frozen at startup: a card created during the session lands inside it only after a restart, and both tools say so alongside the mark.
 
 ## Register with a client
 
