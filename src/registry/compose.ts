@@ -13,7 +13,7 @@ import { perInvocationCache, type ToolContext, type ToolDefinition } from "./def
 import { clientCanElicit } from "./elicitation.js";
 import type { DomainManifest } from "./manifest.js";
 
-export interface ComposeInput {
+export interface CompositionInput {
   server: McpServer;
   domains: readonly DomainManifest[];
   session: JmapSession;
@@ -88,7 +88,7 @@ export function selectTools(
  * Registers the surviving tools. Runs once, before `connect()`: the
  * specification forbids a tool list that varies during a session.
  */
-export function compose(input: ComposeInput): ComposeReport {
+export function compose(input: CompositionInput): ComposeReport {
   const selection = selectTools(input.domains, input.session, input.policy);
 
   for (const tool of selection.exposed) {
@@ -102,7 +102,7 @@ export function compose(input: ComposeInput): ComposeReport {
   };
 }
 
-function register(input: ComposeInput, tool: ToolDefinition): void {
+function register(input: CompositionInput, tool: ToolDefinition): void {
   input.server.registerTool(
     tool.name,
     {
