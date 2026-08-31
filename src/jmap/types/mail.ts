@@ -16,7 +16,8 @@ export interface Mailbox {
   /** `inbox`, `archive`, `trash`… or `null` for a user-made folder. */
   role: string | null;
   totalEmails: number;
-  unreadEmails: number;
+  /** Only `mail_folders` asks for it; the organizing tools never render it. */
+  unreadEmails?: number;
 }
 
 /**
@@ -195,12 +196,41 @@ export type EmailCreate = {
   textBody?: { partId: string; type: string }[];
 };
 
+/**
+ * A patch on an existing message (RFC 8620 §5.3).
+ *
+ * Two shapes travel in the same map: a whole property named on its own replaces
+ * the value, and a `property/key` path sets or clears one entry of it. Moving a
+ * message writes `mailboxIds` entire so it leaves the folders it was in;
+ * flagging writes `keywords/$seen` so it touches nothing else.
+ */
+export type EmailSetUpdate = Record<string, unknown>;
+
 export type EmailSetArguments = {
   accountId: Id;
   create?: Record<Id, EmailCreate>;
-  update?: Record<Id, Record<string, unknown>>;
+  update?: Record<Id, EmailSetUpdate>;
   destroy?: Id[];
 };
+
+/**
+ * The keywords RFC 8621 §4.1.1 gives a meaning to, written without their `$`.
+ *
+ * `$draft` is deliberately absent: setting it on a received message does not
+ * make it sendable, and clearing it on a real draft destroys the one thing that
+ * tells the server it is one.
+ */
+export const STANDARD_KEYWORDS = [
+  "seen",
+  "flagged",
+  "answered",
+  "forwarded",
+  "junk",
+  "notjunk",
+  "phishing",
+] as const;
+
+export type StandardKeyword = (typeof STANDARD_KEYWORDS)[number];
 
 export type EmailSubmissionSetArguments = {
   accountId: Id;
