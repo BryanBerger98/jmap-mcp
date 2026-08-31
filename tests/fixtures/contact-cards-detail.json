@@ -1,0 +1,62 @@
+{
+  "accountId": "acc-1",
+  "state": "contact-state-2",
+  "list": [
+    {
+      "id": "card-1",
+      "kind": "individual",
+      "uid": "urn:uuid:8f3a1c2e-0001",
+      "name": {
+        "full": "Camille Roy",
+        "components": [
+          { "kind": "given", "value": "Camille" },
+          { "kind": "surname", "value": "Roy" }
+        ]
+      },
+      "nicknames": { "n1": { "name": "Cam" } },
+      "organizations": { "o1": { "name": "Stalwart Labs" } },
+      "titles": { "t1": { "name": "Head of Infrastructure" } },
+      "emails": {
+        "personal": { "address": "camille@example.org", "contexts": { "private": true } },
+        "work": { "address": "camille.pro@example.net", "contexts": { "work": true }, "pref": 1 }
+      },
+      "phones": { "p1": { "number": "+33 1 23 45 67 89", "contexts": { "work": true } } },
+      "onlineServices": { "s1": { "service": "Mastodon", "uri": "https://social.example/@camille" } },
+      "addresses": { "a1": { "full": "12 rue des Lilas, 75011 Paris, France" } },
+      "notes": { "no1": { "note": "Met at the JMAP working group." } },
+      "addressBookIds": { "bk-1": true },
+      "created": "2026-02-11T09:00:00Z",
+      "updated": "2026-08-20T14:30:00Z"
+    },
+    {
+      "id": "card-2",
+      "kind": "group",
+      "uid": "urn:uuid:8f3a1c2e-0002",
+      "name": { "full": "Infrastructure team" },
+      "members": {
+        "urn:uuid:8f3a1c2e-0001": true,
+        "urn:uuid:8f3a1c2e-0003": true
+      },
+      "addressBookIds": { "bk-2": true },
+      "created": "2026-03-02T08:00:00Z",
+      "updated": "2026-03-02T08:00:00Z"
+    },
+    {
+      "id": "card-3",
+      "kind": "individual",
+      "uid": "urn:uuid:8f3a1c2e-0003",
+      "name": {
+        "components": [
+          { "kind": "given", "value": "Ana" },
+          { "kind": "separator", "value": "-" },
+          { "kind": "surname", "value": "Silva" }
+        ]
+      },
+      "emails": { "personal": { "address": "ana@example.org" } },
+      "addressBookIds": { "bk-9": true },
+      "created": "2026-04-18T17:45:00Z",
+      "updated": "2026-04-18T17:45:00Z"
+    }
+  ],
+  "notFound": []
+}

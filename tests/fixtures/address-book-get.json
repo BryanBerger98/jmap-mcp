@@ -1,0 +1,23 @@
+{
+  "accountId": "acc-1",
+  "state": "book-state-1",
+  "list": [
+    {
+      "id": "bk-1",
+      "name": "Personal",
+      "description": "Everyday contacts",
+      "sortOrder": 0,
+      "isDefault": true,
+      "isSubscribed": true
+    },
+    {
+      "id": "bk-2",
+      "name": "Work",
+      "description": null,
+      "sortOrder": 1,
+      "isDefault": false,
+      "isSubscribed": true
+    }
+  ],
+  "notFound": []
+}

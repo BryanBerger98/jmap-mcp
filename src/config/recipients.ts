@@ -62,7 +62,7 @@ export function checkRecipients(
     };
   }
 
-  const rejected = addresses.find((address) => !isAllowed(address, scope));
+  const rejected = addresses.find((address) => !isWithinScope(address, scope));
   if (rejected === undefined) return { ok: true };
 
   return {
@@ -74,7 +74,29 @@ export function checkRecipients(
   };
 }
 
-function isAllowed(
+/**
+ * Whether one address is inside the perimeter, in every one of its four states.
+ *
+ * Exported because showing that an address is refused and refusing it have to
+ * be the one rule: a comparison copied out for display would drift, one day,
+ * from the refusal it claims to explain. `checkRecipients` is written over it,
+ * and nothing else decides membership.
+ */
+export function isWithinScope(address: string, scope: RecipientScope): boolean {
+  switch (scope.kind) {
+    case "anyone":
+      return true;
+    case "restricted":
+      return isListed(address, scope);
+    // A perimeter that is empty, or that failed to resolve, holds nobody. An
+    // error never widens it, so both refuse exactly as the other does.
+    case "empty":
+    case "unreadable":
+      return false;
+  }
+}
+
+function isListed(
   address: string,
   scope: { addresses: ReadonlySet<string>; domains: ReadonlySet<string> },
 ): boolean {
