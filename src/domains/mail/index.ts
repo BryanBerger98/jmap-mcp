@@ -5,6 +5,7 @@ import { mailFolders } from "./folders.js";
 import { mailIdentities } from "./identities.js";
 import { mailRead } from "./read.js";
 import { mailSearch } from "./search.js";
+import { mailSend } from "./send.js";
 
 /**
  * search, read, locate.
@@ -33,5 +34,5 @@ export const mailDomain = defineDomain({
 export const mailSendingDomain = defineDomain({
   name: "mail",
   requires: [CAPABILITY_MAIL, CAPABILITY_SUBMISSION],
-  tools: [mailIdentities, mailCompose],
+  tools: [mailIdentities, mailCompose, mailSend],
 });

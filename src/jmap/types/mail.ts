@@ -62,6 +62,9 @@ export interface EmailBodyPart {
 export interface Email {
   id: Id;
   threadId: Id;
+  /** Folder membership, as an id set. A message may sit in several at once. */
+  mailboxIds?: Record<Id, boolean>;
+  keywords?: Record<string, boolean>;
   from: EmailAddress[] | null;
   to: EmailAddress[] | null;
   subject: string | null;

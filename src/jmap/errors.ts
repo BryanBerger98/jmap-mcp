@@ -42,6 +42,23 @@ export class PolicyError extends Error {
   }
 }
 
+/**
+ * What a refused submission means, in words the caller can act on.
+ *
+ * Only the types a send can hit are listed. The rest keep their raw name: a
+ * wrong explanation reads as authoritative, an unexplained type reads as a code
+ * to look up.
+ */
+const SUBMISSION_SET_ERRORS: Record<string, string> = {
+  forbiddenFrom: "this account may not send from that address",
+  forbiddenToSend: "this account is not allowed to send right now",
+  tooManyRecipients: "the message has more recipients than the server accepts",
+};
+
+export function explainSetError(type: string): string | undefined {
+  return SUBMISSION_SET_ERRORS[type];
+}
+
 export function problemToError(problem: JmapProblem): JmapError {
   return new JmapError(problem.type, problem.detail ?? problem.type, problem.status);
 }

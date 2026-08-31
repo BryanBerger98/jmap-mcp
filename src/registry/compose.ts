@@ -117,6 +117,7 @@ function register(input: ComposeInput, tool: ToolDefinition): void {
         };
       },
     ) => {
+      const context = { client: input.client, session: input.session };
       const operation = tool.classify(args);
       const level = input.policy[operation];
 
@@ -141,7 +142,7 @@ function register(input: ComposeInput, tool: ToolDefinition): void {
           return inputRequired({
             inputRequests: {
               confirm: inputRequired.elicit({
-                message: `${tool.summarize(args)}\n\nThis is a ${operation} operation. Proceed?`,
+                message: `${await tool.summarize(args, context)}\n\nThis is a ${operation} operation. Proceed?`,
                 requestedSchema: {
                   type: "object",
                   properties: { confirm: { type: "boolean" } },
@@ -153,7 +154,7 @@ function register(input: ComposeInput, tool: ToolDefinition): void {
         }
       }
 
-      const result = await tool.run(args, { client: input.client, session: input.session });
+      const result = await tool.run(args, context);
       return { content: [{ type: "text" as const, text: renderResult(result) }] };
     },
   );

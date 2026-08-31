@@ -1,13 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { mailCompose } from "../../src/domains/mail/compose.js";
 import type { GetResponse, JmapRequest, SetResponse } from "../../src/jmap/types/core.js";
-import type { Email, Identity, Mailbox } from "../../src/jmap/types/mail.js";
+import type { Email, EmailSubmission, Identity, Mailbox } from "../../src/jmap/types/mail.js";
 import { fakeTransport, loadFixture } from "../fixtures/client.js";
 
 const identityGet = loadFixture<GetResponse<Identity>>("identity-get.json");
 const mailboxGet = loadFixture<GetResponse<Mailbox>>("mailbox-get.json");
 const emailSetCreated = loadFixture<SetResponse<Email>>("email-set-created.json");
 const replySource = loadFixture<GetResponse<Email>>("email-reply-source.json");
+const submissionSet = loadFixture<SetResponse<EmailSubmission>>("email-submission-set.json");
+
+/** The implicit `Email/set` the server runs once the submission succeeds. */
+const movedToSent: SetResponse<Email> = {
+  accountId: "acc-1",
+  oldState: "email-state-2",
+  newState: "email-state-3",
+  updated: { "em-draft-1": null },
+};
 
 /** The account the happy path uses: one identity, so none has to be designated. */
 const soleIdentity: GetResponse<Identity> = {
@@ -24,9 +33,22 @@ function draftSent(requests: JmapRequest[]): Record<string, unknown> | undefined
   return create?.draft;
 }
 
+/** The arguments of the `EmailSubmission/set` the tool emitted, if any. */
+function submissionSent(requests: JmapRequest[]): Record<string, unknown> | undefined {
+  return requests
+    .flatMap((request) => request.methodCalls)
+    .find(([name]) => name === "EmailSubmission/set")?.[1];
+}
+
+function submissionCreated(requests: JmapRequest[]): Record<string, unknown> | undefined {
+  const create = submissionSent(requests)?.create as
+    | Record<string, Record<string, unknown>>
+    | undefined;
+  return create?.submission;
+}
+
 describe("mail_compose", () => {
-  it("classifies any call as a draft, never as a send", () => {
-    expect(mailCompose.classes).toEqual(["draft"]);
+  it("classifies a call that does not send as a draft", () => {
     expect(mailCompose.classify({ to: ["a@b.c"], body: "x" })).toBe("draft");
     expect(mailCompose.classify({ replyToEmailId: "em-1", body: "x" })).toBe("draft");
   });
@@ -260,6 +282,131 @@ describe("mail_compose", () => {
 
       expect(text).toContain("overQuota");
       expect(text).toContain("Mailbox is full");
+    });
+  });
+
+  describe("sending in one go", () => {
+    it("becomes a send as soon as the argument says so", () => {
+      expect(mailCompose.classes).toEqual(["draft", "send"]);
+      expect(mailCompose.classify({ to: ["a@b.c"], body: "x", send: true })).toBe("send");
+      expect(mailCompose.classify({ to: ["a@b.c"], body: "x", send: false })).toBe("draft");
+    });
+
+    it("says it is sending in the line shown at confirmation time", async () => {
+      const { context } = fakeTransport([]);
+      const input = { to: ["camille@example.org"], subject: "Hi", body: "Text", send: true };
+
+      const summary = await mailCompose.summarize(input, context);
+
+      expect(summary).toContain("Send a message");
+      expect(summary).toContain("camille@example.org");
+      expect(summary).toContain("Hi");
+      expect(await mailCompose.summarize({ ...input, send: false }, context)).toContain(
+        "Save a draft",
+      );
+    });
+
+    it("creates and submits in a single request, pointing at the draft by creation id", async () => {
+      const { context, requests } = fakeTransport([
+        soleIdentity,
+        mailboxGet,
+        emailSetCreated,
+        submissionSet,
+        movedToSent,
+      ]);
+
+      await mailCompose.run(
+        { to: ["camille@example.org"], subject: "Hi", body: "Text", send: true },
+        context,
+      );
+
+      expect(requests).toHaveLength(2);
+      expect(requests[1]?.methodCalls.map(([name]) => name)).toEqual([
+        "Email/set",
+        "EmailSubmission/set",
+      ]);
+      expect(submissionCreated(requests)?.emailId).toBe("#draft");
+    });
+
+    it("carries the same envelope and the same move as sending in two gestures", async () => {
+      const { context, requests } = fakeTransport([
+        soleIdentity,
+        mailboxGet,
+        emailSetCreated,
+        submissionSet,
+        movedToSent,
+      ]);
+
+      await mailCompose.run(
+        { to: ["camille@example.org"], cc: ["ana@example.org"], body: "Text", send: true },
+        context,
+      );
+
+      expect(submissionCreated(requests)?.envelope).toEqual({
+        mailFrom: { email: "bryan@example.com" },
+        rcptTo: [{ email: "camille@example.org" }, { email: "ana@example.org" }],
+      });
+      expect(submissionSent(requests)?.onSuccessUpdateEmail).toEqual({
+        "#submission": {
+          "mailboxIds/mb-drafts": null,
+          "mailboxIds/mb-sent": true,
+          "keywords/$draft": null,
+        },
+      });
+    });
+
+    it("reports the submission rather than a saved draft", async () => {
+      const { context } = fakeTransport([
+        soleIdentity,
+        mailboxGet,
+        emailSetCreated,
+        submissionSet,
+        movedToSent,
+      ]);
+
+      const { text } = await mailCompose.run(
+        { to: ["camille@example.org"], subject: "Hi", body: "Text", send: true },
+        context,
+      );
+
+      expect(text).toContain("sub-1");
+      expect(text).toContain("moved to the sent folder");
+      expect(text).not.toContain("not sent");
+    });
+
+    it("refuses before writing when no folder carries the sent role", async () => {
+      const noSent: GetResponse<Mailbox> = {
+        ...mailboxGet,
+        list: mailboxGet.list.filter((mailbox) => mailbox.role !== "sent"),
+      };
+      const { context, requests } = fakeTransport([soleIdentity, noSent]);
+
+      const { text } = await mailCompose.run(
+        { to: ["camille@example.org"], body: "Text", send: true },
+        context,
+      );
+
+      expect(text).toContain("`sent` role");
+      expect(requests).toHaveLength(1);
+    });
+
+    it("reports a submission the server refused, and never claims it was sent", async () => {
+      const refused: SetResponse<EmailSubmission> = {
+        accountId: "acc-1",
+        oldState: "submission-state-1",
+        newState: "submission-state-1",
+        notCreated: { submission: { type: "tooManyRecipients" } },
+      };
+      const { context } = fakeTransport([soleIdentity, mailboxGet, emailSetCreated, refused]);
+
+      const { text } = await mailCompose.run(
+        { to: ["camille@example.org"], body: "Text", send: true },
+        context,
+      );
+
+      expect(text).toContain("tooManyRecipients");
+      expect(text).toContain("more recipients than the server accepts");
+      expect(text).not.toContain("moved to the sent folder");
     });
   });
 

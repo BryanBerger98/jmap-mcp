@@ -1,0 +1,15 @@
+{
+  "accountId": "acc-1",
+  "oldState": "submission-state-1",
+  "newState": "submission-state-2",
+  "created": {
+    "submission": {
+      "id": "sub-1",
+      "identityId": "id-1",
+      "emailId": "em-draft-1",
+      "threadId": "th-draft-1",
+      "sendAt": "2026-08-31T09:12:00Z",
+      "undoStatus": "final"
+    }
+  }
+}

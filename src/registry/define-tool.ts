@@ -35,8 +35,15 @@ export interface ToolDefinition<TInput extends ZodType = ZodType> {
    * registry decides what that class is allowed to do.
    */
   classify: (input: z.infer<TInput>) => OperationClass;
-  /** One line describing the effect, shown to the user at confirmation time. */
-  summarize: (input: z.infer<TInput>) => string;
+  /**
+   * One line describing the effect, shown to the user at confirmation time.
+   *
+   * It is handed the context because a confirmation is only worth reading when
+   * it names what the arguments merely point at: `mail_send` receives a message
+   * id, and echoing that id back tells nobody what is about to leave the
+   * account. Reading here is expected; writing here never is.
+   */
+  summarize: (input: z.infer<TInput>, context: ToolContext) => string | Promise<string>;
   run: (input: z.infer<TInput>, context: ToolContext) => Promise<ToolResult>;
 }
 
