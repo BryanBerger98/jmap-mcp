@@ -237,6 +237,16 @@ describe("contacts_search", () => {
     expect(text).toContain("outside perimeter");
   });
 
+  it("dates the freeze in its header, once, wherever it renders a mark", async () => {
+    const scope = restrictTo({ fromContacts: ["ana.silva0@example.org"], allow: [] });
+    const { context } = fakeTransport([{ ...query, ids: query.ids.slice(0, 3) }, summaries, books]);
+    context.recipients = scope;
+
+    const { text } = await contactsSearch.run({ name: "silva" }, context);
+
+    expect(text.match(/frozen at startup/g)).toHaveLength(1);
+  });
+
   it("renders no perimeter column at all when nothing is restricted", async () => {
     const { context } = fakeTransport(answers());
 

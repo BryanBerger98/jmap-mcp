@@ -23,6 +23,7 @@ import {
   BOOK_PROPERTIES,
   bookNames,
   displayName,
+  FROZEN_PERIMETER_NOTE,
   primaryEmail,
   renderBooks,
   scopeMark,
@@ -192,6 +193,9 @@ export const contactsSearch = defineTool({
       // Served only when it was earned: a sentence repeated on every call stops
       // being read by the time it matters.
       ...(input.name === undefined ? [] : [NAME_INDEX_NOTE]),
+      // Same test as the column itself: a mark rendered without the freeze that
+      // dates it reads as current, and a card created since would look outside.
+      ...(recipients.kind === "anyone" ? [] : [FROZEN_PERIMETER_NOTE]),
     ].join("\n");
 
     const table = renderTable(
