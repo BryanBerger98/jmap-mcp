@@ -4,7 +4,37 @@ Local MCP server that exposes a [Stalwart](https://stalw.art) mail server's JMAP
 
 No data leaves your machine except the exchange with your own server.
 
-> **Status: early.** Mail is the only domain implemented: searching, reading, locating, composing and sending. The five other domains register nothing yet.
+> **Status: early.** Mail is the only domain implemented: searching, reading, locating, composing, sending, filing and deleting. The five other domains register nothing yet.
+
+## Tools
+
+Ten tools, all on mail. The class is what the write policy below gates.
+
+| Tool | Class | Does |
+| --- | --- | --- |
+| `mail_search` | `read` | Searches messages, paginated |
+| `mail_read` | `read` | Reads one message, body included |
+| `mail_folders` | `read` | Lists the folder tree |
+| `mail_identities` | `read` | Lists the addresses the account may send from |
+| `mail_compose` | `draft` | Writes a draft, sends nothing |
+| `mail_send` | `send` | Sends an existing draft |
+| `mail_move` | `draft` | Files messages into one folder |
+| `mail_flag` | `draft` | Sets or clears `$seen`, `$flagged` and the other standard keywords |
+| `mail_delete` | `draft` or `destroy` | Moves to the trash; `permanent` erases instead |
+| `mail_folder_manage` | `draft` or `destroy` | Creates, renames, moves a folder; `delete` removes one |
+
+`mail_delete` moves messages to the folder carrying the `trash` role, where they stay readable and can be moved back out. Only `permanent: true` erases them, and that call classifies as `destroy`, so it is confirmed. Deleting a folder never takes its messages with it: a folder holding messages, or holding another folder, is refused outright, and every folder write states on the wire that no message is to be removed.
+
+### Batch limits
+
+The organizing tools act on ids a search returned, never on a filter they run themselves.
+
+| Limit | Value | Configurable |
+| --- | --- | --- |
+| Ids per call | 50 | No |
+| Asks above | 20 | `bulkConfirmAbove`, `JMAP_BULK_CONFIRM_ABOVE` |
+
+Past the threshold, a reversible bulk write asks before it runs even though its class is `allow` — moving two hundred messages is still a move, but its size is worth a look. `mail_flag` never asks whatever the volume: marking a thousand messages read is undone by marking them unread.
 
 ## Why
 
@@ -35,7 +65,7 @@ export JMAP_SESSION_URL="https://mail.example.com/.well-known/jmap"
 export JMAP_BEARER_TOKEN="…"   # never passed as a CLI argument
 ```
 
-Optional: `JMAP_ACCOUNT_ID` pins one account when the session exposes several.
+Optional: `JMAP_ACCOUNT_ID` pins one account when the session exposes several, and `JMAP_BULK_CONFIRM_ABOVE` (config key `bulkConfirmAbove`, default `20`) sets how many objects a reversible write may touch before it asks.
 
 **Recipient perimeter.** `recipients.scope` bounds who the server may write to. It is resolved once at startup, before any tool is registered.
 

@@ -91,20 +91,27 @@ Première classe `send` : le module valide MRTR de bout en bout, et le refus exp
 Livré avec un ajout hors périmètre initial : `recipients.scope` borne les destinataires aux carnets d'adresses du compte.
 Le contrôle tombe avant la confirmation, jamais après — une adresse hors périmètre n'est pas une question posée à l'utilisateur.
 
-## 🗂️ Module 4 — Organisation du mail
+## 🗂️ Module 4 — Organisation du mail ✅
 
 | Aspect | Contenu |
 | --- | --- |
-| Outils | `mail_move`, `mail_flag`, `mail_delete`, `mailbox_manage` |
+| Outils | `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` |
 | Classes | `draft`, `destroy` |
-| Méthodes | `Email/set` update et destroy, `Email/copy`, `Mailbox/set` |
+| Méthodes | `Email/set` update et destroy, `Mailbox/set` |
 
 Mettre à la corbeille reste `draft` : c'est un patch de `mailboxIds` vers le dossier de rôle `trash`.
 Détruire est `destroy`, et l'outil prend des identifiants, jamais un filtre.
 
+L'outil de dossiers s'appelle `mail_folder_manage` : le préfixe `mail_` est ce qui rassemble les trois manifestes du domaine, et un outil qui y échappe ne se retrouve pas dans une liste de vingt-six.
+
+Deux écarts assumés au périmètre initial :
+
+- `Email/copy` n'est pas utilisé, la méthode ne servant qu'à franchir une frontière de compte, et le multi-compte reste hors périmètre.
+- Un second chemin vers la confirmation a été ajouté : au-delà de `bulkConfirmAbove`, une écriture réversible mais massive est soumise à confirmation sans changer de classe.
+
 > [!CAUTION]
 > `Mailbox/set` destroy avec `onDestroyRemoveEmails` détruit les messages en cascade.
-> Le désactiver par défaut, et le remonter comme une seconde décision explicite.
+> L'argument est écrit à faux sur chaque requête émise, et un test de contrat le vérifie sur toute la surface.
 
 ## 📇 Module 5 — Lecture des contacts
 
@@ -199,13 +206,13 @@ Octroyer un accès à un tiers est classé `send` : c'est irréversible du point
 
 | Tranche | Modules | Outils cumulés |
 | --- | --- | --- |
-| Fondation | 1 | 1 |
-| Mail | 2 à 4 | 11 |
-| Contacts | 5 et 6 | 15 |
-| Agendas | 7 et 8 | 21 |
-| Reste | 9 à 11 | 31 |
+| Fondation | 1 | 0 |
+| Mail | 2 à 4 | 10 |
+| Contacts | 5 et 6 | 14 |
+| Agendas | 7 et 8 | 20 |
+| Reste | 9 à 11 | 30 |
 
-Six outils sont exposés à ce jour sur les vingt-six visés, tous sur le mail : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`.
+Dix outils sont exposés à ce jour sur les vingt-six visés, tous sur le mail : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage`.
 Le module 1 n'a livré aucun outil, `jmap_session_info` ayant été remplacé par les instructions d'initialisation, qui portent la même information sans coûter une entrée au budget.
 
 La cible est vingt-six, la dégradation étant observée dès trente.

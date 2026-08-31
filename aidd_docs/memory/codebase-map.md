@@ -8,7 +8,7 @@ owner: bryan
 # Carte du code
 
 > [!NOTE]
-> Le mail expose six outils : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`.
+> Le mail expose dix outils : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage`.
 > Les cinq autres domaines restent des manifestes à `tools: []`.
 
 ## 🗺️ Découpe
@@ -46,8 +46,17 @@ flowchart TD
 
 Les types JMAP vivent sous `src/jmap/types/`, un fichier par spécification.
 Chaque domaine sous `src/domains/` regroupe ses outils par verbe métier, jamais par méthode JMAP.
-Un domaine peut se scinder en plusieurs manifestes : le mail en a deux, `mailDomain` sur la seule capacité `mail` et `mailSendingDomain` sur `mail` plus `submission`.
+Un domaine peut se scinder en plusieurs manifestes : le mail en a trois.
+
+| Manifeste | Capacités | Outils |
+| --- | --- | --- |
+| `mailDomain` | `mail` | `mail_search`, `mail_read`, `mail_folders` |
+| `mailOrganizingDomain` | `mail` | `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` |
+| `mailSendingDomain` | `mail`, `submission` | `mail_identities`, `mail_compose`, `mail_send` |
+
 Sans ce découpage, un serveur qui n'expédie pas ferait taire aussi les outils de lecture.
+Le rangement est séparé de la lecture sur la même capacité, pour une autre raison : `mailDomain` reste ainsi prouvablement en lecture seule, et le contrat qui l'affirme vaut mieux qu'un fichier de moins.
+`src/domains/mail/organize.ts` porte ce que les quatre outils de rangement partagent : plafond de lot, résolution des dossiers mise en cache, rendu des refus par identifiant.
 
 ## 🚪 Points d'entrée
 
