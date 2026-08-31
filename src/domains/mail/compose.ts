@@ -13,7 +13,7 @@ import type {
   Mailbox,
   MailboxGetArguments,
 } from "../../jmap/types/mail.js";
-import { defineTool } from "../../registry/define-tool.js";
+import { defineTool, type ToolContext } from "../../registry/define-tool.js";
 import { renderFields } from "../../shared/render.js";
 import {
   buildSubmission,
@@ -87,7 +87,11 @@ export const mailCompose = defineTool({
   // One argument turns a draft into something that cannot be taken back, which
   // is exactly why the class is read off the arguments and not off the name.
   classify: (input) => (input.send === true ? "send" : "draft"),
-  summarize: (input) => summarizeCompose(input),
+  // A reply carries its recipient in the message it answers, and confirming
+  // "the sender of the message answered" names nobody. The address is read back
+  // so the line the user is shown says who this actually leaves for.
+  summarize: async (input, context) =>
+    summarizeCompose(input, await namedRecipients(input, context)),
   // Only the addresses the call states: a reply that names none is checked in
   // `run`, once the message it answers has been read.
   precheck: (input, { recipients }) =>
@@ -326,15 +330,51 @@ function addressList(addresses: EmailAddress[] | undefined): string {
   return (addresses ?? []).map((address) => address.email).join(", ");
 }
 
-export function summarizeCompose(input: {
-  to?: string[] | undefined;
-  cc?: string[] | undefined;
-  bcc?: string[] | undefined;
-  subject?: string | undefined;
-  replyToEmailId?: string | undefined;
-  send?: boolean | undefined;
-}): string {
-  const recipients = [...(input.to ?? []), ...(input.cc ?? []), ...(input.bcc ?? [])];
+/**
+ * The addresses this call will write to, as far as they can be known before
+ * anything is written.
+ *
+ * A reply with no `to` takes its recipient from the message it answers, so that
+ * message is read back rather than guessed at. An empty list means it could not
+ * be read: the caller says so rather than naming an address it is unsure of.
+ */
+async function namedRecipients(input: ComposeInput, context: ToolContext): Promise<string[]> {
+  const stated = [...(input.to ?? []), ...(input.cc ?? []), ...(input.bcc ?? [])];
+  if (input.to !== undefined || input.replyToEmailId === undefined) return stated;
+
+  const replied = await repliedRecipients(input, context);
+  return replied === undefined ? stated : [...replied, ...stated];
+}
+
+/**
+ * Who a reply would go to, or `undefined` when the origin could not be read.
+ *
+ * Every failure is swallowed: this runs before the call is confirmed, and a
+ * transport error here must not be reported as a refusal `run` never raised.
+ */
+async function repliedRecipients(
+  input: ComposeInput,
+  context: ToolContext,
+): Promise<string[] | undefined> {
+  const resolved = await resolveContext(input, context.client, context.session).catch(
+    () => undefined,
+  );
+  if (resolved === undefined || "refusal" in resolved) return undefined;
+
+  return repliedTo(resolved.source);
+}
+
+export function summarizeCompose(
+  input: {
+    to?: string[] | undefined;
+    cc?: string[] | undefined;
+    bcc?: string[] | undefined;
+    subject?: string | undefined;
+    replyToEmailId?: string | undefined;
+    send?: boolean | undefined;
+  },
+  recipients: readonly string[],
+): string {
   const who = recipients.length > 0 ? recipients.join(", ") : "the sender of the message answered";
   const what = input.subject === undefined ? "no subject yet" : `subject "${input.subject}"`;
 

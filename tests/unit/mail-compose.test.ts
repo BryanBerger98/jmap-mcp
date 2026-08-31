@@ -306,6 +306,35 @@ describe("mail_compose", () => {
       );
     });
 
+    it("names the address a reply leaves for, rather than the message it answers", async () => {
+      const { context } = fakeTransport([soleIdentity, mailboxGet, replySource]);
+
+      const summary = await mailCompose.summarize(
+        { replyToEmailId: "em-origin-1", body: "D'accord", send: true },
+        context,
+      );
+
+      expect(summary).toContain("camille+replies@example.org");
+      expect(summary).not.toContain("the sender of the message answered");
+    });
+
+    it("falls back to a generic line when the message answered cannot be read", async () => {
+      const gone: GetResponse<Email> = {
+        accountId: "acc-1",
+        state: "email-state-2",
+        list: [],
+        notFound: ["em-origin-1"],
+      };
+      const { context } = fakeTransport([soleIdentity, mailboxGet, gone]);
+
+      const summary = await mailCompose.summarize(
+        { replyToEmailId: "em-origin-1", body: "D'accord", send: true },
+        context,
+      );
+
+      expect(summary).toContain("the sender of the message answered");
+    });
+
     it("creates and submits in a single request, pointing at the draft by creation id", async () => {
       const { context, requests } = fakeTransport([
         soleIdentity,
