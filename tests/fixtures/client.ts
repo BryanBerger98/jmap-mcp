@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { OPEN_SCOPE, type RecipientScope } from "../../src/config/recipients.js";
 import { JmapClient } from "../../src/jmap/client.js";
 import { JmapSession } from "../../src/jmap/session.js";
 import type { Invocation, JmapRequest, JmapResponse, Session } from "../../src/jmap/types/core.js";
@@ -35,7 +36,10 @@ export interface FakeTransport {
  * reads before it writes spends several round trips, and its later calls need
  * answers of their own.
  */
-export function fakeTransport(results: unknown[]): FakeTransport {
+export function fakeTransport(
+  results: unknown[],
+  recipients: RecipientScope = OPEN_SCOPE,
+): FakeTransport {
   const requests: JmapRequest[] = [];
   let served = 0;
 
@@ -61,7 +65,7 @@ export function fakeTransport(results: unknown[]): FakeTransport {
 
   const client = new JmapClient({ apiUrl: API_URL, bearerToken: "a-token", fetchImpl });
 
-  return { context: { client, session: fixtureSession() }, requests };
+  return { context: { client, session: fixtureSession(), recipients }, requests };
 }
 
 /**

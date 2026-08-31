@@ -1,7 +1,7 @@
 ---
 title: ROADMAP — jmap-mcp
 status: draft
-updated: 2026-08-29
+updated: 2026-08-31
 owner: bryan
 ---
 
@@ -64,7 +64,7 @@ La garde est le vrai livrable. Elle classe l'appel sur ses arguments, pas sur le
 
 Prérequis manuels hors code : dépôt Git initialisé, CLI Stalwart installé, jeton bearer d'Alfred créé.
 
-## 📖 Module 2 — Lecture de mails
+## 📖 Module 2 — Lecture de mails ✅
 
 | Aspect | Contenu |
 | --- | --- |
@@ -77,7 +77,7 @@ Prérequis manuels hors code : dépôt Git initialisé, CLI Stalwart installé, 
 
 C'est ce module qui rend le scénario newsletters observable.
 
-## 📤 Module 3 — Envoi de mails
+## 📤 Module 3 — Envoi de mails ✅
 
 | Aspect | Contenu |
 | --- | --- |
@@ -87,6 +87,9 @@ C'est ce module qui rend le scénario newsletters observable.
 
 Première classe `send` : le module valide MRTR de bout en bout, et le refus explicite quand le client ne l'expose pas.
 `onSuccessDestroyEmail` est interdit à l'outil : envoyer et détruire sont deux gestes, deux confirmations.
+
+Livré avec un ajout hors périmètre initial : `recipients.scope` borne les destinataires aux carnets d'adresses du compte.
+Le contrôle tombe avant la confirmation, jamais après — une adresse hors périmètre n'est pas une question posée à l'utilisateur.
 
 ## 🗂️ Module 4 — Organisation du mail
 
@@ -201,6 +204,9 @@ Octroyer un accès à un tiers est classé `send` : c'est irréversible du point
 | Contacts | 5 et 6 | 15 |
 | Agendas | 7 et 8 | 21 |
 | Reste | 9 à 11 | 31 |
+
+Six outils sont exposés à ce jour sur les vingt-six visés, tous sur le mail : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`.
+Le module 1 n'a livré aucun outil, `jmap_session_info` ayant été remplacé par les instructions d'initialisation, qui portent la même information sans coûter une entrée au budget.
 
 La cible est vingt-six, la dégradation étant observée dès trente.
 Le dépassement se traite par fusion d'outils voisins ou par gating de capacité, décidé au module 9 sur une surface réelle.

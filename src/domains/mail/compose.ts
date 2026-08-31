@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { checkRecipients, type RecipientScope } from "../../config/recipients.js";
 import { explainSetError } from "../../jmap/errors.js";
 import type { GetResponse, Id, Invocation, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CORE, CAPABILITY_MAIL, CAPABILITY_SUBMISSION } from "../../jmap/types/core.js";
@@ -91,13 +92,22 @@ export const mailCompose = defineTool({
   // is exactly why the class is read off the arguments and not off the name.
   classify: (input) => (input.send === true ? "send" : "draft"),
   summarize: (input) => summarizeCompose(input),
-  run: async (input, { client, session }) => {
+  // Only the addresses the call states: a reply that names none is checked in
+  // `run`, once the message it answers has been read.
+  precheck: (input, { recipients }) =>
+    outsidePerimeter([...(input.to ?? []), ...(input.cc ?? []), ...(input.bcc ?? [])], recipients),
+  run: async (input, { client, session, recipients: scope }) => {
     const resolved = await resolveContext(input, client, session);
     if ("refusal" in resolved) return { text: resolved.refusal };
 
     const { identity, draftsId, sentId, source } = resolved;
     const create = buildDraft(input, identity, draftsId, source);
     const recipients = uniqueRecipients(create);
+
+    // Checked again, on the addresses actually written: a reply resolves its
+    // recipient from the server, and that one has never been through `precheck`.
+    const outside = outsidePerimeter(recipients, scope);
+    if (outside !== undefined) return { text: outside };
 
     const setArguments: EmailSetArguments = {
       accountId: session.accountId,
@@ -255,6 +265,22 @@ export async function resolveContext(
   }
 
   return { ...base, source };
+}
+
+/**
+ * The refusal the recipient perimeter raises, or `undefined` to go ahead.
+ *
+ * A list with no address passes: there is nobody to place inside or outside the
+ * perimeter, and the missing recipient is refused on its own terms further on.
+ */
+export function outsidePerimeter(
+  addresses: readonly string[],
+  scope: RecipientScope,
+): string | undefined {
+  if (addresses.length === 0) return undefined;
+
+  const verdict = checkRecipients(addresses, scope);
+  return verdict.ok ? undefined : verdict.refusal;
 }
 
 /**

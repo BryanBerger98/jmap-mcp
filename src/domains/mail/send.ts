@@ -15,6 +15,7 @@ import {
   buildSubmission,
   describeSubmission,
   MISSING_SENT_FOLDER,
+  outsidePerimeter,
   pickIdentity,
   uniqueRecipients,
 } from "./compose.js";
@@ -68,12 +69,26 @@ export const mailSend = defineTool({
 
     return `Send "${subject}" from ${identity.email} to ${recipients.join(", ")}.`;
   },
-  run: async (input, { client, session }) => {
+  precheck: async (input, { client, session, recipients }) => {
+    // An open perimeter costs nothing: the draft is not read at all.
+    if (recipients.kind === "anyone") return undefined;
+
+    const resolved = await resolveSend(input, client, session).catch(() => undefined);
+    // Any other refusal belongs to `run`, which reports it in its own words.
+    if (resolved === undefined || "refusal" in resolved) return undefined;
+
+    return outsidePerimeter(uniqueRecipients(resolved.email), recipients);
+  },
+  run: async (input, { client, session, recipients: scope }) => {
     const resolved = await resolveSend(input, client, session);
     if ("refusal" in resolved) return { text: resolved.refusal };
 
     const { identity, email, draftsId, sentId } = resolved;
     const recipients = uniqueRecipients(email);
+
+    const outside = outsidePerimeter(recipients, scope);
+    if (outside !== undefined) return { text: outside };
+
     if (recipients.length === 0) {
       return {
         text: `Refused: message ${email.id} carries no recipient, so there is nobody to send it to.`,

@@ -6,6 +6,7 @@ import {
 } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { OperationClass, WritePolicy } from "../config/policy.js";
+import { OPEN_SCOPE, type RecipientScope } from "../config/recipients.js";
 import type { JmapClient } from "../jmap/client.js";
 import type { JmapSession } from "../jmap/session.js";
 import type { ToolDefinition } from "./define-tool.js";
@@ -18,6 +19,8 @@ export interface ComposeInput {
   session: JmapSession;
   client: JmapClient;
   policy: WritePolicy;
+  /** Who the tools may write to. Absent means no restriction was configured. */
+  recipients?: RecipientScope;
 }
 
 export interface ComposeReport {
@@ -117,7 +120,11 @@ function register(input: ComposeInput, tool: ToolDefinition): void {
         };
       },
     ) => {
-      const context = { client: input.client, session: input.session };
+      const context = {
+        client: input.client,
+        session: input.session,
+        recipients: input.recipients ?? OPEN_SCOPE,
+      };
       const operation = tool.classify(args);
       const level = input.policy[operation];
 
@@ -126,6 +133,11 @@ function register(input: ComposeInput, tool: ToolDefinition): void {
           `Refused: ${tool.name} is a ${operation} operation and the policy denies that class.`,
         );
       }
+
+      // Before the confirmation, not after: a call that is going to be refused
+      // whatever the answer must never be put to the user as a question.
+      const refusal = await tool.precheck?.(args, context);
+      if (refusal !== undefined) return errorResult(refusal);
 
       if (level === "confirm") {
         // Decided before the request is built, never after: a refusal that comes

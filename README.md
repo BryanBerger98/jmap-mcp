@@ -4,7 +4,7 @@ Local MCP server that exposes a [Stalwart](https://stalw.art) mail server's JMAP
 
 No data leaves your machine except the exchange with your own server.
 
-> **Status: early.** The scaffolding, the JMAP client and the policy guard are in place. No domain tool is implemented yet, so the server currently registers zero tools.
+> **Status: early.** Mail is the only domain implemented: searching, reading, locating, composing and sending. The five other domains register nothing yet.
 
 ## Why
 
@@ -36,6 +36,22 @@ export JMAP_BEARER_TOKEN="…"   # never passed as a CLI argument
 ```
 
 Optional: `JMAP_ACCOUNT_ID` pins one account when the session exposes several.
+
+**Recipient perimeter.** `recipients.scope` bounds who the server may write to. It is resolved once at startup, before any tool is registered.
+
+| Value | Effect |
+| --- | --- |
+| `anyone` | Default. No restriction, nothing read. |
+| `contacts` | This account's contact cards, plus `recipients.allow`. |
+
+`recipients.allow` widens the perimeter by hand: a full address (`ops@example.net`) or a whole domain (`@example.net`). Both keys have an environment equivalent, comma-separated for the list.
+
+```sh
+export JMAP_RECIPIENT_SCOPE="contacts"
+export JMAP_RECIPIENT_ALLOW="ops@example.net,@example.org"
+```
+
+The perimeter fails closed. When the address books cannot be read — no contacts capability, a failing request, an account holding more cards than the server will hold in memory — every recipient is refused, including one the allow list names. An out-of-perimeter address is refused **before** the confirmation is asked, not after.
 
 ## Register with a client
 

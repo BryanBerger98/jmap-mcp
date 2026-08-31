@@ -1,11 +1,14 @@
 import type { ZodType, z } from "zod";
 import type { OperationClass } from "../config/policy.js";
+import type { RecipientScope } from "../config/recipients.js";
 import type { JmapClient } from "../jmap/client.js";
 import type { JmapSession } from "../jmap/session.js";
 
 export interface ToolContext {
   client: JmapClient;
   session: JmapSession;
+  /** Who this server may write to, resolved once at startup. */
+  recipients: RecipientScope;
 }
 
 export interface ToolResult {
@@ -44,6 +47,18 @@ export interface ToolDefinition<TInput extends ZodType = ZodType> {
    * account. Reading here is expected; writing here never is.
    */
   summarize: (input: z.infer<TInput>, context: ToolContext) => string | Promise<string>;
+  /**
+   * A refusal the registry raises before it asks anything of the user, or
+   * `undefined` to let the call proceed.
+   *
+   * It exists for the checks that must not be confirmable: asking someone to
+   * confirm a send that the recipient perimeter will refuse anyway teaches them
+   * that confirmations are noise. Reading is allowed here; writing never is.
+   */
+  precheck?: (
+    input: z.infer<TInput>,
+    context: ToolContext,
+  ) => string | undefined | Promise<string | undefined>;
   run: (input: z.infer<TInput>, context: ToolContext) => Promise<ToolResult>;
 }
 
