@@ -1,6 +1,6 @@
 ---
 objective: "L'assistant rédige un brouillon dans la boîte Stalwart de son utilisateur et ne l'expédie qu'après une confirmation explicite, bornée à un périmètre de destinataires réglable."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Rédiger et envoyer un mail depuis l'assistant
