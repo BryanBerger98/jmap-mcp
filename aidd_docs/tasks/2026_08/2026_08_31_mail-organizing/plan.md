@@ -1,6 +1,6 @@
 ---
 objective: "L'assistant classe, marque, met à la corbeille et détruit les messages désignés par leur identifiant, et gère l'arborescence des dossiers, sans qu'aucun geste irréversible ni aucun lot massif ne passe sans confirmation."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Classer, marquer et supprimer ses mails
