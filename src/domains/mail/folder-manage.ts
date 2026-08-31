@@ -135,7 +135,7 @@ function requestFor(input: Input, accountId: Id): MailboxSetArguments {
         ...base,
         create: {
           [CREATION_KEY]: {
-            name: input.name ?? "",
+            name: givenName(input),
             ...(input.parentId === undefined ? {} : { parentId: input.parentId }),
           },
         },
@@ -143,12 +143,40 @@ function requestFor(input: Input, accountId: Id): MailboxSetArguments {
     case "rename":
       // The name alone: sending `parentId` too would move a folder the caller
       // only meant to rename.
-      return { ...base, update: { [input.mailboxId ?? ""]: { name: input.name } } };
+      return { ...base, update: { [targetId(input)]: { name: givenName(input) } } };
     case "move":
-      return { ...base, update: { [input.mailboxId ?? ""]: { parentId: input.parentId ?? null } } };
+      return { ...base, update: { [targetId(input)]: { parentId: input.parentId ?? null } } };
     default:
-      return { ...base, destroy: [input.mailboxId ?? ""] };
+      return { ...base, destroy: [targetId(input)] };
   }
+}
+
+/**
+ * The field this action cannot be carried out without, or a throw.
+ *
+ * `inputSchema` refuses a call that omits it before the handler is reached, so
+ * an absent value here means the schema and the code below it have drifted
+ * apart. A fallback would answer that drift by destroying an empty id or
+ * creating a folder with no name; a throw writes nothing at all.
+ */
+function demand<T>(value: T | undefined, field: string, action: Input["action"]): T {
+  if (value === undefined) {
+    throw new Error(
+      `mail_folder_manage: \`${field}\` is missing on a ${action} call, which the input schema rules out.`,
+    );
+  }
+
+  return value;
+}
+
+/** The folder the call acts on, which the schema requires of every action but create. */
+function targetId(input: Input): Id {
+  return demand(input.mailboxId, "mailboxId", input.action);
+}
+
+/** The name the call gives a folder, which the schema requires of create and rename. */
+function givenName(input: Input): string {
+  return demand(input.name, "name", input.action);
 }
 
 function describeOutcome(input: Input, response: SetResponse<Mailbox>): string {
@@ -158,20 +186,20 @@ function describeOutcome(input: Input, response: SetResponse<Mailbox>): string {
       if (refused !== undefined) return refusedBy(refused);
 
       const created = response.created?.[CREATION_KEY];
-      return `Folder ${input.name} created${created === undefined ? "" : ` (id ${created.id})`}.`;
+      return `Folder ${givenName(input)} created${created === undefined ? "" : ` (id ${created.id})`}.`;
     }
     case "rename":
     case "move": {
-      const id = input.mailboxId ?? "";
+      const id = targetId(input);
       const refused = response.notUpdated?.[id];
       if (refused !== undefined) return refusedBy(refused);
 
       return input.action === "rename"
-        ? `Folder ${id} renamed to ${input.name}.`
+        ? `Folder ${id} renamed to ${givenName(input)}.`
         : `Folder ${id} moved under ${input.parentId ?? "the root of the tree"}.`;
     }
     default: {
-      const id = input.mailboxId ?? "";
+      const id = targetId(input);
       const refused = response.notDestroyed?.[id];
       return refused === undefined
         ? `Folder ${id} deleted. No message was removed.`
@@ -226,11 +254,12 @@ function refuseDuplicateName(
       return unknownMailbox(input.parentId, "no folder can be created under it");
   }
 
+  const wanted = givenName(input).toLowerCase();
   const clash = mailboxes.find(
     (mailbox) =>
       mailbox.id !== target?.id &&
       (mailbox.parentId ?? null) === parentId &&
-      mailbox.name.toLowerCase() === (input.name ?? "").toLowerCase(),
+      mailbox.name.toLowerCase() === wanted,
   );
 
   return clash === undefined
