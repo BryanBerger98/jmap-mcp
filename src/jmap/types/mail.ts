@@ -45,10 +45,18 @@ export type MailboxCreate = {
   parentId?: Id | null;
 };
 
+/**
+ * A patch on an existing folder (RFC 8620 §5.3).
+ *
+ * The same map can carry a `property/key` path, but the folder tools never
+ * write one: a rename sends `name` whole, a move sends `parentId` whole.
+ */
+export type MailboxSetUpdate = Record<string, unknown>;
+
 export type MailboxSetArguments = {
   accountId: Id;
   create?: Record<Id, MailboxCreate>;
-  update?: Record<Id, Record<string, unknown>>;
+  update?: Record<Id, MailboxSetUpdate>;
   destroy?: Id[];
   /**
    * Whether destroying a folder destroys the messages inside it.
