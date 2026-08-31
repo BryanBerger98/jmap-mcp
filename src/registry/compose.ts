@@ -6,17 +6,21 @@ import {
 } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { OperationClass, WritePolicy } from "../config/policy.js";
+import { OPEN_SCOPE, type RecipientScope } from "../config/recipients.js";
 import type { JmapClient } from "../jmap/client.js";
 import type { JmapSession } from "../jmap/session.js";
-import type { ToolDefinition } from "./define-tool.js";
+import { perInvocationCache, type ToolContext, type ToolDefinition } from "./define-tool.js";
+import { clientCanElicit } from "./elicitation.js";
 import type { DomainManifest } from "./manifest.js";
 
-export interface ComposeInput {
+export interface CompositionInput {
   server: McpServer;
   domains: readonly DomainManifest[];
   session: JmapSession;
   client: JmapClient;
   policy: WritePolicy;
+  /** Who the tools may write to. Absent means no restriction was configured. */
+  recipients?: RecipientScope;
 }
 
 export interface ComposeReport {
@@ -84,7 +88,7 @@ export function selectTools(
  * Registers the surviving tools. Runs once, before `connect()`: the
  * specification forbids a tool list that varies during a session.
  */
-export function compose(input: ComposeInput): ComposeReport {
+export function compose(input: CompositionInput): ComposeReport {
   const selection = selectTools(input.domains, input.session, input.policy);
 
   for (const tool of selection.exposed) {
@@ -98,7 +102,7 @@ export function compose(input: ComposeInput): ComposeReport {
   };
 }
 
-function register(input: ComposeInput, tool: ToolDefinition): void {
+function register(input: CompositionInput, tool: ToolDefinition): void {
   input.server.registerTool(
     tool.name,
     {
@@ -107,7 +111,23 @@ function register(input: ComposeInput, tool: ToolDefinition): void {
       // The definition owns the schema; the SDK wants it as a Standard Schema.
       inputSchema: tool.inputSchema as unknown as StandardSchemaWithJSON<unknown, unknown>,
     },
-    async (args: unknown, ctx: { mcpReq: { inputResponses?: Record<string, unknown> } }) => {
+    async (
+      args: unknown,
+      ctx: {
+        mcpReq: {
+          inputResponses?: Record<string, unknown>;
+          envelope?: Record<string, unknown>;
+        };
+      },
+    ) => {
+      const context: ToolContext = {
+        client: input.client,
+        session: input.session,
+        recipients: input.recipients ?? OPEN_SCOPE,
+        // Built here and nowhere else: the invocation that asks the question
+        // and the one that carries the answer must not share a cached read.
+        once: perInvocationCache(),
+      };
       const operation = tool.classify(args);
       const level = input.policy[operation];
 
@@ -117,13 +137,27 @@ function register(input: ComposeInput, tool: ToolDefinition): void {
         );
       }
 
+      // Before the confirmation, not after: a call that is going to be refused
+      // whatever the answer must never be put to the user as a question.
+      const refusal = await tool.precheck?.(args, context);
+      if (refusal !== undefined) return errorResult(refusal);
+
       if (level === "confirm") {
+        // Decided before the request is built, never after: a refusal that comes
+        // once the call is out is not a refusal.
+        if (!clientCanElicit(input.server, ctx.mcpReq)) {
+          return errorResult(
+            `Refused: ${tool.name} is a ${operation} operation, which this server only runs after you confirm it. ` +
+              "Your MCP client did not declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused.",
+          );
+        }
+
         const answer = acceptedContent(ctx.mcpReq.inputResponses, "confirm", confirmationSchema);
         if (answer?.confirm !== true) {
           return inputRequired({
             inputRequests: {
               confirm: inputRequired.elicit({
-                message: `${tool.summarize(args)}\n\nThis is a ${operation} operation. Proceed?`,
+                message: `${await tool.summarize(args, context)}\n\nThis is a ${operation} operation. Proceed?`,
                 requestedSchema: {
                   type: "object",
                   properties: { confirm: { type: "boolean" } },
@@ -135,7 +169,7 @@ function register(input: ComposeInput, tool: ToolDefinition): void {
         }
       }
 
-      const result = await tool.run(args, { client: input.client, session: input.session });
+      const result = await tool.run(args, context);
       return { content: [{ type: "text" as const, text: renderResult(result) }] };
     },
   );

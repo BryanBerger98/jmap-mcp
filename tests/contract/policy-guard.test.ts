@@ -17,16 +17,22 @@ import { defineDomain } from "../../src/registry/manifest.js";
 
 type Handler = (
   args: unknown,
-  ctx: { mcpReq: { inputResponses?: Record<string, unknown> } },
+  ctx: { mcpReq: { inputResponses?: Record<string, unknown>; envelope?: Record<string, unknown> } },
 ) => Promise<unknown>;
 
-/** Captures what compose registers, standing in for a real McpServer. */
+/**
+ * Captures what compose registers, standing in for a real McpServer.
+ *
+ * It declares `elicitation`: every case here is about the policy guard, and a
+ * client that cannot confirm is refused earlier, by the capability guard.
+ */
 function fakeServer(): { server: McpServer; handlers: Map<string, Handler> } {
   const handlers = new Map<string, Handler>();
   const server = {
     registerTool(name: string, _config: unknown, cb: Handler) {
       handlers.set(name, cb);
     },
+    server: { getClientCapabilities: () => ({ elicitation: {} }) },
   };
   return { server: server as unknown as McpServer, handlers };
 }

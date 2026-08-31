@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { DEFAULT_POLICY, type OperationClass } from "../../src/config/policy.js";
+import { OPEN_SCOPE, restrictTo } from "../../src/config/recipients.js";
 import { JmapSession } from "../../src/jmap/session.js";
 import type { Session } from "../../src/jmap/types/core.js";
 import { selectTools } from "../../src/registry/compose.js";
@@ -101,6 +102,39 @@ describe("scope sentence against a composed surface", () => {
     expect(buildInstructions(session, classesOf(["read", "send"]))).not.toContain(
       READ_ONLY_PROMISE,
     );
+  });
+});
+
+/**
+ * A restriction the assistant discovers by being refused is a restriction it
+ * discovers too late: the perimeter rides the initialization response.
+ */
+describe("the recipient perimeter in the instructions", () => {
+  const sending = new Set<OperationClass>(["read", "send"]);
+
+  it("says nothing when the perimeter is open", () => {
+    expect(buildInstructions(session, sending, OPEN_SCOPE)).not.toContain("restricted to");
+  });
+
+  it("announces an empty perimeter at the opening, not at the first send", () => {
+    const text = buildInstructions(session, sending, { kind: "empty" });
+
+    expect(text).toContain("perimeter is currently empty");
+  });
+
+  it("announces one it could not read, with the reason", () => {
+    const text = buildInstructions(session, sending, {
+      kind: "unreadable",
+      reason: "JMAP request failed: 503",
+    });
+
+    expect(text).toContain("503");
+  });
+
+  it("announces how wide a resolved perimeter is", () => {
+    const scope = restrictTo({ fromContacts: ["camille@example.org"], allow: ["@partner.test"] });
+
+    expect(buildInstructions(session, sending, scope)).toContain("1 address(es)");
   });
 });
 

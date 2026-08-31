@@ -20,6 +20,52 @@ const writePolicySchema = z
     }),
   );
 
+/** Who a message may be addressed to. `contacts` reads the address books once. */
+export const RECIPIENT_SCOPES = ["anyone", "contacts"] as const;
+
+export type RecipientScopeSetting = (typeof RECIPIENT_SCOPES)[number];
+
+export interface RecipientsSetting {
+  scope: RecipientScopeSetting;
+  /** Addresses, or `@domain` entries, allowed on top of the address books. */
+  allow: string[];
+}
+
+/** Open unless asked otherwise: a restriction nobody configured costs a read. */
+export const OPEN_RECIPIENTS: RecipientsSetting = { scope: "anyone", allow: [] };
+
+/**
+ * One entry of the allow list: a whole address, or a domain written `@example.com`.
+ *
+ * A bare `example.com` is refused rather than guessed at: read as an address it
+ * matches nothing, read as a domain it opens every mailbox behind it, and the
+ * two readings are too far apart to pick one silently.
+ */
+const allowEntrySchema = z.string().refine(
+  (entry) => {
+    const at = entry.indexOf("@");
+    if (at === -1) return false;
+    // `@domain` (at index 0) or `local@domain`: either way something follows.
+    return at === entry.lastIndexOf("@") && entry.length > at + 1;
+  },
+  {
+    message:
+      "Each recipients.allow entry must be an address (user@example.com) or a domain (@example.com)",
+  },
+);
+
+const recipientsSchema = z
+  .object({
+    scope: z.enum(RECIPIENT_SCOPES).optional(),
+    allow: z.array(allowEntrySchema).optional(),
+  })
+  .transform(
+    (partial): RecipientsSetting => ({
+      scope: partial.scope ?? OPEN_RECIPIENTS.scope,
+      allow: partial.allow ?? [],
+    }),
+  );
+
 export const configSchema = z.object({
   /** The JMAP session resource, e.g. https://mail.example.com/.well-known/jmap */
   sessionUrl: z.url(),
@@ -28,6 +74,7 @@ export const configSchema = z.object({
   /** Restricts the server to one account when the session exposes several. */
   accountId: z.string().min(1).optional(),
   policy: writePolicySchema.default(DEFAULT_POLICY),
+  recipients: recipientsSchema.default(OPEN_RECIPIENTS),
 });
 
 export type Config = z.infer<typeof configSchema>;

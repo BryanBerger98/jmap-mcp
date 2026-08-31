@@ -1,0 +1,20 @@
+{
+  "accountId": "acc-1",
+  "state": "contact-state-1",
+  "list": [
+    {
+      "id": "card-1",
+      "emails": {
+        "personal": { "address": "Camille@Example.org", "contexts": { "private": true } },
+        "work": { "address": "camille.pro@example.net", "contexts": { "work": true }, "pref": 1 }
+      }
+    },
+    {
+      "id": "card-2",
+      "emails": {
+        "personal": { "address": "ana@example.org" }
+      }
+    }
+  ],
+  "notFound": []
+}

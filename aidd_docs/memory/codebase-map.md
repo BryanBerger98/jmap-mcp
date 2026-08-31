@@ -1,15 +1,15 @@
 ---
 title: Carte du code
 status: draft
-updated: 2026-08-29
+updated: 2026-08-31
 owner: bryan
 ---
 
 # Carte du code
 
 > [!NOTE]
-> L'arbre existe et compile. Le socle est écrit : configuration, client JMAP, session, registre, pagination, rendu.
-> Les six domaines sont des manifestes à `tools: []` — aucun outil métier n'est encore implémenté.
+> Le mail expose six outils : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`.
+> Les cinq autres domaines restent des manifestes à `tools: []`.
 
 ## 🗺️ Découpe
 
@@ -37,7 +37,7 @@ flowchart TD
 
 | Zone | Responsabilité |
 | --- | --- |
-| `src/config/` | Schéma, chargement, politique d'écriture |
+| `src/config/` | Schéma, chargement, politique, périmètre des destinataires |
 | `src/jmap/` | Session, client, erreurs, blobs, types |
 | `src/registry/` | Définition d'outil, manifeste, composition |
 | `src/domains/` | Les six domaines métier |
@@ -46,6 +46,8 @@ flowchart TD
 
 Les types JMAP vivent sous `src/jmap/types/`, un fichier par spécification.
 Chaque domaine sous `src/domains/` regroupe ses outils par verbe métier, jamais par méthode JMAP.
+Un domaine peut se scinder en plusieurs manifestes : le mail en a deux, `mailDomain` sur la seule capacité `mail` et `mailSendingDomain` sur `mail` plus `submission`.
+Sans ce découpage, un serveur qui n'expédie pas ferait taire aussi les outils de lecture.
 
 ## 🚪 Points d'entrée
 

@@ -45,7 +45,9 @@ describe("mail_folders", () => {
       "Archive/Newsletters",
       "Archive/Newsletters/2024",
       "Detached",
+      "Drafts",
       "Inbox",
+      "Sent",
     ]);
   });
 

@@ -1,0 +1,13 @@
+{
+  "accountId": "acc-1",
+  "oldState": "email-state-1",
+  "newState": "email-state-2",
+  "created": {
+    "draft": {
+      "id": "em-draft-1",
+      "blobId": "blob-draft-1",
+      "threadId": "th-draft-1",
+      "size": 412
+    }
+  }
+}

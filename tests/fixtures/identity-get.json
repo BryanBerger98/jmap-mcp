@@ -1,0 +1,17 @@
+{
+  "accountId": "acc-1",
+  "state": "identity-state-1",
+  "list": [
+    {
+      "id": "id-1",
+      "name": "Bryan Berger",
+      "email": "bryan@example.com"
+    },
+    {
+      "id": "id-2",
+      "name": "Bryan — Facturation",
+      "email": "billing@example.com"
+    }
+  ],
+  "notFound": []
+}

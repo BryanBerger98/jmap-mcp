@@ -1,7 +1,7 @@
 ---
 title: Architecture
 status: draft
-updated: 2026-08-29
+updated: 2026-08-31
 owner: bryan
 ---
 
@@ -48,6 +48,43 @@ flowchart LR
 - Quatre classes d'opération, trois niveaux chacune : `read` et `draft` en `allow`, `send` et `destroy` en `confirm`.
 - Le client JMAP est écrit à la main : aucune bibliothèque TypeScript ne couvre Calendars, Contacts ni File Storage.
 - Un fichier de types par spécification, les drafts Calendars et Filenode bougeant encore.
+- Le périmètre des destinataires est une fonction pure d'un ensemble résolu et d'une liste d'adresses : la règle qui empêche un message de quitter le compte se teste sans serveur.
+
+## 🛡️ Ce que traverse un envoi
+
+Quatre filtres, dans cet ordre, tous dans le registre avant que l'outil ne tourne.
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'ui-sans-serif, system-ui, sans-serif','lineColor':'#94a3b8','primaryTextColor':'#334155'}}}%%
+flowchart LR
+    A([📥 Appel]) --> B{🚫 Politique}
+    B -->|deny| R([❌ Refus])
+    B -->|allow, confirm| C{📮 Périmètre}
+    C -->|hors périmètre| R
+    C -->|dedans| D{🙋 Élicitation}
+    D -->|client sans MRTR| R
+    D -->|confirmé| E([✅ run])
+
+    classDef violet fill:#f5f3ff,stroke:#8b5cf6,color:#4c1d95
+    classDef ambre fill:#fffbeb,stroke:#f59e0b,color:#78350f
+    classDef bleu fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a
+
+    class A,E violet
+    class B,C,D ambre
+    class R bleu
+```
+
+Le périmètre passe avant l'élicitation, par un hook `precheck` optionnel porté par la définition d'outil.
+Un appel voué au refus quelle que soit la réponse ne doit pas être posé en question à l'utilisateur.
+
+Le périmètre est résolu une seule fois, au démarrage, en lisant les fiches de contact du compte.
+Il échoue fermé : capacité contacts absente, requête en erreur ou carnet trop volumineux rendent un périmètre `unreadable`, qui refuse tout, y compris une adresse que la liste `allow` nomme.
+
+Quand une réponse ne nomme aucune adresse, le `precheck` lit lui-même le message source pour connaître son destinataire.
+Lire coûte un aller-retour, mais l'alternative est de faire confirmer un envoi que `run` refusera de toute façon : le périmètre tranche avant l'élicitation, sans exception.
+
+`mail_compose` et `mail_send` refont ensuite le contrôle dans `run`, sur les adresses réellement écrites.
+La redondance est voulue : le `precheck` avale une lecture en échec plutôt que de transformer une erreur de transport en refus, donc le dernier mot sur les destinataires lui échappe.
 
 ## ⚠️ Pièges
 

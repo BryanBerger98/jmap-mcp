@@ -62,6 +62,9 @@ export interface EmailBodyPart {
 export interface Email {
   id: Id;
   threadId: Id;
+  /** Folder membership, as an id set. A message may sit in several at once. */
+  mailboxIds?: Record<Id, boolean>;
+  keywords?: Record<string, boolean>;
   from: EmailAddress[] | null;
   to: EmailAddress[] | null;
   subject: string | null;
@@ -73,6 +76,9 @@ export interface Email {
   bcc?: EmailAddress[] | null;
   replyTo?: EmailAddress[] | null;
   sentAt?: string | null;
+  /** RFC 5322 Message-ID, as a one-element list. What a reply threads onto. */
+  messageId?: string[] | null;
+  references?: string[] | null;
   textBody?: EmailBodyPart[];
   htmlBody?: EmailBodyPart[];
   bodyValues?: Record<string, EmailBodyValue>;
@@ -115,4 +121,93 @@ export type EmailGetArguments = {
   fetchTextBodyValues?: boolean;
   fetchHTMLBodyValues?: boolean;
   maxBodyValueBytes?: number;
+};
+
+/**
+ * An address the account may send from (RFC 8621 §6).
+ *
+ * It belongs to the `submission` capability, not to `mail`: a server that reads
+ * mail without sending it has no `Identity` at all.
+ */
+export interface Identity {
+  id: Id;
+  name: string;
+  email: string;
+  replyTo: EmailAddress[] | null;
+  bcc: EmailAddress[] | null;
+  textSignature: string;
+  htmlSignature: string;
+  mayDelete: boolean;
+}
+
+export type IdentityGetArguments = {
+  accountId: Id;
+  ids?: Id[] | null;
+  properties?: string[] | null;
+};
+
+/** An SMTP envelope address. `parameters` carries ESMTP extensions, e.g. HOLDFOR. */
+export interface Address {
+  email: string;
+  parameters?: Record<string, unknown> | null;
+}
+
+/**
+ * Who the message is actually delivered to, as opposed to what its headers say.
+ *
+ * Stated explicitly on every submission: letting the server derive it from the
+ * headers means not knowing who receives the message.
+ */
+export interface Envelope {
+  mailFrom: Address;
+  rcptTo: Address[];
+}
+
+export interface EmailSubmission {
+  id: Id;
+  identityId: Id;
+  emailId: Id;
+  threadId: Id;
+  envelope: Envelope | null;
+  sendAt: string;
+  /** `pending`, `final` or `canceled`. Server-owned, never set on creation. */
+  undoStatus: string;
+}
+
+/**
+ * A message being created (RFC 8621 §4.6).
+ *
+ * `headers` and any `header:*` property are refused at creation, so a draft is
+ * built from the convenience properties alone. Nothing here names a charset, a
+ * size or a transfer encoding either: the server computes all three.
+ */
+export type EmailCreate = {
+  mailboxIds: Record<Id, boolean>;
+  keywords?: Record<string, boolean>;
+  from?: EmailAddress[];
+  to?: EmailAddress[];
+  cc?: EmailAddress[];
+  bcc?: EmailAddress[];
+  subject?: string;
+  inReplyTo?: string[] | null;
+  references?: string[] | null;
+  bodyValues?: Record<string, { value: string }>;
+  textBody?: { partId: string; type: string }[];
+};
+
+export type EmailSetArguments = {
+  accountId: Id;
+  create?: Record<Id, EmailCreate>;
+  update?: Record<Id, Record<string, unknown>>;
+  destroy?: Id[];
+};
+
+export type EmailSubmissionSetArguments = {
+  accountId: Id;
+  create?: Record<Id, { identityId: Id; emailId: Id; envelope?: Envelope }>;
+  /**
+   * A patch applied to the messages of the submissions that succeeded. It moves
+   * the draft into the sent folder; `onSuccessDestroyEmail` is never emitted.
+   */
+  onSuccessUpdateEmail?: Record<Id, Record<string, unknown>>;
 };

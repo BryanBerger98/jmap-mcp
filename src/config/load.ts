@@ -20,6 +20,7 @@ export async function loadConfig(env: NodeJS.ProcessEnv = process.env): Promise<
       bearerToken: env.JMAP_BEARER_TOKEN,
       accountId: env.JMAP_ACCOUNT_ID,
     }),
+    ...recipientsFrom(env, fromFile.recipients),
   };
 
   const parsed = configSchema.safeParse(merged);
@@ -36,6 +37,38 @@ async function readConfigFile(): Promise<Record<string, unknown>> {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
     throw error;
   }
+}
+
+/**
+ * The recipient perimeter, key by key.
+ *
+ * Merged rather than replaced: setting the scope from the environment must not
+ * silently drop an allow list the config file carries. Absent from both, the
+ * key stays absent and the schema defaults it open.
+ */
+function recipientsFrom(
+  env: NodeJS.ProcessEnv,
+  fromFile: unknown,
+): { recipients?: Record<string, unknown> } {
+  const base = typeof fromFile === "object" && fromFile !== null ? fromFile : {};
+
+  const recipients = {
+    ...base,
+    ...definedOnly({ scope: env.JMAP_RECIPIENT_SCOPE }),
+    ...(env.JMAP_RECIPIENT_ALLOW === undefined
+      ? {}
+      : { allow: splitList(env.JMAP_RECIPIENT_ALLOW) }),
+  };
+
+  return Object.keys(recipients).length === 0 ? {} : { recipients };
+}
+
+/** Comma-separated, and an empty entry is dropped rather than validated. */
+function splitList(value: string): string[] {
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
 }
 
 function definedOnly(values: Record<string, string | undefined>): Record<string, string> {

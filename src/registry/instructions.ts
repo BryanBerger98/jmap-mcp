@@ -1,4 +1,5 @@
 import { OPERATION_CLASSES, type OperationClass } from "../config/policy.js";
+import { describeScope, OPEN_SCOPE, type RecipientScope } from "../config/recipients.js";
 import type { JmapSession } from "../jmap/session.js";
 
 /**
@@ -68,6 +69,7 @@ function enumerate(items: readonly string[]): string {
 export function buildInstructions(
   session: JmapSession,
   classes: ReadonlySet<OperationClass>,
+  recipients: RecipientScope = OPEN_SCOPE,
 ): string {
   const account = session.account;
   const kind = account.isPersonal ? "personal" : "shared";
@@ -82,10 +84,15 @@ export function buildInstructions(
       ? `This server advertises: ${domains.join(", ")}.`
       : "This server advertises no recognised domain.";
 
+  // The perimeter is announced only when it restricts something: a sentence
+  // about an open one would cost tokens on every initialization to say nothing.
+  const perimeter = describeScope(recipients);
+
   return [
     `You are connected to one JMAP mailbox: the ${kind} account "${account.name}", opened as ${session.username}.`,
     advertised,
     scopeSentence(classes),
+    ...(perimeter === undefined ? [] : [perimeter]),
     "All tools act on that single account: an id one tool returns is meant to be passed to another.",
   ].join("\n\n");
 }
