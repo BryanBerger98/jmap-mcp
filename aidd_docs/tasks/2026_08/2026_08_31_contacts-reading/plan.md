@@ -1,6 +1,6 @@
 ---
 objective: "L'assistant retrouve une fiche de contact par nom, adresse ou organisation, en lit le détail, voit où elle est rangée et si son adresse est dans le périmètre d'envoi, sans qu'aucune requête d'écriture ne quitte le module."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Consulter ses carnets d'adresses
