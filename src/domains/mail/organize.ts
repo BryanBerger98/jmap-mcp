@@ -143,7 +143,10 @@ function describeOutcome(ids: readonly Id[], refused: Record<Id, SetError>, done
     return { id, outcome: error === undefined ? done : `refused: ${describeSetError(error)}` };
   });
 
-  const failed = rows.filter((row) => row.outcome !== done).length;
+  // Counted off the server's answer, never off the cell that was rendered from
+  // it: a `done` wording that happened to read like a refusal would otherwise
+  // move the headline.
+  const failed = ids.filter((id) => refused[id] !== undefined).length;
   const succeeded = rows.length - failed;
 
   const headline =
