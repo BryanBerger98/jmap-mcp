@@ -98,10 +98,17 @@ export async function resolveTrash(context: ToolContext): Promise<Mailbox | unde
   return mailboxes.find((mailbox) => mailbox.role === "trash");
 }
 
-/** The refusal a folder the account does not hold raises, in its own words. */
-export function unknownMailbox(mailboxId: Id): string {
+/**
+ * The refusal a folder the account does not hold raises, in its own words.
+ *
+ * `consequence` carries what the caller loses, because the same missing folder
+ * means a different thing each time it is named: a destination nothing can be
+ * filed into, a parent no folder can sit under, a folder there is nothing to
+ * rename. The default states the filing case, which is the common one.
+ */
+export function unknownMailbox(mailboxId: Id, consequence = "nothing can be filed there"): string {
   return (
-    `Refused: folder ${mailboxId} is not in this account, so nothing can be filed there. ` +
+    `Refused: folder ${mailboxId} is not in this account, so ${consequence}. ` +
     "Run mail_folders to see the folders that exist and their ids."
   );
 }

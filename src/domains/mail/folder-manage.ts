@@ -35,6 +35,14 @@ const inputSchema = z
 
 const NAMING_ACTIONS = new Set(["create", "rename"]);
 
+/** What a folder the account does not hold costs, action by action. */
+const MISSING_TARGET: Record<Input["action"], string> = {
+  create: "there is nothing there to act on",
+  rename: "there is nothing to rename",
+  move: "there is no such folder to move",
+  delete: "there is nothing to delete",
+};
+
 export const mailFolderManage = defineTool({
   name: "mail_folder_manage",
   title: "Create, rename, move or delete a mail folder",
@@ -71,7 +79,7 @@ export const mailFolderManage = defineTool({
         : mailboxes.find((mailbox) => mailbox.id === input.mailboxId);
 
     if (input.mailboxId !== undefined && target === undefined) {
-      return unknownMailbox(input.mailboxId);
+      return unknownMailbox(input.mailboxId, MISSING_TARGET[input.action]);
     }
 
     // A role is what tells the mail client which folder is which. Renaming or
@@ -214,7 +222,8 @@ function refuseDuplicateName(
 
   if (input.action === "create" && input.parentId != null) {
     const parent = mailboxes.find((mailbox) => mailbox.id === input.parentId);
-    if (parent === undefined) return unknownMailbox(input.parentId);
+    if (parent === undefined)
+      return unknownMailbox(input.parentId, "no folder can be created under it");
   }
 
   const clash = mailboxes.find(
@@ -245,7 +254,9 @@ function refuseImpossibleMove(
   }
 
   const parent = mailboxes.find((mailbox) => mailbox.id === parentId);
-  if (parent === undefined) return unknownMailbox(parentId);
+  if (parent === undefined) {
+    return unknownMailbox(parentId, `${target.name} cannot be moved under it`);
+  }
 
   return isDescendantOf(parent, target, mailboxes)
     ? `Refused: ${parent.name} sits inside ${target.name}, so moving ${target.name} there would cut both out of the folder tree.`
