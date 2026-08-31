@@ -8,7 +8,7 @@ owner: bryan
 # Tests
 
 > [!NOTE]
-> 345 tests passent sur 31 fichiers, dont 10 de contrat.
+> 349 tests passent sur 31 fichiers, dont 10 de contrat.
 > Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses et les fiches de contact.
 
 ## 🎯 Stratégie
