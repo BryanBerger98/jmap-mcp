@@ -120,3 +120,6 @@ JMAP n'offre aucune transaction, donc défaire un lot à moitié appliqué serai
 
 La feuille de route fixe quatre outils : `mail_move`, `mail_flag`, `mail_delete`, `mailbox_manage`.
 Le budget passerait de six à dix outils exposés sur vingt-six, et non onze, la table du budget comptant encore `jmap_session_info`, retiré depuis (`aidd_docs/ROADMAP.md:203`, `:209`).
+
+> [!NOTE]
+> `mailbox_manage` a été renommé `mail_folder_manage` pendant cette même tranche (`aidd_docs/tasks/2026_08/2026_08_31_mail-organizing/plan.md:51`, `aidd_docs/ROADMAP.md:105`).
