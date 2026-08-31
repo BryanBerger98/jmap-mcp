@@ -18,13 +18,17 @@ import {
   takeWithinBudget,
 } from "../../shared/pagination.js";
 import { renderTable, truncate } from "../../shared/render.js";
-import { bookNames, displayName, primaryEmail, renderBooks, scopeMark } from "./card.js";
+import {
+  BOOK_PROPERTIES,
+  bookNames,
+  displayName,
+  primaryEmail,
+  renderBooks,
+  scopeMark,
+} from "./card.js";
 
 /** Explicit: omitting `properties` hands back the whole JSContact object. */
 const ROW_PROPERTIES = ["id", "kind", "name", "emails", "organizations", "addressBookIds"] as const;
-
-/** Every book the account holds; the legend names them all. */
-const BOOK_PROPERTIES = ["id", "name", "isDefault"] as const;
 
 /**
  * How much rendered text one page may spend. Lower than the mail budget on

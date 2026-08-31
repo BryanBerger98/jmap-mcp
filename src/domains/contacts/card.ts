@@ -71,6 +71,15 @@ function rankOf(entry: EmailAddressEntry): number {
 }
 
 /**
+ * The properties both renderers below need from `AddressBook/get`.
+ *
+ * Declared here rather than at each call site: `renderBooks` and `bookNames`
+ * read exactly these fields, so the set belongs next to them and cannot drift
+ * from one tool to the other.
+ */
+export const BOOK_PROPERTIES = ["id", "name", "isDefault"] as const;
+
+/**
  * The legend a search puts in its header: which books exist, and their ids.
  *
  * The id is what `contacts_search` takes back as `addressBookId`, so naming a

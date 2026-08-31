@@ -8,7 +8,7 @@ import type {
 import type { GetResponse, Id } from "../../jmap/types/core.js";
 import { CAPABILITY_CONTACTS, CAPABILITY_CORE } from "../../jmap/types/core.js";
 import { defineTool } from "../../registry/define-tool.js";
-import { renderCard } from "./card.js";
+import { BOOK_PROPERTIES, renderCard } from "./card.js";
 import { inRequestedOrder } from "./search.js";
 
 /**
@@ -39,9 +39,6 @@ const DETAIL_PROPERTIES = [
   "created",
   "updated",
 ] as const;
-
-/** Every book of the account, so a card can name where it is filed. */
-const BOOK_PROPERTIES = ["id", "name", "isDefault"] as const;
 
 const SEPARATOR = `\n\n${"-".repeat(60)}\n\n`;
 
