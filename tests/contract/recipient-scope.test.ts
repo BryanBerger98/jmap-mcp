@@ -46,6 +46,23 @@ const draftGet: GetResponse<Email> = {
   notFound: [],
 };
 
+/** A message from the stranger. Answering it names no address in the arguments. */
+const strangerSource: GetResponse<Email> = {
+  accountId: "acc-1",
+  state: "email-state-2",
+  list: [
+    {
+      id: "em-origin-1",
+      messageId: ["<origin-1@example.org>"],
+      references: null,
+      subject: "Réunion de lancement",
+      from: [{ name: null, email: STRANGER }],
+      replyTo: null,
+    } as unknown as Email,
+  ],
+  notFound: [],
+};
+
 const moved: SetResponse<Email> = {
   accountId: "acc-1",
   oldState: "email-state-2",
@@ -127,6 +144,25 @@ describe("a recipient outside the perimeter", () => {
     expect(isInputRequiredResult(result)).toBe(false);
     expect(textOf(result)).toContain("outside the recipient perimeter");
     expect(methodsOf(requests)).toEqual([]);
+  });
+
+  it("is refused on a reply that names no address, still before the confirmation", async () => {
+    // The arguments carry no recipient at all: the only one is in the message
+    // being answered, which is exactly the shape that used to slip through.
+    const { handlers, requests } = sendingSurface(
+      [soleIdentity, mailboxGet, strangerSource, emailSetCreated],
+      perimeter,
+    );
+
+    const result = await handlers.get("mail_compose")?.(
+      { replyToEmailId: "em-origin-1", body: "Text", send: true },
+      { mcpReq: {} },
+    );
+
+    expect(isInputRequiredResult(result)).toBe(false);
+    expect(textOf(result)).toContain(STRANGER);
+    expect(methodsOf(requests)).not.toContain("Email/set");
+    expect(methodsOf(requests)).not.toContain("EmailSubmission/set");
   });
 
   it("is refused by mail_send, which submits nothing", async () => {

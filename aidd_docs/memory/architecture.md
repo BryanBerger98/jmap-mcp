@@ -80,8 +80,11 @@ Un appel voué au refus quelle que soit la réponse ne doit pas être posé en q
 Le périmètre est résolu une seule fois, au démarrage, en lisant les fiches de contact du compte.
 Il échoue fermé : capacité contacts absente, requête en erreur ou carnet trop volumineux rendent un périmètre `unreadable`, qui refuse tout, y compris une adresse que la liste `allow` nomme.
 
-`mail_compose` et `mail_send` refont le contrôle dans `run`, sur les adresses réellement écrites.
-La redondance est voulue : une réponse ne connaît son destinataire qu'après lecture du message source, donc après le `precheck`.
+Quand une réponse ne nomme aucune adresse, le `precheck` lit lui-même le message source pour connaître son destinataire.
+Lire coûte un aller-retour, mais l'alternative est de faire confirmer un envoi que `run` refusera de toute façon : le périmètre tranche avant l'élicitation, sans exception.
+
+`mail_compose` et `mail_send` refont ensuite le contrôle dans `run`, sur les adresses réellement écrites.
+La redondance est voulue : le `precheck` avale une lecture en échec plutôt que de transformer une erreur de transport en refus, donc le dernier mot sur les destinataires lui échappe.
 
 ## ⚠️ Pièges
 

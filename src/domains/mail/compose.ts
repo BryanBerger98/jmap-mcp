@@ -92,10 +92,23 @@ export const mailCompose = defineTool({
   // so the line the user is shown says who this actually leaves for.
   summarize: async (input, context) =>
     summarizeCompose(input, await namedRecipients(input, context)),
-  // Only the addresses the call states: a reply that names none is checked in
-  // `run`, once the message it answers has been read.
-  precheck: (input, { recipients }) =>
-    outsidePerimeter([...(input.to ?? []), ...(input.cc ?? []), ...(input.bcc ?? [])], recipients),
+  precheck: async (input, context) => {
+    const stated = [...(input.to ?? []), ...(input.cc ?? []), ...(input.bcc ?? [])];
+
+    // Settled on the arguments alone whenever they suffice: a refusal that costs
+    // no round trip must not start paying for one.
+    const refusal = outsidePerimeter(stated, context.recipients);
+    if (refusal !== undefined) return refusal;
+
+    // A reply that names nobody still has a recipient, and it is in the message
+    // it answers. Left unread, the perimeter would be met for the first time in
+    // `run` — after the user had been asked to confirm a doomed send.
+    if (context.recipients.kind === "anyone") return undefined;
+    if (input.to !== undefined || input.replyToEmailId === undefined) return undefined;
+
+    const replied = await repliedRecipients(input, context);
+    return replied === undefined ? undefined : outsidePerimeter(replied, context.recipients);
+  },
   run: async (input, { client, session, recipients: scope }) => {
     const resolved = await resolveContext(input, client, session);
     if ("refusal" in resolved) return { text: resolved.refusal };
@@ -104,8 +117,9 @@ export const mailCompose = defineTool({
     const create = buildDraft(input, identity, draftsId, source);
     const recipients = uniqueRecipients(create);
 
-    // Checked again, on the addresses actually written: a reply resolves its
-    // recipient from the server, and that one has never been through `precheck`.
+    // Checked again, on the addresses actually written. `precheck` reads the
+    // same message, but it swallows a failed read to avoid refusing on a
+    // transport error — so the last word on who this reaches belongs here.
     const outside = outsidePerimeter(recipients, scope);
     if (outside !== undefined) return { text: outside };
 
