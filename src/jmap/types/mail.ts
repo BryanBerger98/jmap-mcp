@@ -73,6 +73,9 @@ export interface Email {
   bcc?: EmailAddress[] | null;
   replyTo?: EmailAddress[] | null;
   sentAt?: string | null;
+  /** RFC 5322 Message-ID, as a one-element list. What a reply threads onto. */
+  messageId?: string[] | null;
+  references?: string[] | null;
   textBody?: EmailBodyPart[];
   htmlBody?: EmailBodyPart[];
   bodyValues?: Record<string, EmailBodyValue>;

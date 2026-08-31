@@ -1,5 +1,6 @@
 import { CAPABILITY_MAIL, CAPABILITY_SUBMISSION } from "../../jmap/types/core.js";
 import { defineDomain } from "../../registry/manifest.js";
+import { mailCompose } from "./compose.js";
 import { mailFolders } from "./folders.js";
 import { mailIdentities } from "./identities.js";
 import { mailRead } from "./read.js";
@@ -32,5 +33,5 @@ export const mailDomain = defineDomain({
 export const mailSendingDomain = defineDomain({
   name: "mail",
   requires: [CAPABILITY_MAIL, CAPABILITY_SUBMISSION],
-  tools: [mailIdentities],
+  tools: [mailIdentities, mailCompose],
 });

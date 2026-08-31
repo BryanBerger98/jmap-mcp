@@ -39,6 +39,24 @@
       "unreadEmails": 0
     },
     {
+      "id": "mb-drafts",
+      "name": "Drafts",
+      "parentId": null,
+      "role": "drafts",
+      "sortOrder": 5,
+      "totalEmails": 2,
+      "unreadEmails": 0
+    },
+    {
+      "id": "mb-sent",
+      "name": "Sent",
+      "parentId": null,
+      "role": "sent",
+      "sortOrder": 6,
+      "totalEmails": 91,
+      "unreadEmails": 0
+    },
+    {
       "id": "mb-orphan",
       "name": "Detached",
       "parentId": "mb-vanished",

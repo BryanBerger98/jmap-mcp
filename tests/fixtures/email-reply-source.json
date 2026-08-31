@@ -1,0 +1,15 @@
+{
+  "accountId": "acc-1",
+  "state": "email-state-1",
+  "list": [
+    {
+      "id": "em-origin-1",
+      "messageId": ["<origin-1@example.org>"],
+      "references": ["<root-0@example.org>", "<middle-1@example.org>"],
+      "subject": "Réunion de lancement",
+      "from": [{ "name": "Camille Roy", "email": "camille@example.org" }],
+      "replyTo": [{ "name": null, "email": "camille+replies@example.org" }]
+    }
+  ],
+  "notFound": []
+}

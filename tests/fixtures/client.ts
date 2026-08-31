@@ -29,19 +29,24 @@ export interface FakeTransport {
 
 /**
  * Builds a tool context whose client answers with `results`, one per method
- * call in the request, in the order the calls were made.
+ * call, in the order the calls were made.
+ *
+ * The queue spans requests rather than restarting at each one: a tool that
+ * reads before it writes spends several round trips, and its later calls need
+ * answers of their own.
  */
 export function fakeTransport(results: unknown[]): FakeTransport {
   const requests: JmapRequest[] = [];
+  let served = 0;
 
   const fetchImpl = (async (_url: string, init: { body: string }) => {
     const request = JSON.parse(init.body) as JmapRequest;
     requests.push(request);
 
     const body: JmapResponse = {
-      methodResponses: request.methodCalls.map(([name, , callId], index) => [
+      methodResponses: request.methodCalls.map(([name, , callId]) => [
         name,
-        (results[index] ?? {}) as Record<string, unknown>,
+        (results[served++] ?? {}) as Record<string, unknown>,
         callId,
       ]),
       sessionState: "session-state-1",
