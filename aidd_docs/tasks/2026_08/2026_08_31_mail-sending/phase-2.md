@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Types d'envoi, manifeste et `mail_identities`
