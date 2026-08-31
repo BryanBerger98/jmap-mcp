@@ -8,8 +8,8 @@ import type {
 import type { GetResponse, Id } from "../../jmap/types/core.js";
 import { CAPABILITY_CONTACTS, CAPABILITY_CORE } from "../../jmap/types/core.js";
 import { defineTool } from "../../registry/define-tool.js";
+import { inRequestedOrder } from "../../shared/pagination.js";
 import { BOOK_PROPERTIES, renderCard } from "./card.js";
-import { inRequestedOrder } from "./search.js";
 
 /**
  * How many cards one call may read.

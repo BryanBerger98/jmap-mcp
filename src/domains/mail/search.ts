@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { GetResponse, Id, QueryResponse, ResultReference } from "../../jmap/types/core.js";
+import type { GetResponse, QueryResponse, ResultReference } from "../../jmap/types/core.js";
 import { CAPABILITY_CORE, CAPABILITY_MAIL } from "../../jmap/types/core.js";
 import type {
   Email,
@@ -13,6 +13,7 @@ import {
   decodeCursor,
   encodeCursor,
   fingerprint,
+  inRequestedOrder,
   takeWithinBudget,
 } from "../../shared/pagination.js";
 import { renderTable, truncate } from "../../shared/render.js";
@@ -190,16 +191,6 @@ function buildFilter(input: z.infer<typeof inputSchema>): EmailFilterCondition |
   if (input.deliveredTo !== undefined) filter.header = ["Delivered-To", input.deliveredTo];
 
   return Object.keys(filter).length > 0 ? filter : undefined;
-}
-
-/**
- * `Email/get` does not promise to answer in the order of the `ids` it was given,
- * so every caller that has an order worth keeping — a query's ranking here, the
- * caller's own list in `mail_read` — has to restore it from the ids.
- */
-export function inRequestedOrder(ids: Id[], list: Email[]): Email[] {
-  const byId = new Map(list.map((email) => [email.id, email]));
-  return ids.map((id) => byId.get(id)).filter((email): email is Email => email !== undefined);
 }
 
 function toRow(email: Email): Record<string, unknown> {

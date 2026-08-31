@@ -60,7 +60,8 @@ Le rangement est séparé de la lecture sur la même capacité, pour une autre r
 `src/domains/mail/organize.ts` porte ce que les quatre outils de rangement partagent : plafond de lot, résolution des dossiers mise en cache, rendu des refus par identifiant.
 
 Les contacts tiennent en un seul manifeste : rien n'y écrit, donc aucune seconde capacité ne justifie une scission.
-`src/domains/contacts/card.ts` porte ce que les deux outils partagent : nom d'affichage, adresse principale, noms de carnets, marque de périmètre et rendu d'une fiche complète.
+`src/domains/contacts/card.ts` porte ce que les deux outils partagent : nom d'affichage, adresse principale, propriétés et noms de carnets, marque de périmètre et rendu d'une fiche complète.
+Il est leur seul point commun : la remise en ordre des identifiants demandés vit sous `src/shared/pagination.ts`, où le mail la lit aussi, plutôt que dans l'outil de recherche dont l'outil de lecture dépendrait alors.
 
 ## 🚪 Points d'entrée
 

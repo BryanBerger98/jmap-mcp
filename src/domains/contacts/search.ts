@@ -15,6 +15,7 @@ import {
   decodeCursor,
   encodeCursor,
   fingerprint,
+  inRequestedOrder,
   takeWithinBudget,
 } from "../../shared/pagination.js";
 import { renderTable, truncate } from "../../shared/render.js";
@@ -236,15 +237,6 @@ function buildFilter(input: z.infer<typeof inputSchema>): ContactCardFilterCondi
   if (input.addressBookId !== undefined) filter.inAddressBook = input.addressBookId;
 
   return Object.keys(filter).length > 0 ? filter : undefined;
-}
-
-/**
- * `ContactCard/get` does not promise to answer in the order of the ids it was
- * given, so the query's ranking has to be restored from those ids.
- */
-export function inRequestedOrder(ids: Id[], list: ContactCard[]): ContactCard[] {
-  const byId = new Map(list.map((card) => [card.id, card]));
-  return ids.map((id) => byId.get(id)).filter((card): card is ContactCard => card !== undefined);
 }
 
 function toRow(
