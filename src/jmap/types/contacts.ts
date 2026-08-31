@@ -8,13 +8,6 @@
 
 import type { Id } from "./core.js";
 
-/** A card container. Declared for the query the perimeter runs against it. */
-export interface AddressBook {
-  id: Id;
-  name: string;
-  isDefault: boolean;
-}
-
 /**
  * One email address on a card.
  *
