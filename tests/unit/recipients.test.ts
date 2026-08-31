@@ -171,6 +171,23 @@ describe("resolving the perimeter at startup", () => {
     }
   });
 
+  it("orders the query, so paging never skips a card", async () => {
+    const { context, requests } = fakeTransport([cardQuery, contactCards]);
+
+    await resolveRecipientScope(
+      { scope: "contacts", allow: [] },
+      sessionWithContacts(),
+      context.client,
+    );
+
+    // Without a sort the page order is the server's business, and a card that
+    // shifts between two pages leaves the perimeter without a word.
+    expect(requests[0]?.methodCalls[0]?.[1]).toMatchObject({
+      sort: [{ property: "created", isAscending: true }],
+      position: 0,
+    });
+  });
+
   it("asks only for the property it reads", async () => {
     const { context, requests } = fakeTransport([cardQuery, contactCards]);
 

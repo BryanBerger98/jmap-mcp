@@ -42,6 +42,8 @@ export interface ContactCard {
 export type ContactCardQueryArguments = {
   accountId: Id;
   filter?: Record<string, unknown>;
+  /** Stalwart sorts cards on `created` and `updated` only; anything else fails. */
+  sort?: { property: string; isAscending: boolean }[];
   position?: number;
   limit?: number;
 };

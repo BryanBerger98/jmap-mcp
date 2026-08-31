@@ -107,7 +107,14 @@ export async function resolveRecipientScope(
   }
 }
 
-/** Every card id, page by page. The ceiling is what bounds the loop. */
+/**
+ * Every card id, page by page. The ceiling is what bounds the loop.
+ *
+ * The sort is not cosmetic: paging by `position` without one leaves the order
+ * to the server, and a card that moves between two pages is never read at all.
+ * It would then drop out of the perimeter silently. `created` is one of the two
+ * properties Stalwart sorts cards on, and it does not change under our feet.
+ */
 async function queryEveryCard(client: JmapClient, session: JmapSession): Promise<Id[]> {
   const page = pageSize(session);
   const ids: Id[] = [];
@@ -115,6 +122,7 @@ async function queryEveryCard(client: JmapClient, session: JmapSession): Promise
   for (let position = 0; ; position += page) {
     const query: ContactCardQueryArguments = {
       accountId: session.accountId,
+      sort: [{ property: "created", isAscending: true }],
       position,
       limit: page,
     };
