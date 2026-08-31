@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { RecipientScope } from "../../config/recipients.js";
+import { isWithinScope, type RecipientScope } from "../../config/recipients.js";
 import type {
   AddressBook,
   AddressBookGetArguments,
@@ -20,6 +20,7 @@ import {
 } from "../../shared/pagination.js";
 import { renderTable, truncate } from "../../shared/render.js";
 import {
+  addressSides,
   BOOK_PROPERTIES,
   bookNames,
   displayName,
@@ -28,6 +29,9 @@ import {
   renderBooks,
   scopeMark,
 } from "./card.js";
+
+/** Named after what it judges: the one address the row shows, not the card. */
+const PERIMETER_COLUMN = "email perimeter";
 
 /** Explicit: omitting `properties` hands back the whole JSContact object. */
 const ROW_PROPERTIES = ["id", "kind", "name", "emails", "organizations", "addressBookIds"] as const;
@@ -185,7 +189,7 @@ export const contactsSearch = defineTool({
         : `${query.total} card(s) match, ${taken.length} shown from position ${position}.`;
 
     const columns = ["name", "email", "organization", "books", "id"];
-    if (recipients.kind !== "anyone") columns.push("perimeter");
+    if (recipients.kind !== "anyone") columns.push(PERIMETER_COLUMN);
 
     const header = [
       `${count} ${SORT_NOTE}`,
@@ -256,9 +260,28 @@ function toRow(
     organization: truncate(firstOrganization(card), 24),
     books: bookNames(card, byId).join(", "),
     id: card.id,
-    // The row shows one address, so it is that address the mark judges.
-    perimeter: email === undefined ? "" : (scopeMark(email, scope) ?? ""),
+    [PERIMETER_COLUMN]: email === undefined ? "" : perimeterCell(card, email, scope),
   };
+}
+
+/**
+ * The verdict on the one address the row shows, and on that address alone.
+ *
+ * The column is named after what it judges, and a card holding another address
+ * on the other side of the line says so here: a row marked on its primary
+ * address is otherwise read as a verdict on the whole card, which `contacts_read`
+ * would then contradict address by address.
+ */
+function perimeterCell(card: ContactCard, email: string, scope: RecipientScope): string {
+  const mark = scopeMark(email, scope);
+  if (mark === undefined) return "";
+
+  const shown = isWithinScope(email, scope);
+  const { anyInside, anyOutside } = addressSides(card, scope);
+
+  if (shown && anyOutside) return `${mark} (another address is outside)`;
+  if (!shown && anyInside) return `${mark} (another address is inside)`;
+  return mark;
 }
 
 function firstOrganization(card: ContactCard): string {

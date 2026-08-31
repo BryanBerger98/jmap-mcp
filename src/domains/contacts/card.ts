@@ -127,6 +127,28 @@ export function scopeMark(address: string, scope: RecipientScope): string | unde
   }
 }
 
+/**
+ * Which sides of the perimeter the addresses of one card land on.
+ *
+ * A row shows a single address, so a card whose other addresses sit on the
+ * other side of the line has to be able to say so: judging the card on its
+ * primary address alone would have the two contacts tools disagree about it.
+ * Written over `isWithinScope`, like every other membership question here.
+ */
+export function addressSides(
+  card: ContactCard,
+  scope: RecipientScope,
+): { anyInside: boolean; anyOutside: boolean } {
+  const addresses = Object.values(card.emails ?? {})
+    .map((entry) => entry.address)
+    .filter((address) => address.trim() !== "");
+
+  return {
+    anyInside: addresses.some((address) => isWithinScope(address, scope)),
+    anyOutside: addresses.some((address) => !isWithinScope(address, scope)),
+  };
+}
+
 /** The detail block of one card. Empty fields are dropped, never padded. */
 export function renderCard(
   card: ContactCard,

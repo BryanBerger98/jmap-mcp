@@ -237,6 +237,30 @@ describe("contacts_search", () => {
     expect(text).toContain("outside perimeter");
   });
 
+  it("judges the address it shows, and says when another one sits on the other side", async () => {
+    const twoSided: ContactCard = {
+      id: "cc-99",
+      name: { full: "Dominique Roy" },
+      emails: {
+        work: { address: "dominique.pro@example.net", pref: 1 },
+        home: { address: "dominique@example.org", pref: 2 },
+      },
+    };
+    const { context } = fakeTransport([
+      { ...query, ids: ["cc-99"], total: 1 },
+      { ...summaries, list: [twoSided] },
+      books,
+    ]);
+    context.recipients = restrictTo({ fromContacts: ["dominique@example.org"], allow: [] });
+
+    const { text } = await contactsSearch.run({ name: "roy" }, context);
+
+    // The row shows the preferred address, which is the one outside.
+    expect(text).toContain("dominique.pro@example.net");
+    expect(text).toContain("email perimeter");
+    expect(text).toContain("outside perimeter (another address is inside)");
+  });
+
   it("dates the freeze in its header, once, wherever it renders a mark", async () => {
     const scope = restrictTo({ fromContacts: ["ana.silva0@example.org"], allow: [] });
     const { context } = fakeTransport([{ ...query, ids: query.ids.slice(0, 3) }, summaries, books]);
