@@ -1,0 +1,62 @@
+{
+  "created": {
+    "accountId": "acc-1",
+    "oldState": "mailbox-state-1",
+    "newState": "mailbox-state-2",
+    "created": {
+      "new": {
+        "id": "mb-invoices",
+        "name": "Invoices",
+        "parentId": "mb-archive",
+        "role": null,
+        "totalEmails": 0
+      }
+    }
+  },
+  "notCreated": {
+    "accountId": "acc-1",
+    "oldState": "mailbox-state-1",
+    "newState": "mailbox-state-1",
+    "notCreated": {
+      "new": {
+        "type": "invalidProperties",
+        "description": "A mailbox with this name already exists.",
+        "properties": ["name"]
+      }
+    }
+  },
+  "updated": {
+    "accountId": "acc-1",
+    "oldState": "mailbox-state-1",
+    "newState": "mailbox-state-2",
+    "updated": { "mb-2024": null }
+  },
+  "notUpdated": {
+    "accountId": "acc-1",
+    "oldState": "mailbox-state-1",
+    "newState": "mailbox-state-1",
+    "notUpdated": {
+      "mb-2024": {
+        "type": "forbidden",
+        "description": "The account is read-only."
+      }
+    }
+  },
+  "destroyed": {
+    "accountId": "acc-1",
+    "oldState": "mailbox-state-1",
+    "newState": "mailbox-state-2",
+    "destroyed": ["mb-2024"]
+  },
+  "notDestroyed": {
+    "accountId": "acc-1",
+    "oldState": "mailbox-state-1",
+    "newState": "mailbox-state-1",
+    "notDestroyed": {
+      "mb-2024": {
+        "type": "mailboxHasEmail",
+        "description": "The mailbox still holds messages."
+      }
+    }
+  }
+}

@@ -31,7 +31,18 @@ const CRITERIA = [
   "deliveredTo",
 ];
 
+/**
+ * The tools that act on the folder tree rather than on a batch of messages.
+ *
+ * They name one folder and write one folder, so `ids` means nothing to them.
+ * Listed by hand rather than detected: a message tool that quietly lost its
+ * `ids` would otherwise excuse itself from the invariant.
+ */
+const FOLDER_TOOLS = new Set(["mail_folder_manage"]);
+
 const TOOLS = mailOrganizingDomain.tools.map((tool) => [tool.name, tool] as const);
+
+const BATCH_TOOLS = TOOLS.filter(([name]) => !FOLDER_TOOLS.has(name));
 
 function keysOf(tool: ToolDefinition): string[] {
   return Object.keys((tool.inputSchema as unknown as z.ZodObject<z.ZodRawShape>).shape);
@@ -42,7 +53,7 @@ function methodsOf(requests: JmapRequest[]): string[] {
 }
 
 describe("an organizing tool takes ids", () => {
-  it.each(TOOLS)("%s asks for a list of ids", (_name, tool) => {
+  it.each(BATCH_TOOLS)("%s asks for a list of ids", (_name, tool) => {
     expect(keysOf(tool)).toContain("ids");
   });
 
@@ -50,17 +61,20 @@ describe("an organizing tool takes ids", () => {
     expect(keysOf(tool).filter((key) => CRITERIA.includes(key))).toEqual([]);
   });
 
-  it.each(TOOLS)("%s refuses an empty list without emitting a JMAP method", async (_name, tool) => {
-    const { context, requests } = fakeTransport([]);
+  it.each(BATCH_TOOLS)(
+    "%s refuses an empty list without emitting a JMAP method",
+    async (_name, tool) => {
+      const { context, requests } = fakeTransport([]);
 
-    // Every argument the manifest's tools take, so the refusal is the batch
-    // ceiling's doing and not a missing field's.
-    const refusal = await tool.precheck?.(
-      { ids: [], mailboxId: "mb-archive", add: ["seen"] },
-      context,
-    );
+      // Every argument the manifest's tools take, so the refusal is the batch
+      // ceiling's doing and not a missing field's.
+      const refusal = await tool.precheck?.(
+        { ids: [], mailboxId: "mb-archive", add: ["seen"] },
+        context,
+      );
 
-    expect(refusal).toContain("Refused");
-    expect(methodsOf(requests)).toEqual([]);
-  });
+      expect(refusal).toContain("Refused");
+      expect(methodsOf(requests)).toEqual([]);
+    },
+  );
 });

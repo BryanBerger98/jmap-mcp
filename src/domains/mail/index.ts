@@ -3,6 +3,7 @@ import { defineDomain } from "../../registry/manifest.js";
 import { mailCompose } from "./compose.js";
 import { mailDelete } from "./delete.js";
 import { mailFlag } from "./flag.js";
+import { mailFolderManage } from "./folder-manage.js";
 import { mailFolders } from "./folders.js";
 import { mailIdentities } from "./identities.js";
 import { mailMove } from "./move.js";
@@ -23,7 +24,7 @@ export const mailDomain = defineDomain({
 });
 
 /**
- * move, flag, delete.
+ * move, flag, delete, and the folder tree itself.
  *
  * A third manifest on the `mail` capability alone, kept apart from the reading
  * one so `mailDomain` stays provably read-only: the contract that says no tool
@@ -33,7 +34,7 @@ export const mailDomain = defineDomain({
 export const mailOrganizingDomain = defineDomain({
   name: "mail",
   requires: [CAPABILITY_MAIL],
-  tools: [mailMove, mailFlag, mailDelete],
+  tools: [mailMove, mailFlag, mailDelete, mailFolderManage],
 });
 
 /**

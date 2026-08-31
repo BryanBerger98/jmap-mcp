@@ -31,6 +31,37 @@ export type MailboxGetArguments = {
   properties?: string[] | null;
 };
 
+/**
+ * A folder being created (RFC 8621 §2.5).
+ *
+ * `role` is deliberately absent: a role is what tells the mail client which
+ * folder is the inbox and which is the trash, and letting a tool claim one
+ * would make two folders answer to the same purpose. Roles are the account
+ * owner's to assign, in their mail client.
+ */
+export type MailboxCreate = {
+  name: string;
+  /** `null` puts the folder at the root of the tree. */
+  parentId?: Id | null;
+};
+
+export type MailboxSetArguments = {
+  accountId: Id;
+  create?: Record<Id, MailboxCreate>;
+  update?: Record<Id, Record<string, unknown>>;
+  destroy?: Id[];
+  /**
+   * Whether destroying a folder destroys the messages inside it.
+   *
+   * Always emitted, always false. The server's own default is false, but a
+   * default is not a guarantee: written out, the request says on its face that
+   * no message is to be lost, and a contract test can hold it to that. The
+   * folder tools refuse a non-empty folder long before this matters, which
+   * makes this the second lock rather than the only one.
+   */
+  onDestroyRemoveEmails?: boolean;
+};
+
 export interface EmailAddress {
   name: string | null;
   email: string;
