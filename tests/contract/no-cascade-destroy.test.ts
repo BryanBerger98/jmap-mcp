@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { mailFolderManage } from "../../src/domains/mail/folder-manage.js";
 import type { Invocation, SetResponse } from "../../src/jmap/types/core.js";
@@ -26,6 +27,17 @@ const EVERY_ACTION: Input[] = [
   { action: "delete", mailboxId: "mb-2024" },
 ];
 
+const SOURCES = new URL("../../src/", import.meta.url);
+
+/** Every file under `src/` naming the method, as a path relative to `src/`. */
+function filesNamingMailboxSet(): string[] {
+  return readdirSync(SOURCES, { recursive: true, encoding: "utf8" })
+    .map((entry) => entry.replaceAll("\\", "/"))
+    .filter((entry) => entry.endsWith(".ts"))
+    .filter((entry) => readFileSync(new URL(entry, SOURCES), "utf8").includes("Mailbox/set"))
+    .sort();
+}
+
 /** Runs one call and hands back every method it put on the wire. */
 async function emit(input: Input): Promise<Invocation[]> {
   const { context, requests } = fakeTransport([
@@ -41,6 +53,14 @@ async function emit(input: Input): Promise<Invocation[]> {
 }
 
 describe("no folder write can take messages with it", () => {
+  it("is emitted from one place only, which the cases below cover", () => {
+    // The cases are written by hand against a single module. They only stand for
+    // *every* emitted `Mailbox/set` for as long as that module is the only place
+    // naming the method: this goes red the day a second emitter appears, and the
+    // three assertions under it stop being exhaustive by coincidence of surface.
+    expect(filesNamingMailboxSet()).toEqual(["domains/mail/folder-manage.ts"]);
+  });
+
   it("states the cascade, false, on every action", async () => {
     for (const input of EVERY_ACTION) {
       const calls = await emit(input);
