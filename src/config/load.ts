@@ -20,6 +20,7 @@ export async function loadConfig(env: NodeJS.ProcessEnv = process.env): Promise<
       bearerToken: env.JMAP_BEARER_TOKEN,
       accountId: env.JMAP_ACCOUNT_ID,
     }),
+    ...bulkConfirmFrom(env),
     ...recipientsFrom(env, fromFile.recipients),
   };
 
@@ -37,6 +38,19 @@ async function readConfigFile(): Promise<Record<string, unknown>> {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
     throw error;
   }
+}
+
+/**
+ * The bulk confirmation threshold, read as a number.
+ *
+ * An unreadable value travels to the schema unchanged rather than falling back
+ * on the default: someone who set the key meant something by it, and running at
+ * twenty behind their back would hide the typo until a bulk write went through
+ * without asking.
+ */
+function bulkConfirmFrom(env: NodeJS.ProcessEnv): { bulkConfirmAbove?: number } {
+  const raw = env.JMAP_BULK_CONFIRM_ABOVE;
+  return raw === undefined ? {} : { bulkConfirmAbove: Number(raw) };
 }
 
 /**

@@ -51,6 +51,28 @@ function sendingTool(run: () => Promise<{ text: string }>): ToolDefinition {
   }) as unknown as ToolDefinition;
 }
 
+/**
+ * A reversible bulk write. Its class is allowed, so the only thing that can
+ * make it ask is its own `confirmWhen` — and the same incapacity must close
+ * that second path as closes the first.
+ */
+function bulkTool(run: () => Promise<{ text: string }>): ToolDefinition {
+  return defineTool({
+    name: "mail_move",
+    title: "Move messages",
+    description: "Moves messages to a folder.",
+    inputSchema: z.object({ ids: z.array(z.string()) }),
+    classes: ["draft"],
+    classify: () => "draft",
+    summarize: (input) => `Move ${input.ids.length} messages.`,
+    confirmWhen: (input, context) =>
+      input.ids.length > context.bulkConfirmAbove
+        ? `This moves ${input.ids.length} messages at once.`
+        : undefined,
+    run,
+  }) as unknown as ToolDefinition;
+}
+
 function composeWith(capabilities: Record<string, unknown> | null, tool: ToolDefinition) {
   const { server, handlers } = fakeServer(capabilities);
   compose({
@@ -59,6 +81,7 @@ function composeWith(capabilities: Record<string, unknown> | null, tool: ToolDef
     session: { has: () => true } as unknown as JmapSession,
     client: {} as JmapClient,
     policy: DEFAULT_POLICY,
+    bulkConfirmAbove: 2,
   });
   return handlers;
 }
@@ -126,6 +149,30 @@ describe("elicitation required", () => {
     expect(run).not.toHaveBeenCalled();
     // Asking again is the right answer to a cancel: the client can still confirm.
     expect(isInputRequiredResult(result)).toBe(true);
+  });
+
+  it("emits no JMAP call when a call escalated by its volume cannot be confirmed", async () => {
+    const run = vi.fn(async () => ({ text: "moved" }));
+    const handlers = composeWith({ roots: {} }, bulkTool(run));
+
+    const result = (await handlers.get("mail_move")?.(
+      { ids: ["m1", "m2", "m3"] },
+      { mcpReq: {} },
+    )) as { content: { text: string }[] };
+
+    expect(run).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ isError: true });
+    expect(isInputRequiredResult(result)).toBe(false);
+    expect(result.content[0]?.text).toContain("elicitation");
+  });
+
+  it("runs a call the escalation left alone, even on a client that cannot be asked", async () => {
+    const run = vi.fn(async () => ({ text: "moved" }));
+    const handlers = composeWith({ roots: {} }, bulkTool(run));
+
+    await handlers.get("mail_move")?.({ ids: ["m1"] }, { mcpReq: {} });
+
+    expect(run).toHaveBeenCalledOnce();
   });
 
   it("consults no client capability on an allowed class", async () => {
