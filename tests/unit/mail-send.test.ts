@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { restrictTo } from "../../src/config/recipients.js";
 import { mailSend } from "../../src/domains/mail/send.js";
 import type { GetResponse, Id, JmapRequest, SetResponse } from "../../src/jmap/types/core.js";
 import type { Email, EmailSubmission, Identity, Mailbox } from "../../src/jmap/types/mail.js";
@@ -315,6 +316,24 @@ describe("mail_send", () => {
       await mailSend.summarize({ emailId: "em-draft-1" }, context);
 
       expect(submissionSent(requests)).toBeUndefined();
+    });
+
+    it("reads the draft once, however many hooks of one invocation need it", async () => {
+      // A closed perimeter is what makes `precheck` read at all; without it the
+      // hook short-circuits and there is nothing to share.
+      const scope = restrictTo({
+        fromContacts: ["camille@example.org", "ana@example.org"],
+        allow: [],
+      });
+      const { context, requests } = fakeTransport([identityGet, mailboxGet, draft], scope);
+
+      const refusal = await mailSend.precheck?.({ emailId: "em-draft-1" }, context);
+      const summary = await mailSend.summarize({ emailId: "em-draft-1" }, context);
+
+      expect(refusal).toBeUndefined();
+      expect(summary).toContain("camille@example.org");
+      // One round trip, not two: the queue holds a single set of answers.
+      expect(requests).toHaveLength(1);
     });
 
     it("announces the refusal instead of a send it will not do", async () => {

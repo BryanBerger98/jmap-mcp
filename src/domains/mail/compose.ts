@@ -109,8 +109,9 @@ export const mailCompose = defineTool({
     const replied = await repliedRecipients(input, context);
     return replied === undefined ? undefined : outsidePerimeter(replied, context.recipients);
   },
-  run: async (input, { client, session, recipients: scope }) => {
-    const resolved = await resolveContext(input, client, session);
+  run: async (input, context) => {
+    const { client, session, recipients: scope } = context;
+    const resolved = await composeContext(input, context);
     if ("refusal" in resolved) return { text: resolved.refusal };
 
     const { identity, draftsId, sentId, source } = resolved;
@@ -370,12 +371,24 @@ async function repliedRecipients(
   input: ComposeInput,
   context: ToolContext,
 ): Promise<string[] | undefined> {
-  const resolved = await resolveContext(input, context.client, context.session).catch(
-    () => undefined,
-  );
+  const resolved = await composeContext(input, context).catch(() => undefined);
   if (resolved === undefined || "refusal" in resolved) return undefined;
 
   return repliedTo(resolved.source);
+}
+
+/**
+ * The resolution, read once per handler invocation.
+ *
+ * `summarize`, `precheck` and `run` all answer the same call, so they read the
+ * same message. The key names the arguments the resolution depends on.
+ */
+function composeContext(
+  input: ComposeInput,
+  context: ToolContext,
+): Promise<ComposeContext | { refusal: string }> {
+  const key = `mail_compose:${input.replyToEmailId ?? ""}:${input.identityId ?? ""}:${input.send === true}`;
+  return context.once(key, () => resolveContext(input, context.client, context.session));
 }
 
 export function summarizeCompose(

@@ -10,7 +10,7 @@ import type {
   Mailbox,
   MailboxGetArguments,
 } from "../../jmap/types/mail.js";
-import { defineTool } from "../../registry/define-tool.js";
+import { defineTool, type ToolContext } from "../../registry/define-tool.js";
 import {
   buildSubmission,
   describeSubmission,
@@ -49,10 +49,10 @@ export const mailSend = defineTool({
   inputSchema,
   classes: ["send"],
   classify: () => "send",
-  summarize: async (input, { client, session }) => {
+  summarize: async (input, context) => {
     // The confirmation is worth reading only if it names what leaves the
     // account, and the arguments carry an id alone.
-    const resolved = await resolveSend(input, client, session).catch(() => undefined);
+    const resolved = await sendContext(input, context).catch(() => undefined);
 
     if (resolved === undefined) {
       return `Send message ${input.emailId}. Its recipients could not be read from the server.`;
@@ -67,18 +67,19 @@ export const mailSend = defineTool({
 
     return `Send "${subject}" from ${identity.email} to ${recipients.join(", ")}.`;
   },
-  precheck: async (input, { client, session, recipients }) => {
+  precheck: async (input, context) => {
     // An open perimeter costs nothing: the draft is not read at all.
-    if (recipients.kind === "anyone") return undefined;
+    if (context.recipients.kind === "anyone") return undefined;
 
-    const resolved = await resolveSend(input, client, session).catch(() => undefined);
+    const resolved = await sendContext(input, context).catch(() => undefined);
     // Any other refusal belongs to `run`, which reports it in its own words.
     if (resolved === undefined || "refusal" in resolved) return undefined;
 
-    return outsidePerimeter(uniqueRecipients(resolved.email), recipients);
+    return outsidePerimeter(uniqueRecipients(resolved.email), context.recipients);
   },
-  run: async (input, { client, session, recipients: scope }) => {
-    const resolved = await resolveSend(input, client, session);
+  run: async (input, context) => {
+    const { client, session, recipients: scope } = context;
+    const resolved = await sendContext(input, context);
     if ("refusal" in resolved) return { text: resolved.refusal };
 
     const { identity, email, draftsId, sentId } = resolved;
@@ -121,6 +122,22 @@ export const mailSend = defineTool({
     };
   },
 });
+
+/**
+ * The resolution, read once per handler invocation.
+ *
+ * `summarize`, `precheck` and `run` all need the same three answers, and the
+ * key names the arguments they depend on so a second call with a different
+ * sender does not inherit the first one's verdict.
+ */
+function sendContext(
+  input: { emailId: string; identityId?: string | undefined },
+  context: ToolContext,
+): Promise<SendContext | { refusal: string }> {
+  return context.once(`mail_send:${input.emailId}:${input.identityId ?? ""}`, () =>
+    resolveSend(input, context.client, context.session),
+  );
+}
 
 interface SendContext {
   identity: Identity;

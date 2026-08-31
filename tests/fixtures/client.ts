@@ -3,7 +3,7 @@ import { OPEN_SCOPE, type RecipientScope } from "../../src/config/recipients.js"
 import { JmapClient } from "../../src/jmap/client.js";
 import { JmapSession } from "../../src/jmap/session.js";
 import type { Invocation, JmapRequest, JmapResponse, Session } from "../../src/jmap/types/core.js";
-import type { ToolContext } from "../../src/registry/define-tool.js";
+import { perInvocationCache, type ToolContext } from "../../src/registry/define-tool.js";
 
 /**
  * A JMAP transport backed by the fixtures on disk.
@@ -65,7 +65,12 @@ export function fakeTransport(
 
   const client = new JmapClient({ apiUrl: API_URL, bearerToken: "a-token", fetchImpl });
 
-  return { context: { client, session: fixtureSession(), recipients }, requests };
+  // One cache per context, as the registry builds one per handler invocation:
+  // a test calling a hook directly stands in for exactly one such invocation.
+  return {
+    context: { client, session: fixtureSession(), recipients, once: perInvocationCache() },
+    requests,
+  };
 }
 
 /**

@@ -9,6 +9,35 @@ export interface ToolContext {
   session: JmapSession;
   /** Who this server may write to, resolved once at startup. */
   recipients: RecipientScope;
+  /**
+   * Runs a read once per handler invocation and hands every later caller the
+   * same answer.
+   *
+   * `summarize`, `precheck` and `run` each need the message the call points at,
+   * and asking the server three times spends three round trips to learn the
+   * same thing. The cache lives for one invocation and not a moment longer: a
+   * confirmation pauses between two invocations, and a verdict carried across
+   * that pause would judge a draft that may since have been rewritten.
+   */
+  once: <T>(key: string, read: () => Promise<T>) => Promise<T>;
+}
+
+/**
+ * Builds one cache. Called per handler invocation, never hoisted out of it —
+ * the lifetime is the whole point of the thing.
+ */
+export function perInvocationCache(): ToolContext["once"] {
+  const started = new Map<string, Promise<unknown>>();
+
+  return <T>(key: string, read: () => Promise<T>): Promise<T> => {
+    const pending = started.get(key);
+    if (pending !== undefined) return pending as Promise<T>;
+
+    // Stored before it settles, so two callers racing share the one request.
+    const fresh = read();
+    started.set(key, fresh);
+    return fresh;
+  };
 }
 
 export interface ToolResult {

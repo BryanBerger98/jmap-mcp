@@ -9,7 +9,7 @@ import type { OperationClass, WritePolicy } from "../config/policy.js";
 import { OPEN_SCOPE, type RecipientScope } from "../config/recipients.js";
 import type { JmapClient } from "../jmap/client.js";
 import type { JmapSession } from "../jmap/session.js";
-import type { ToolDefinition } from "./define-tool.js";
+import { perInvocationCache, type ToolContext, type ToolDefinition } from "./define-tool.js";
 import { clientCanElicit } from "./elicitation.js";
 import type { DomainManifest } from "./manifest.js";
 
@@ -120,10 +120,13 @@ function register(input: ComposeInput, tool: ToolDefinition): void {
         };
       },
     ) => {
-      const context = {
+      const context: ToolContext = {
         client: input.client,
         session: input.session,
         recipients: input.recipients ?? OPEN_SCOPE,
+        // Built here and nowhere else: the invocation that asks the question
+        // and the one that carries the answer must not share a cached read.
+        once: perInvocationCache(),
       };
       const operation = tool.classify(args);
       const level = input.policy[operation];
