@@ -1,0 +1,10 @@
+{
+  "accountId": "acc-1",
+  "state": "email-state-1",
+  "list": [
+    { "id": "m-1", "subject": "Facture de janvier" },
+    { "id": "m-2", "subject": "Réunion de lancement" },
+    { "id": "m-3", "subject": null }
+  ],
+  "notFound": []
+}

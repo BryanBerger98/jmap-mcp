@@ -66,6 +66,14 @@ const recipientsSchema = z
     }),
   );
 
+/**
+ * How many objects a reversible bulk write may touch before it is confirmed.
+ *
+ * Twenty is roughly what a person can still picture: past it, "archive those"
+ * stops naming a set they have in mind and starts naming one they have not seen.
+ */
+export const DEFAULT_BULK_CONFIRM_ABOVE = 20;
+
 export const configSchema = z.object({
   /** The JMAP session resource, e.g. https://mail.example.com/.well-known/jmap */
   sessionUrl: z.url(),
@@ -75,6 +83,14 @@ export const configSchema = z.object({
   accountId: z.string().min(1).optional(),
   policy: writePolicySchema.default(DEFAULT_POLICY),
   recipients: recipientsSchema.default(OPEN_RECIPIENTS),
+  bulkConfirmAbove: z
+    .int()
+    .min(1)
+    .default(DEFAULT_BULK_CONFIRM_ABOVE)
+    .describe(
+      "Above this many objects, a reversible bulk operation asks before it runs. It weighs volume " +
+        "and nothing else: an irreversible operation is confirmed by its class whatever its size.",
+    ),
 });
 
 export type Config = z.infer<typeof configSchema>;

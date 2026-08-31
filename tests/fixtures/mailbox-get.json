@@ -57,6 +57,15 @@
       "unreadEmails": 0
     },
     {
+      "id": "mb-trash",
+      "name": "Trash",
+      "parentId": null,
+      "role": "trash",
+      "sortOrder": 7,
+      "totalEmails": 18,
+      "unreadEmails": 2
+    },
+    {
       "id": "mb-orphan",
       "name": "Detached",
       "parentId": "mb-vanished",

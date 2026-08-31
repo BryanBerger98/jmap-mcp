@@ -1,0 +1,15 @@
+{
+  "accountId": "acc-1",
+  "oldState": "email-state-1",
+  "newState": "email-state-2",
+  "updated": {
+    "m-1": null,
+    "m-2": null
+  },
+  "notUpdated": {
+    "m-3": {
+      "type": "notFound",
+      "description": "No message with that id exists in this account."
+    }
+  }
+}

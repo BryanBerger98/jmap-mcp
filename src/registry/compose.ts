@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import type { OperationClass, WritePolicy } from "../config/policy.js";
 import { OPEN_SCOPE, type RecipientScope } from "../config/recipients.js";
+import { DEFAULT_BULK_CONFIRM_ABOVE } from "../config/schema.js";
 import type { JmapClient } from "../jmap/client.js";
 import type { JmapSession } from "../jmap/session.js";
 import { perInvocationCache, type ToolContext, type ToolDefinition } from "./define-tool.js";
@@ -21,6 +22,8 @@ export interface CompositionInput {
   policy: WritePolicy;
   /** Who the tools may write to. Absent means no restriction was configured. */
   recipients?: RecipientScope;
+  /** Volume past which a reversible bulk call asks. Absent means the default. */
+  bulkConfirmAbove?: number;
 }
 
 export interface ComposeReport {
@@ -124,12 +127,13 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
         client: input.client,
         session: input.session,
         recipients: input.recipients ?? OPEN_SCOPE,
+        bulkConfirmAbove: input.bulkConfirmAbove ?? DEFAULT_BULK_CONFIRM_ABOVE,
         // Built here and nowhere else: the invocation that asks the question
         // and the one that carries the answer must not share a cached read.
         once: perInvocationCache(),
       };
       const operation = tool.classify(args);
-      const level = input.policy[operation];
+      let level = input.policy[operation];
 
       if (level === "deny") {
         return errorResult(
@@ -142,13 +146,25 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
       const refusal = await tool.precheck?.(args, context);
       if (refusal !== undefined) return errorResult(refusal);
 
+      // The second path to a confirmation, opened by the tool rather than by the
+      // policy: an allowed class can still carry a call worth asking about.
+      // Consulted after `precheck` and never before, for the same reason the
+      // perimeter comes first — a doomed call is not made into a question by
+      // being bulky. A class already at `confirm` is going to ask anyway, and a
+      // denied one has long returned.
+      const escalation = level === "allow" ? await tool.confirmWhen?.(args, context) : undefined;
+      if (escalation !== undefined) level = "confirm";
+
       if (level === "confirm") {
         // Decided before the request is built, never after: a refusal that comes
         // once the call is out is not a refusal.
         if (!clientCanElicit(input.server, ctx.mcpReq)) {
           return errorResult(
-            `Refused: ${tool.name} is a ${operation} operation, which this server only runs after you confirm it. ` +
-              "Your MCP client did not declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused.",
+            escalation === undefined
+              ? `Refused: ${tool.name} is a ${operation} operation, which this server only runs after you confirm it. ` +
+                  "Your MCP client did not declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused."
+              : `Refused: ${escalation} This server only runs that after you confirm it, and your MCP client did not ` +
+                  "declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused.",
           );
         }
 
@@ -157,7 +173,10 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
           return inputRequired({
             inputRequests: {
               confirm: inputRequired.elicit({
-                message: `${await tool.summarize(args, context)}\n\nThis is a ${operation} operation. Proceed?`,
+                // The reason the tool gave, when it gave one: telling someone
+                // "this is a draft operation" says nothing about the volume
+                // they are being asked to arbitrate.
+                message: `${await tool.summarize(args, context)}\n\n${escalation ?? `This is a ${operation} operation.`} Proceed?`,
                 requestedSchema: {
                   type: "object",
                   properties: { confirm: { type: "boolean" } },

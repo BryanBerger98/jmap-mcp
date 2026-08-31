@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { OPEN_SCOPE, type RecipientScope } from "../../src/config/recipients.js";
+import { DEFAULT_BULK_CONFIRM_ABOVE } from "../../src/config/schema.js";
 import { JmapClient } from "../../src/jmap/client.js";
 import { JmapSession } from "../../src/jmap/session.js";
 import type { Invocation, JmapRequest, JmapResponse, Session } from "../../src/jmap/types/core.js";
@@ -39,6 +40,7 @@ export interface FakeTransport {
 export function fakeTransport(
   results: unknown[],
   recipients: RecipientScope = OPEN_SCOPE,
+  bulkConfirmAbove: number = DEFAULT_BULK_CONFIRM_ABOVE,
 ): FakeTransport {
   const requests: JmapRequest[] = [];
   let served = 0;
@@ -68,7 +70,13 @@ export function fakeTransport(
   // One cache per context, as the registry builds one per handler invocation:
   // a test calling a hook directly stands in for exactly one such invocation.
   return {
-    context: { client, session: fixtureSession(), recipients, once: perInvocationCache() },
+    context: {
+      client,
+      session: fixtureSession(),
+      recipients,
+      bulkConfirmAbove,
+      once: perInvocationCache(),
+    },
     requests,
   };
 }

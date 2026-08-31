@@ -10,6 +10,13 @@ export interface ToolContext {
   /** Who this server may write to, resolved once at startup. */
   recipients: RecipientScope;
   /**
+   * Above how many objects a reversible bulk write should ask before running.
+   *
+   * Handed to the tool rather than read by the registry: only the tool knows
+   * what its arguments count — a list of ids, a folder, a single message.
+   */
+  bulkConfirmAbove: number;
+  /**
    * Runs a read once per handler invocation and hands every later caller the
    * same answer.
    *
@@ -85,6 +92,22 @@ export interface ToolDefinition<TInput extends ZodType = ZodType> {
    * that confirmations are noise. Reading is allowed here; writing never is.
    */
   precheck?: (
+    input: z.infer<TInput>,
+    context: ToolContext,
+  ) => string | undefined | Promise<string | undefined>;
+  /**
+   * Why this particular call deserves a confirmation its class does not
+   * require, or `undefined` to run it straight away.
+   *
+   * It never replaces `classify`, which keeps telling the truth about what the
+   * call does: moving two hundred messages is still a move, and calling it a
+   * destroy to force the question would misinform the user at the very moment
+   * they arbitrate. The reason it returns is shown in place of the operation
+   * class, because "this is a draft operation" explains nothing about volume.
+   *
+   * Reading is allowed here, as in `precheck`; writing never is.
+   */
+  confirmWhen?: (
     input: z.infer<TInput>,
     context: ToolContext,
   ) => string | undefined | Promise<string | undefined>;

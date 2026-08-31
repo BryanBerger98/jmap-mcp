@@ -1,7 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../../src/config/policy.js";
-import { mailDomain, mailSendingDomain } from "../../src/domains/mail/index.js";
+import {
+  mailDomain,
+  mailOrganizingDomain,
+  mailSendingDomain,
+} from "../../src/domains/mail/index.js";
 import type { JmapClient } from "../../src/jmap/client.js";
 import type { JmapSession } from "../../src/jmap/session.js";
 import { CAPABILITY_MAIL, CAPABILITY_SUBMISSION } from "../../src/jmap/types/core.js";
@@ -15,7 +19,9 @@ import { compose } from "../../src/registry/compose.js";
  * day it is added there.
  *
  * Writing lives in `mailSendingDomain`, which this file holds to the opposite
- * assertion: none of its tools may reach a session that does not send.
+ * assertion: none of its tools may reach a session that does not send, and in
+ * `mailOrganizingDomain`, which is held to the other opposite: filing needs the
+ * `mail` capability alone, so it stays reachable on a server that cannot send.
  */
 
 describe("mail domain surface", () => {
@@ -44,14 +50,19 @@ describe("mail domain surface", () => {
 
     const report = compose({
       server,
-      domains: [mailDomain, mailSendingDomain],
+      domains: [mailDomain, mailOrganizingDomain, mailSendingDomain],
       session: { has: (uri: string) => uri === CAPABILITY_MAIL } as unknown as JmapSession,
       client: {} as JmapClient,
       policy: DEFAULT_POLICY,
     });
 
     expect(mailDomain.requires).not.toContain(CAPABILITY_SUBMISSION);
-    expect(registered).toEqual(mailDomain.tools.map((tool) => tool.name));
+    expect(mailOrganizingDomain.requires).not.toContain(CAPABILITY_SUBMISSION);
+    expect(registered).toEqual(
+      [...mailDomain.tools, ...mailOrganizingDomain.tools].map((tool) => tool.name),
+    );
+    expect(registered).toContain("mail_move");
+    expect(registered).toContain("mail_flag");
 
     // The sending manifest is the only one skipped, and it is skipped whole.
     expect(report.skipped).toEqual([{ domain: "mail", missing: [CAPABILITY_SUBMISSION] }]);
@@ -60,8 +71,12 @@ describe("mail domain surface", () => {
     }
   });
 
-  it("shares the mail_ prefix across both manifests, and names no tool twice", () => {
-    const names = [...mailDomain.tools, ...mailSendingDomain.tools].map((tool) => tool.name);
+  it("shares the mail_ prefix across the three manifests, and names no tool twice", () => {
+    const names = [
+      ...mailDomain.tools,
+      ...mailOrganizingDomain.tools,
+      ...mailSendingDomain.tools,
+    ].map((tool) => tool.name);
 
     expect(names.every((name) => name.startsWith("mail_"))).toBe(true);
     expect(new Set(names).size).toBe(names.length);

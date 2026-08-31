@@ -8,8 +8,8 @@ owner: bryan
 # Tests
 
 > [!NOTE]
-> 181 tests passent sur 16 fichiers, dont 5 de contrat.
-> Les fixtures couvrent la session, les messages, les identités et les fiches de contact.
+> 287 tests passent sur 27 fichiers, dont 9 de contrat.
+> Les fixtures couvrent la session, les messages, les dossiers, les identités et les fiches de contact.
 
 ## 🎯 Stratégie
 
@@ -30,6 +30,10 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | `elicitation-required.test.ts` | Sans élicitation : refus, pas exécution |
 | `send-never-destroys.test.ts` | Jamais d'`onSuccessDestroyEmail` à l'envoi |
 | `recipient-scope.test.ts` | Hors périmètre : refus avant confirmation |
+| `organizing-takes-ids.test.ts` | Aucun outil de rangement ne prend un critère de recherche |
+| `bulk-confirmation.test.ts` | Au-delà du seuil : question avant écriture |
+| `destroy-needs-confirmation.test.ts` | Destruction non confirmée : aucune méthode émise |
+| `no-cascade-destroy.test.ts` | Tout `Mailbox/set` porte `onDestroyRemoveEmails` à faux |
 
 Le contrat sur le périmètre va plus loin que le refus : il assert aussi qu'aucune méthode JMAP n'a été émise, et que la question de confirmation n'a jamais été posée.
 

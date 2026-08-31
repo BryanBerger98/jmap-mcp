@@ -1,8 +1,12 @@
 import { CAPABILITY_MAIL, CAPABILITY_SUBMISSION } from "../../jmap/types/core.js";
 import { defineDomain } from "../../registry/manifest.js";
 import { mailCompose } from "./compose.js";
+import { mailDelete } from "./delete.js";
+import { mailFlag } from "./flag.js";
+import { mailFolderManage } from "./folder-manage.js";
 import { mailFolders } from "./folders.js";
 import { mailIdentities } from "./identities.js";
+import { mailMove } from "./move.js";
 import { mailRead } from "./read.js";
 import { mailSearch } from "./search.js";
 import { mailSend } from "./send.js";
@@ -17,6 +21,20 @@ export const mailDomain = defineDomain({
   name: "mail",
   requires: [CAPABILITY_MAIL],
   tools: [mailSearch, mailRead, mailFolders],
+});
+
+/**
+ * move, flag, delete, and the folder tree itself.
+ *
+ * A third manifest on the `mail` capability alone, kept apart from the reading
+ * one so `mailDomain` stays provably read-only: the contract that says no tool
+ * of that manifest writes is worth more than one fewer file here. Filing has
+ * nothing to do with sending, so a server that cannot send still files.
+ */
+export const mailOrganizingDomain = defineDomain({
+  name: "mail",
+  requires: [CAPABILITY_MAIL],
+  tools: [mailMove, mailFlag, mailDelete, mailFolderManage],
 });
 
 /**

@@ -71,6 +71,7 @@ export async function buildServer(
     client,
     policy: config.policy,
     recipients,
+    bulkConfirmAbove: config.bulkConfirmAbove,
   });
 
   return { server, report };

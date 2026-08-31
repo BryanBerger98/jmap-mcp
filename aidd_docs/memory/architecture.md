@@ -86,6 +86,26 @@ Lire coûte un aller-retour, mais l'alternative est de faire confirmer un envoi 
 `mail_compose` et `mail_send` refont ensuite le contrôle dans `run`, sur les adresses réellement écrites.
 La redondance est voulue : le `precheck` avale une lecture en échec plutôt que de transformer une erreur de transport en refus, donc le dernier mot sur les destinataires lui échappe.
 
+## 🔁 Le second chemin vers la confirmation
+
+La classe dit ce que l'appel fait, jamais combien il en fait.
+Déplacer deux cents messages reste un `draft` : le classer `destroy` pour forcer la question mentirait à l'utilisateur à l'instant précis où il arbitre.
+
+Une définition d'outil porte donc un hook `confirmWhen` optionnel, qui rend la raison pour laquelle cet appel-là mérite une question que sa classe n'exige pas.
+Cette raison s'affiche à la place de la classe, « ceci est une opération de brouillon » n'expliquant rien sur un volume.
+
+L'ordre des hooks ne s'inverse jamais :
+
+```txt
+precheck → confirmWhen → élicitation → run
+```
+
+`confirmWhen` n'est consulté qu'au niveau `allow` : à `confirm` la question est déjà posée, à `deny` il n'y a rien à demander.
+Il suit `precheck` pour la raison qui vaut déjà pour le périmètre des destinataires : un appel voué au refus ne se fait pas confirmer.
+
+Le seuil est `bulkConfirmAbove`, porté par le contexte et non lu par le registre, car seul l'outil sait ce que ses arguments comptent.
+Un plafond dur de cinquante identifiants par appel s'y ajoute, non réglable, et refuse avant toute question.
+
 ## ⚠️ Pièges
 
 - Le niveau `confirm` s'appuie sur MRTR. Quand le client ne l'expose pas, l'outil refuse : jamais d'exécution silencieuse.
@@ -94,4 +114,5 @@ La redondance est voulue : le `precheck` avale une lecture en échec plutôt que
 - La dégradation se voit dès trente outils exposés. Le gating par capacité vise vingt-six.
 - La classe d'opération ne se lit pas sur le nom de la méthode. Un argument suffit à faire basculer une écriture en destruction ou en envoi, dans les six domaines.
 - Une opération destructrice ne prend jamais un filtre en entrée. Stalwart abandonne silencieusement une condition `header` mal formée, et la requête rend alors plus de résultats que demandé.
+- Supprimer un dossier ne supprime jamais son contenu. `onDestroyRemoveEmails` est écrit à faux sur chaque `Mailbox/set` émis, y compris ceux qui ne détruisent rien : un défaut serveur n'est pas une garantie, et l'absence de l'argument ne se voit sur aucun test unitaire.
 - Le README de Stalwart n'est pas fiable sur les révisions de draft : Filenode y est resté à `-03` alors que le code est à `-14`. Le CHANGELOG et le code arbitrent.

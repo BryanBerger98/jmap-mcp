@@ -48,6 +48,7 @@ describe("mail_folders", () => {
       "Drafts",
       "Inbox",
       "Sent",
+      "Trash",
     ]);
   });
 
