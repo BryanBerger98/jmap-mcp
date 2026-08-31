@@ -18,7 +18,7 @@ Deux couches, séparées par leur objet.
 | Couche | Couvre |
 | --- | --- |
 | `tests/unit/` | Rendu, pagination, mapping d'erreurs |
-| `tests/contract/` | Invariant de garde sur `send` et `destroy` |
+| `tests/contract/` | Invariant de garde sur `send` et `destroy`, et pureté en lecture du domaine mail sans envoi |
 
 Les tests de contrat sont la couche qui compte : ils vérifient qu'aucun outil de classe `send` ou `destroy` ne s'exécute sans passer par la garde de politique.
 Un module de domaine ne peut pas contourner le registre, et le test le prouve plutôt que la revue.
@@ -26,7 +26,7 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | Contrat | Invariant tenu |
 | --- | --- |
 | `policy-guard.test.ts` | Aucun `send` ni `destroy` sans garde |
-| `read-only-surface.test.ts` | La lecture n'émet aucun `/set` |
+| `read-only-surface.test.ts` | Aucun outil du manifeste mail ne déclare ni ne classe autre chose que `read` |
 | `elicitation-required.test.ts` | Sans élicitation : refus, pas exécution |
 | `send-never-destroys.test.ts` | Jamais d'`onSuccessDestroyEmail` à l'envoi |
 | `recipient-scope.test.ts` | Hors périmètre : refus avant confirmation |
