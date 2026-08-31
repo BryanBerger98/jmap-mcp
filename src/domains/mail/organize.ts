@@ -85,6 +85,19 @@ export function resolveMailboxes(context: ToolContext): Promise<Mailbox[]> {
   });
 }
 
+/**
+ * The folder the account puts deleted messages in, or `undefined`.
+ *
+ * Found by its role and never by its name: a French account calls it Corbeille,
+ * and a folder someone named "Trash" by hand is not the one the mail client
+ * empties. A missing role is a refusal upstream, never a folder created here —
+ * `mail_delete` does not write in the tree.
+ */
+export async function resolveTrash(context: ToolContext): Promise<Mailbox | undefined> {
+  const mailboxes = await resolveMailboxes(context);
+  return mailboxes.find((mailbox) => mailbox.role === "trash");
+}
+
 /** The refusal a folder the account does not hold raises, in its own words. */
 export function unknownMailbox(mailboxId: Id): string {
   return (

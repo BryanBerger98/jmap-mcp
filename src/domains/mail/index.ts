@@ -1,6 +1,7 @@
 import { CAPABILITY_MAIL, CAPABILITY_SUBMISSION } from "../../jmap/types/core.js";
 import { defineDomain } from "../../registry/manifest.js";
 import { mailCompose } from "./compose.js";
+import { mailDelete } from "./delete.js";
 import { mailFlag } from "./flag.js";
 import { mailFolders } from "./folders.js";
 import { mailIdentities } from "./identities.js";
@@ -22,7 +23,7 @@ export const mailDomain = defineDomain({
 });
 
 /**
- * move, flag.
+ * move, flag, delete.
  *
  * A third manifest on the `mail` capability alone, kept apart from the reading
  * one so `mailDomain` stays provably read-only: the contract that says no tool
@@ -32,7 +33,7 @@ export const mailDomain = defineDomain({
 export const mailOrganizingDomain = defineDomain({
   name: "mail",
   requires: [CAPABILITY_MAIL],
-  tools: [mailMove, mailFlag],
+  tools: [mailMove, mailFlag, mailDelete],
 });
 
 /**
