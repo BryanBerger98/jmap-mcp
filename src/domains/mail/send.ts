@@ -18,7 +18,7 @@ import {
   outsidePerimeter,
   pickIdentity,
   uniqueRecipients,
-} from "./compose.js";
+} from "./submission.js";
 
 /** Only what the envelope, the summary and the drafts check read. */
 const MESSAGE_PROPERTIES = ["id", "mailboxIds", "from", "to", "cc", "bcc", "subject"];

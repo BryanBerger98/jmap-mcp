@@ -1,6 +1,4 @@
 import { z } from "zod";
-import { checkRecipients, type RecipientScope } from "../../config/recipients.js";
-import { explainSetError } from "../../jmap/errors.js";
 import type { GetResponse, Id, Invocation, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CORE, CAPABILITY_MAIL, CAPABILITY_SUBMISSION } from "../../jmap/types/core.js";
 import type {
@@ -10,8 +8,6 @@ import type {
   EmailGetArguments,
   EmailSetArguments,
   EmailSubmission,
-  EmailSubmissionSetArguments,
-  Envelope,
   Identity,
   IdentityGetArguments,
   Mailbox,
@@ -19,14 +15,16 @@ import type {
 } from "../../jmap/types/mail.js";
 import { defineTool } from "../../registry/define-tool.js";
 import { renderFields } from "../../shared/render.js";
-
-/**
- * The creation id the draft is filed under.
- *
- * Stable rather than generated: one draft is created per call, and a fixed id is
- * what a later call in the same request points at with `#draft`.
- */
-export const DRAFT_CREATION_ID = "draft";
+import {
+  buildSubmission,
+  DRAFT_CREATION_ID,
+  describeNotCreated,
+  describeSubmission,
+  MISSING_SENT_FOLDER,
+  outsidePerimeter,
+  pickIdentity,
+  uniqueRecipients,
+} from "./submission.js";
 
 /** The single body part. One part, plain text: creation refuses `headers`. */
 const BODY_PART_ID = "body";
@@ -268,69 +266,6 @@ export async function resolveContext(
 }
 
 /**
- * The refusal the recipient perimeter raises, or `undefined` to go ahead.
- *
- * A list with no address passes: there is nobody to place inside or outside the
- * perimeter, and the missing recipient is refused on its own terms further on.
- */
-export function outsidePerimeter(
-  addresses: readonly string[],
-  scope: RecipientScope,
-): string | undefined {
-  if (addresses.length === 0) return undefined;
-
-  const verdict = checkRecipients(addresses, scope);
-  return verdict.ok ? undefined : verdict.refusal;
-}
-
-/**
- * Refused before the submission, never after: a message sent with nowhere to
- * file it leaves the account with no trace of what went out.
- */
-export const MISSING_SENT_FOLDER =
-  "Refused: this account has no folder with the `sent` role, so a sent message would leave no " +
-  "trace of having been sent. Create one on the mail server, or give an existing folder that role.";
-
-/**
- * Picks the sender.
- *
- * With several identities and no designation, it refuses: sending as the wrong
- * address is the kind of mistake that cannot be taken back, and the account
- * owner is the only one who knows which of their addresses this message is from.
- */
-export function pickIdentity(
-  identities: Identity[],
-  requested: string | undefined,
-): Identity | { refusal: string } {
-  if (requested !== undefined) {
-    const found = identities.find((identity) => identity.id === requested);
-    if (found === undefined) {
-      return {
-        refusal: `Refused: identity ${requested} is not one of this account's identities. Run mail_identities to list them.`,
-      };
-    }
-    return found;
-  }
-
-  const [first, second] = identities;
-  if (first === undefined) {
-    return {
-      refusal:
-        "Refused: this account declares no sending identity, so a message has no address to come from.",
-    };
-  }
-  if (second !== undefined) {
-    return {
-      refusal:
-        `Refused: this account has ${identities.length} sending identities and none was designated. ` +
-        "Pass identityId — run mail_identities to see them.",
-    };
-  }
-
-  return first;
-}
-
-/**
  * Builds the creation payload.
  *
  * Neither `headers` nor any `header:*` property appears: RFC 8621 refuses both
@@ -393,25 +328,6 @@ function addressList(addresses: EmailAddress[] | undefined): string {
   return (addresses ?? []).map((address) => address.email).join(", ");
 }
 
-/** A `SetError` is the server's own words: quoting it beats guessing at it. */
-export function describeNotCreated(
-  response: SetResponse<unknown>,
-  creationId: Id = DRAFT_CREATION_ID,
-): string | undefined {
-  const error = response.notCreated?.[creationId];
-  if (error === undefined) return undefined;
-
-  const meaning = explainSetError(error.type);
-  const detail = error.description === undefined ? "" : ` — ${error.description}`;
-  const properties =
-    error.properties === undefined || error.properties.length === 0
-      ? ""
-      : ` (properties: ${error.properties.join(", ")})`;
-  const gloss = meaning === undefined ? "" : `\n\nThat error means ${meaning}.`;
-
-  return `Refused by the mail server: ${error.type}${detail}${properties}${gloss}`;
-}
-
 export function summarizeCompose(input: {
   to?: string[] | undefined;
   cc?: string[] | undefined;
@@ -427,104 +343,4 @@ export function summarizeCompose(input: {
   return input.send === true
     ? `Send a message to ${who}, ${what}. It leaves the account as soon as this is confirmed.`
     : `Save a draft to ${who}, ${what}.`;
-}
-
-/*
- * Submitting.
- *
- * The pieces below build and read an `EmailSubmission/set`. They live next to
- * the draft they send because `mail_compose` can do both in one request, and
- * `mail_send` reuses them on a draft written earlier.
- */
-
-/** The creation id the submission is filed under, so a patch can point at it. */
-export const SUBMISSION_CREATION_ID = "submission";
-
-/**
- * Who the message is actually delivered to, in order and without repeats.
- *
- * A recipient named twice, in `to` and in `cc`, is one delivery. Addresses are
- * compared verbatim: the local part is case-sensitive per RFC 5321, so folding
- * it here would merge two mailboxes that the server tells apart.
- */
-export function uniqueRecipients(message: {
-  to?: EmailAddress[] | null;
-  cc?: EmailAddress[] | null;
-  bcc?: EmailAddress[] | null;
-}): string[] {
-  const addresses = [...(message.to ?? []), ...(message.cc ?? []), ...(message.bcc ?? [])];
-  return [...new Set(addresses.map((address) => address.email))];
-}
-
-/**
- * Builds the submission and the move that follows it.
- *
- * The envelope is stated rather than derived: letting the server read the
- * headers means not knowing who receives the message. `onSuccessDestroyEmail`
- * is never emitted — the copy left in the sent folder is the only record of
- * what went out.
- */
-export function buildSubmission(input: {
-  accountId: Id;
-  identityId: Id;
-  mailFrom: string;
-  /** The draft's id, or `#<creationId>` when it is created in the same request. */
-  emailId: Id;
-  recipients: string[];
-  draftsId: Id;
-  sentId: Id;
-}): EmailSubmissionSetArguments {
-  const envelope: Envelope = {
-    mailFrom: { email: input.mailFrom },
-    rcptTo: input.recipients.map((email) => ({ email })),
-  };
-
-  return {
-    accountId: input.accountId,
-    create: {
-      [SUBMISSION_CREATION_ID]: {
-        identityId: input.identityId,
-        emailId: input.emailId,
-        envelope,
-      },
-    },
-    // Neither `sendAt` nor `undoStatus`: RFC 8621 reserves both to the server.
-    onSuccessUpdateEmail: {
-      [`#${SUBMISSION_CREATION_ID}`]: {
-        [`mailboxIds/${input.draftsId}`]: null,
-        [`mailboxIds/${input.sentId}`]: true,
-        "keywords/$draft": null,
-      },
-    },
-  };
-}
-
-/**
- * Reads the outcome of a submission.
- *
- * A move the server declined is reported rather than assumed away: the message
- * did leave, and a caller told otherwise would send it a second time.
- */
-export function describeSubmission(
-  submitted: SetResponse<EmailSubmission>,
-  moved: SetResponse<Email> | undefined,
-  details: { from: string; recipients: string[]; subject: string },
-): string {
-  const failure = describeNotCreated(submitted, SUBMISSION_CREATION_ID);
-  if (failure !== undefined) return failure;
-
-  const created = submitted.created?.[SUBMISSION_CREATION_ID];
-  const [moveError] = Object.values(moved?.notUpdated ?? {});
-
-  return renderFields({
-    submissionId: created?.id ?? "(unknown)",
-    emailId: created?.emailId ?? "",
-    from: details.from,
-    to: details.recipients.join(", "),
-    subject: details.subject,
-    status:
-      moveError === undefined
-        ? "sent, and moved to the sent folder"
-        : `sent, but it could not be moved out of drafts: ${moveError.type}`,
-  });
 }
