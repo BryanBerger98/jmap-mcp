@@ -86,12 +86,12 @@ describe("contacts_read", () => {
     expect(text).toContain("Not found: card-404");
   });
 
-  it("says so explicitly when not one id was found, rather than answering empty", async () => {
-    const { context } = fakeTransport(answers({ list: [], notFound: [] }));
+  it("answers the missing ids alone when not one was found, with no empty block", async () => {
+    const { context } = fakeTransport(answers({ list: [], notFound: ["card-404"] }));
 
     const { text } = await contactsRead.run({ ids: ["card-404"] }, context);
 
-    expect(text).toBe("(no card found)");
+    expect(text).toBe("Not found: card-404");
   });
 
   it("renders a group as its member uids, reading no member card", async () => {
