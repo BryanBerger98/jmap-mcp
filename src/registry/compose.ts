@@ -9,6 +9,7 @@ import type { OperationClass, WritePolicy } from "../config/policy.js";
 import type { JmapClient } from "../jmap/client.js";
 import type { JmapSession } from "../jmap/session.js";
 import type { ToolDefinition } from "./define-tool.js";
+import { clientCanElicit } from "./elicitation.js";
 import type { DomainManifest } from "./manifest.js";
 
 export interface ComposeInput {
@@ -107,7 +108,15 @@ function register(input: ComposeInput, tool: ToolDefinition): void {
       // The definition owns the schema; the SDK wants it as a Standard Schema.
       inputSchema: tool.inputSchema as unknown as StandardSchemaWithJSON<unknown, unknown>,
     },
-    async (args: unknown, ctx: { mcpReq: { inputResponses?: Record<string, unknown> } }) => {
+    async (
+      args: unknown,
+      ctx: {
+        mcpReq: {
+          inputResponses?: Record<string, unknown>;
+          envelope?: Record<string, unknown>;
+        };
+      },
+    ) => {
       const operation = tool.classify(args);
       const level = input.policy[operation];
 
@@ -118,6 +127,15 @@ function register(input: ComposeInput, tool: ToolDefinition): void {
       }
 
       if (level === "confirm") {
+        // Decided before the request is built, never after: a refusal that comes
+        // once the call is out is not a refusal.
+        if (!clientCanElicit(input.server, ctx.mcpReq)) {
+          return errorResult(
+            `Refused: ${tool.name} is a ${operation} operation, which this server only runs after you confirm it. ` +
+              "Your MCP client did not declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused.",
+          );
+        }
+
         const answer = acceptedContent(ctx.mcpReq.inputResponses, "confirm", confirmationSchema);
         if (answer?.confirm !== true) {
           return inputRequired({
