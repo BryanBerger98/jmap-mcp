@@ -20,6 +20,8 @@ import {
   DRAFT_CREATION_ID,
   describeNotCreated,
   describeSubmission,
+  IDENTITY_PROPERTIES,
+  MAILBOX_PROPERTIES,
   MISSING_SENT_FOLDER,
   outsidePerimeter,
   pickIdentity,
@@ -31,10 +33,6 @@ const BODY_PART_ID = "body";
 
 /** Only what the threading and the fallback recipient need off the origin. */
 const REPLY_SOURCE_PROPERTIES = ["id", "messageId", "references", "subject", "from", "replyTo"];
-
-const IDENTITY_PROPERTIES = ["id", "name", "email"];
-
-const MAILBOX_PROPERTIES = ["id", "name", "role"];
 
 export const composeInputShape = {
   to: z
@@ -207,12 +205,12 @@ export async function resolveContext(
   const identityArguments: IdentityGetArguments = {
     accountId: session.accountId,
     ids: null,
-    properties: IDENTITY_PROPERTIES,
+    properties: [...IDENTITY_PROPERTIES],
   };
   const mailboxArguments: MailboxGetArguments = {
     accountId: session.accountId,
     ids: null,
-    properties: MAILBOX_PROPERTIES,
+    properties: [...MAILBOX_PROPERTIES],
   };
 
   const calls: Invocation[] = [

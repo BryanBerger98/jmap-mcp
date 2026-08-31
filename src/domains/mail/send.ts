@@ -14,6 +14,8 @@ import { defineTool } from "../../registry/define-tool.js";
 import {
   buildSubmission,
   describeSubmission,
+  IDENTITY_PROPERTIES,
+  MAILBOX_PROPERTIES,
   MISSING_SENT_FOLDER,
   outsidePerimeter,
   pickIdentity,
@@ -22,10 +24,6 @@ import {
 
 /** Only what the envelope, the summary and the drafts check read. */
 const MESSAGE_PROPERTIES = ["id", "mailboxIds", "from", "to", "cc", "bcc", "subject"];
-
-const IDENTITY_PROPERTIES = ["id", "name", "email"];
-
-const MAILBOX_PROPERTIES = ["id", "name", "role"];
 
 const inputSchema = z.object({
   emailId: z
@@ -148,12 +146,12 @@ export async function resolveSend(
   const identityArguments: IdentityGetArguments = {
     accountId: session.accountId,
     ids: null,
-    properties: IDENTITY_PROPERTIES,
+    properties: [...IDENTITY_PROPERTIES],
   };
   const mailboxArguments: MailboxGetArguments = {
     accountId: session.accountId,
     ids: null,
-    properties: MAILBOX_PROPERTIES,
+    properties: [...MAILBOX_PROPERTIES],
   };
   const emailArguments: EmailGetArguments = {
     accountId: session.accountId,

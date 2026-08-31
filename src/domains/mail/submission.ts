@@ -32,6 +32,17 @@ export const DRAFT_CREATION_ID = "draft";
 export const SUBMISSION_CREATION_ID = "submission";
 
 /**
+ * Only what picking a sender takes. Declared once because `mail_compose`,
+ * `mail_send` and `mail_identities` read the same identities: a field dropped
+ * here must disappear from every one of them at the same time, or one tool
+ * starts rendering a property the server no longer returns.
+ */
+export const IDENTITY_PROPERTIES = ["id", "name", "email"] as const;
+
+/** Only what locating the drafts and sent folders, and naming them, takes. */
+export const MAILBOX_PROPERTIES = ["id", "name", "role"] as const;
+
+/**
  * Refused before the submission, never after: a message sent with nowhere to
  * file it leaves the account with no trace of what went out.
  */

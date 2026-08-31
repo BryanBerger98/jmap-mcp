@@ -4,9 +4,7 @@ import { CAPABILITY_CORE, CAPABILITY_SUBMISSION } from "../../jmap/types/core.js
 import type { Identity, IdentityGetArguments } from "../../jmap/types/mail.js";
 import { defineTool } from "../../registry/define-tool.js";
 import { renderTable } from "../../shared/render.js";
-
-/** Explicit, so the server does not hand back the signatures nothing renders. */
-const PROPERTIES = ["id", "name", "email"] as const;
+import { IDENTITY_PROPERTIES } from "./submission.js";
 
 /**
  * RFC 8621 gives `Identity` no default flag, so the primary one is derived: it
@@ -34,7 +32,7 @@ export const mailIdentities = defineTool({
     const args: IdentityGetArguments = {
       accountId: session.accountId,
       ids: null,
-      properties: [...PROPERTIES],
+      properties: [...IDENTITY_PROPERTIES],
     };
 
     const response = await client.request<GetResponse<Identity>>(
