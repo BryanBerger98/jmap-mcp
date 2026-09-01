@@ -1,7 +1,7 @@
 ---
 objective: "L'assistant parcourt, récupère, dépose et supprime dans l'espace de fichiers du compte, aucun octet ne traversant la conversation et aucune destruction ne partant sans que son sous-arbre ait été compté."
 title: Plan — Stockage de fichiers
-status: in-progress
+status: implemented
 updated: 2026-09-01
 owner: bryan
 ---
