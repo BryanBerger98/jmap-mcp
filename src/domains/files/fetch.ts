@@ -84,6 +84,15 @@ export const filesFetch = defineTool({
     // write them wastes the round trip; the second is the honest one, since
     // anything may land on that path in between.
     const occupied = await statLocalFile(destination.path);
+    if (occupied.kind === "unreadable") {
+      // Neither free nor taken: the disk would not say. Refused here rather than
+      // after the download, which is the round trip this check exists to save.
+      return {
+        text:
+          `Refused: ${destination.path} could not be examined — ${occupied.reason}. Nothing was ` +
+          "transferred. Check the permissions on that path, or pass saveAs with another name.",
+      };
+    }
     if (occupied.kind !== "missing") {
       return {
         text:

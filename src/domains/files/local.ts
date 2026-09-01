@@ -24,7 +24,28 @@ export type LocalBytes = { ok: true; bytes: Uint8Array } | { ok: false; refusal:
 export type LocalStat =
   | { kind: "file"; size: number }
   | { kind: "directory" }
-  | { kind: "missing" };
+  | { kind: "missing" }
+  | { kind: "unreadable"; reason: string };
+
+/**
+ * Whether an error from the filesystem says "not there" or "will not say".
+ *
+ * Only `ENOENT` and `ENOTDIR` describe a path that does not exist. `EACCES` on a
+ * directory refusing a traverse, `ELOOP` on a symlink cycle, `EIO` on a failing
+ * disk all describe a path this process cannot resolve — a different answer,
+ * which must never be reported as an absence. Sending someone to look elsewhere
+ * for a file that is right there is the one mistake this boundary can make while
+ * still sounding certain.
+ */
+export function isAbsence(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException).code;
+  return code === "ENOENT" || code === "ENOTDIR";
+}
+
+/** An errno as one clause, code included: `EACCES: permission denied, stat '/x'`. */
+function describeErrno(error: unknown): string {
+  return (error as Error).message;
+}
 
 /**
  * The refusal, spelled as a constant rather than built inside the check.
@@ -71,13 +92,21 @@ export async function resolveWithinRoot(target: string, root: string): Promise<L
   return { ok: true, path };
 }
 
-/** Existence and size, so a transfer can be refused before it starts. */
+/**
+ * Existence and size, so a transfer can be refused before it starts.
+ *
+ * A failed `stat` is not automatically an absence. A path under a directory this
+ * process may not traverse exists, and reporting it as missing would send the
+ * caller looking for a file that is exactly where they said it was.
+ */
 export async function statLocalFile(path: string): Promise<LocalStat> {
   try {
     const entry = await stat(path);
     return entry.isDirectory() ? { kind: "directory" } : { kind: "file", size: entry.size };
-  } catch {
-    return { kind: "missing" };
+  } catch (error) {
+    return isAbsence(error)
+      ? { kind: "missing" }
+      : { kind: "unreadable", reason: describeErrno(error) };
   }
 }
 

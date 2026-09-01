@@ -358,6 +358,14 @@ async function refuseUnreadableSource(
   if (entry.kind === "missing") {
     return `Refused: there is no file at ${source.path}, so there is nothing to deposit.`;
   }
+  if (entry.kind === "unreadable") {
+    // Said apart from an absence on purpose: the file is there, and telling the
+    // caller it is not would send them hunting instead of fixing a permission.
+    return (
+      `Refused: ${source.path} could not be examined — ${entry.reason}. Nothing was transferred. ` +
+      "Check the permissions on the file and on the directories above it."
+    );
+  }
   if (entry.kind === "directory") {
     return (
       `Refused: ${source.path} is a directory, and this server deposits one file per call. ` +

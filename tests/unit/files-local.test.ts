@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -108,6 +108,29 @@ describe("statLocalFile", () => {
   it("reports a missing path rather than throwing", async () => {
     expect(await statLocalFile(join(root, "nowhere.txt"))).toEqual({ kind: "missing" });
   });
+
+  // Root traverses a directory whatever its mode, so the case cannot be staged.
+  it.skipIf(process.getuid?.() === 0)(
+    "tells a path it may not read apart from one that is not there",
+    async () => {
+      const locked = join(root, "locked-stat");
+      await mkdir(locked);
+      await writeFile(join(locked, "inside.txt"), "present");
+      await chmod(locked, 0o000);
+
+      try {
+        const entry = await statLocalFile(join(locked, "inside.txt"));
+
+        // The file exists. Calling it missing would send the caller looking for
+        // it somewhere else instead of at the permission that hides it.
+        expect(entry.kind).toBe("unreadable");
+        if (entry.kind === "unreadable") expect(entry.reason).toContain("EACCES");
+      } finally {
+        await chmod(locked, 0o700);
+        await rm(locked, { recursive: true, force: true });
+      }
+    },
+  );
 });
 
 describe("writeWithoutOverwrite", () => {
