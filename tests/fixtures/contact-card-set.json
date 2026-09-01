@@ -48,6 +48,18 @@
     "newState": "contact-state-5",
     "destroyed": ["card-e1"]
   },
+  "partiallyDestroyed": {
+    "accountId": "acc-1",
+    "oldState": "contact-state-4",
+    "newState": "contact-state-5",
+    "destroyed": ["card-e1", "card-e2"],
+    "notDestroyed": {
+      "card-e3": {
+        "type": "forbidden",
+        "description": "The address book is read-only."
+      }
+    }
+  },
   "notDestroyed": {
     "accountId": "acc-1",
     "oldState": "contact-state-4",
