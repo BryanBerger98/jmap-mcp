@@ -29,7 +29,6 @@ import { fakeTransport } from "../fixtures/client.js";
 /** Every read this surface is allowed to emit. Anything else fails the contract. */
 const READS = [
   "Calendar/get",
-  "Calendar/query",
   "CalendarEvent/get",
   "CalendarEvent/query",
   "Principal/getAvailability",
@@ -117,7 +116,7 @@ describe("calendar surface", () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it("sends nothing but the five reads on the wire, for every tool of both manifests", async () => {
+  it("sends nothing but the four reads on the wire, for every tool of both manifests", async () => {
     for (const tool of ALL_TOOLS) {
       const { context, requests } = fakeTransport(Array.from({ length: 8 }, () => ANY_RESPONSE));
 
