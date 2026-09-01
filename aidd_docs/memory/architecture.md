@@ -146,6 +146,20 @@ Les deux écarts sous-déclarent le temps occupé, soit la direction qui trompe 
 La fenêtre est refusée avant qu'aucune méthode ne parte, sur les bornes en heure locale et avant même que le fuseau soit résolu.
 Ce contrôle n'existe que pour devancer un refus que le serveur prononcerait de toute façon, et une heure de décalage ne change aucun verdict qu'il rend.
 
+## ✉️ Ce qu'une écriture d'agenda expédie
+
+Trois outils écrivent dans un agenda, et chacun peut faire partir un mail sans qu'une méthode le dise : `sendSchedulingMessages` en décide, sur le `CalendarEvent/set` qui écrit l'événement.
+L'argument est donc écrit sur chaque appel émis, y compris ceux où il vaut faux : un défaut serveur n'est pas une garantie, et son absence ne se voit sur aucun test unitaire.
+
+La classe se lit sur `notify`, jamais sur le nom de l'outil.
+`calendar_write` et `calendar_respond` passent de `draft` à `send` selon lui ; `calendar_delete` reste `destroy` dans les deux cas, prévenir élargissant qui l'apprend sans adoucir ce que l'appel fait.
+
+C'est ce dernier qui ouvre un trou que le registre ne peut pas voir : il classe l'appel une fois, donc une politique `send: deny` laisserait passer une annulation expédiée sous couvert de destruction.
+`calendar_delete` lit donc `context.policy.send` lui-même et refuse avant toute question — c'est la raison d'être de `policy` dans le contexte d'outil.
+
+Un `CalendarEvent/set` réussi ne prouve jamais qu'un mail est parti.
+Stalwart avale l'envoi sans erreur quand iTIP est éteint, quand le compte n'a pas la permission de planification, ou quand l'événement est entièrement passé : les réponses disent ce qui a été demandé au serveur, jamais ce qu'il en a fait.
+
 ## ⚠️ Pièges
 
 - Le niveau `confirm` s'appuie sur MRTR. Quand le client ne l'expose pas, l'outil refuse : jamais d'exécution silencieuse.
@@ -164,4 +178,6 @@ Ce contrôle n'existe que pour devancer un refus que le serveur prononcerait de 
 - `recurrenceOverrides` ne se demande jamais avec `utcStart` ou `utcEnd`. Le draft interdit la combinaison, et le dépliage rend la question sans objet.
 - `until` d'une règle de récurrence est une heure locale, pas un instant. La lire dans le fuseau de la réponse déplacerait une borne qui n'a pas de décalage à subir : seule sa date est affichée.
 - `Temporal` est absent de Node 24. Toute conversion local vers UTC passe par `Intl.DateTimeFormat` et `formatToParts`, en deux passes pour tenir un changement d'heure.
+- Une occurrence isolée ne s'écrit pas. Stalwart accepte un identifiant synthétique et transforme silencieusement l'écriture en plan d'instance, donc les trois outils d'écriture le refusent côté client sur `baseEventId` : corriger un mardi n'est pas corriger la série, et la réponse ne dirait pas lequel a eu lieu.
+- La clé du participant que le compte occupe ne se devine pas. Zéro correspondance comme deux font refuser : prendre la première clé répondrait à la place de l'organisateur, et une réponse partie ne se rappelle pas.
 - Les trois champs de nom retombent sur le même index. Filtrer sur `name`, `name/given` ou `name/surname` rend le même résultat, donc chercher un prénom seul est hors de portée du serveur et la description de l'outil doit le dire.

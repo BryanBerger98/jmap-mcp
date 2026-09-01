@@ -1,6 +1,7 @@
 import { CAPABILITY_CALENDARS, CAPABILITY_PRINCIPALS_AVAILABILITY } from "../../jmap/types/core.js";
 import { defineDomain } from "../../registry/manifest.js";
 import { calendarAvailability } from "./availability.js";
+import { calendarDelete } from "./delete.js";
 import { calendarRead } from "./read.js";
 import { calendarRespond } from "./respond.js";
 import { calendarSearch } from "./search.js";
@@ -37,7 +38,7 @@ export const calendarAvailabilityDomain = defineDomain({
 });
 
 /**
- * write.
+ * write, respond, delete.
  *
  * Split from the reading manifest on the `contactsWritingDomain` pattern, and for
  * the same reason: `calendarDomain` stays provably free of any write, and the
@@ -51,5 +52,5 @@ export const calendarAvailabilityDomain = defineDomain({
 export const calendarWritingDomain = defineDomain({
   name: "calendar-writing",
   requires: [CAPABILITY_CALENDARS],
-  tools: [calendarWrite, calendarRespond],
+  tools: [calendarWrite, calendarRespond, calendarDelete],
 });

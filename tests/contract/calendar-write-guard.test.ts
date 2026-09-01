@@ -45,6 +45,22 @@ const eventSet = loadFixture<Record<string, unknown>>("calendar-event-set.json")
  */
 const CRITERIA = ["query", "search", "text", "filter", "before", "after", "cursor", "position"];
 
+/**
+ * What it takes to reach the destroying branch of each tool, and what the server
+ * has to answer before the confirmation is due.
+ *
+ * Hand-written, on the `contacts_write_guard` pattern: the arguments that
+ * classify as `destroy` are the tool's own business, and a guess derived from
+ * the schema would confirm nothing about the real path. The exhaustiveness test
+ * below is what keeps this map honest.
+ */
+const DESTROYING: Record<string, { input: Record<string, unknown>; responses: unknown[] }> = {
+  calendar_delete: {
+    input: { ids: ["ev-simple"] },
+    responses: [only("ev-simple"), eventSet],
+  },
+};
+
 /** The read fixture narrowed to the ids one case is about. */
 function only(...ids: Id[]): GetResponse<CalendarEvent> {
   return { ...events, list: events.list.filter((event) => ids.includes(event.id)) };
@@ -157,10 +173,18 @@ function keysOf(tool: ToolDefinition): string[] {
 
 const TOOLS = calendarWritingDomain.tools.map((tool) => [tool.name, tool] as const);
 
+const DESTROYERS = calendarWritingDomain.tools.filter((tool) => tool.classes.includes("destroy"));
+
 const CREATE = { title: "Point budget", start: "2026-09-10T14:00", duration: "PT1H" };
 const GUESTS = ["noor@example.org", "paul@example.org"];
 
 describe("the writing manifest", () => {
+  it("names every destroying tool in the cases below, so none escapes them", () => {
+    // The day a tool declares `destroy` without an entry here, this goes red
+    // rather than letting the tool through untested.
+    expect(DESTROYERS.map((tool) => tool.name).sort()).toEqual(Object.keys(DESTROYING).sort());
+  });
+
   it.each(TOOLS)("%s carries no search criterion, only ids and fields", (_name, tool) => {
     expect(keysOf(tool).filter((key) => CRITERIA.includes(key))).toEqual([]);
   });
@@ -288,31 +312,31 @@ describe("a write that mails nobody", () => {
   });
 });
 
-describe("an emitted write", () => {
-  /**
-   * Every path this surface can take to a `CalendarEvent/set`, run for the one
-   * assertion below. Validated by mutation: dropping `sendSchedulingMessages`
-   * from either call site of `write.ts` turns this red.
-   */
-  const PATHS: { name: string; input: Record<string, unknown>; responses: unknown[] }[] = [
-    { name: "a creation", input: CREATE, responses: [calendars, eventSet] },
-    {
-      name: "a creation that invites",
-      input: { ...CREATE, participantsAdd: GUESTS, notify: true },
-      responses: [calendars, identities, eventSet],
-    },
-    {
-      name: "a correction",
-      input: { eventIds: ["ev-simple"], start: "2026-09-10T16:00" },
-      responses: [only("ev-simple"), calendars, eventSet],
-    },
-    {
-      name: "a correction that notifies",
-      input: { eventIds: ["ev-invited"], status: "cancelled", notify: true },
-      responses: [only("ev-invited"), calendars, eventSet],
-    },
-  ];
+/**
+ * Every path this surface can take to a `CalendarEvent/set`, run for the
+ * assertions of `an emitted write`. Validated by mutation: dropping
+ * `sendSchedulingMessages` from either call site of `write.ts` turns those red.
+ */
+const PATHS: { name: string; input: Record<string, unknown>; responses: unknown[] }[] = [
+  { name: "a creation", input: CREATE, responses: [calendars, eventSet] },
+  {
+    name: "a creation that invites",
+    input: { ...CREATE, participantsAdd: GUESTS, notify: true },
+    responses: [calendars, identities, eventSet],
+  },
+  {
+    name: "a correction",
+    input: { eventIds: ["ev-simple"], start: "2026-09-10T16:00" },
+    responses: [only("ev-simple"), calendars, eventSet],
+  },
+  {
+    name: "a correction that notifies",
+    input: { eventIds: ["ev-invited"], status: "cancelled", notify: true },
+    responses: [only("ev-invited"), calendars, eventSet],
+  },
+];
 
+describe("an emitted write", () => {
   it.each(PATHS)(
     "$name carries sendSchedulingMessages explicitly",
     async ({ input, responses }) => {
@@ -433,6 +457,95 @@ describe("an answer to an invitation", () => {
     expect((result as { isError?: boolean }).isError).toBe(true);
     expect(textOf(result)).toContain("outside the recipient perimeter");
     expect(writesIn(requests)).toEqual([]);
+  });
+});
+
+describe("a destroying calendar tool", () => {
+  it.each(Object.entries(DESTROYING))(
+    "%s is refused outright on a client that cannot be asked",
+    async (name, { input, responses }) => {
+      const { handlers, requests } = writingSurface(responses, { roots: {} });
+
+      const result = await handlers.get(name)?.(input, UNANSWERED);
+
+      expect((result as { isError?: boolean }).isError).toBe(true);
+      expect(textOf(result)).toContain("elicitation");
+      expect(writesIn(requests)).toEqual([]);
+    },
+  );
+
+  it.each(Object.entries(DESTROYING))(
+    "%s puts the call to the user, and destroys nothing while it waits",
+    async (name, { input, responses }) => {
+      const { handlers, requests } = writingSurface(responses, { elicitation: {} });
+
+      const result = await handlers.get(name)?.(input, UNANSWERED);
+
+      expect(isInputRequiredResult(result)).toBe(true);
+      expect(writesIn(requests)).toEqual([]);
+    },
+  );
+
+  it.each(Object.entries(DESTROYING))(
+    "%s emits reads at most, never a write, when the confirmation comes back false",
+    async (name, { input, responses }) => {
+      const { handlers, requests } = writingSurface(responses, { elicitation: {} });
+
+      await handlers.get(name)?.(input, DECLINED);
+
+      // A read may precede the question — `precheck` and `summarize` both run
+      // before it by design, so a doomed call is never put to the user and the
+      // question can name what it is about. Nothing else may be emitted: the
+      // assertion is on every method, not only on the `/set` that would destroy.
+      expect(writesIn(requests)).toEqual([]);
+      for (const method of methodsOf(requests)) expect(method.endsWith("/get")).toBe(true);
+    },
+  );
+
+  it.each(Object.entries(DESTROYING))(
+    "%s destroys only once the confirmation is granted, and states its scheduling",
+    async (name, { input, responses }) => {
+      const { handlers, requests } = writingSurface(responses, { elicitation: {} });
+
+      await handlers.get(name)?.(input, CONFIRMED);
+
+      const emitted = eventSets(requests);
+      expect(emitted).toHaveLength(1);
+      expect(emitted[0]?.destroy).toEqual(input.ids);
+      expect(Object.hasOwn(emitted[0] as object, "sendSchedulingMessages")).toBe(true);
+      expect(typeof emitted[0]?.sendSchedulingMessages).toBe("boolean");
+    },
+  );
+});
+
+describe("the calendars themselves", () => {
+  /** Every call this surface can make, whichever tool makes it. */
+  const EVERY_CALL: { name: string; tool: string; input: unknown; responses: unknown[] }[] = [
+    ...PATHS.map((path) => ({ ...path, tool: "calendar_write" })),
+    {
+      name: "an answer",
+      tool: "calendar_respond",
+      input: { eventIds: ["ev-invited"], status: "accepted" },
+      responses: [only("ev-invited"), identities, eventSet],
+    },
+    ...Object.entries(DESTROYING).map(([tool, { input, responses }]) => ({
+      name: `a deletion through ${tool}`,
+      tool,
+      input,
+      responses,
+    })),
+  ];
+
+  it.each(EVERY_CALL)("$name never writes a calendar", async ({ tool, input, responses }) => {
+    const { handlers, requests } = writingSurface(responses, { elicitation: {} });
+
+    await handlers.get(tool)?.(input, CONFIRMED);
+
+    // Managing calendars is out of scope for this server: the tools here write
+    // events, and a `Calendar/set` slipping in would create, rename or destroy a
+    // calendar under a confirmation that spoke of an event.
+    expect(methodsOf(requests)).not.toContain("Calendar/set");
+    for (const method of writesIn(requests)) expect(method).toBe("CalendarEvent/set");
   });
 });
 

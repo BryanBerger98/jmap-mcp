@@ -8,7 +8,7 @@ owner: bryan
 # Tests
 
 > [!NOTE]
-> 571 tests passent sur 43 fichiers, dont 12 de contrat.
+> 720 tests passent sur 48 fichiers, dont 13 de contrat.
 > Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact et les agendas, en lecture comme en écriture.
 
 ## 🎯 Stratégie
@@ -37,6 +37,7 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | `contacts-read-only.test.ts` | Contacts en lecture : rien hors `get` et `query` |
 | `contacts-write-guard.test.ts` | Écriture des contacts : confirmation, identifiants, lot, création sans destruction |
 | `calendar-read-only.test.ts` | Agendas : rien hors les lectures nommées |
+| `calendar-write-guard.test.ts` | Écriture des agendas : `sendSchedulingMessages` toujours écrit, patch borné au participant du compte, destruction confirmée |
 
 Le contrat sur la lecture des contacts sépare deux affirmations : la classe déclarée d'une part, ce qui part réellement sur le fil d'autre part.
 Il exécute chaque outil du manifeste sur des arguments minimaux tirés de son propre schéma, donc il tient un outil ajouté au domaine sans être réécrit.
@@ -49,6 +50,15 @@ La non-cascade porte désormais deux drapeaux, `onDestroyRemoveEmails` sur un do
 Le contrat sur les agendas reprend ce patron et durcit un point : sa liste blanche nomme des méthodes entières, jamais des suffixes.
 `Principal/getAvailability` ne finit pas par `/get`, et une règle assez lâche pour l'admettre admettrait aussi `CalendarEvent/set`.
 Il vérifie en outre qu'aucun des trois outils ne porte de `precheck` ni de `confirmWhen` : une lecture ne pose pas de question.
+
+Le contrat sur l'écriture des agendas parcourt le même manifeste et tient trois choses de plus.
+Tout `CalendarEvent/set` émis porte `sendSchedulingMessages`, sur chacun des chemins qui y mènent : une création, une création qui invite, une correction, une correction qui notifie, une réponse, une suppression.
+Tout patch de `calendar_respond` pointe sous `participants/{clé du compte}/` et nulle part ailleurs, la carte entière n'étant jamais écrite.
+Aucun outil du module n'émet `Calendar/set` : gérer les agendas eux-mêmes est hors périmètre, et rien ne doit y toucher par accident.
+
+Une nuance y est assumée plutôt que masquée : une destruction non confirmée n'émet aucune écriture, mais une lecture peut la précéder.
+`precheck` et `summarize` tournent avant l'élicitation par construction, l'un pour qu'un appel voué au refus ne soit pas posé en question, l'autre pour que la question nomme ce sur quoi elle porte.
+L'assertion tenue porte donc sur toutes les méthodes émises, et pas seulement sur le `/set` : rien hors des `/get`.
 
 Le contrat sur le périmètre va plus loin que le refus : il assert aussi qu'aucune méthode JMAP n'a été émise, et que la question de confirmation n'a jamais été posée.
 
