@@ -14,7 +14,13 @@ vi.mock("node:fs/promises", () => ({
 }));
 
 const { loadConfig } = await import("../../src/config/load.js");
-const { DEFAULT_BULK_CONFIRM_ABOVE } = await import("../../src/config/schema.js");
+const { DEFAULT_BULK_CONFIRM_ABOVE, configSchema } = await import("../../src/config/schema.js");
+
+/** The two keys the schema demands, so a files case says nothing else. */
+const CREDENTIALS = {
+  sessionUrl: "https://mail.example.com/.well-known/jmap",
+  bearerToken: "a-token",
+};
 
 /** The two keys without which nothing loads at all. `process.env` is untouched. */
 function env(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
@@ -54,5 +60,35 @@ describe("bulk confirmation threshold", () => {
     const failure = loadConfig(env({ JMAP_BULK_CONFIRM_ABOVE: "2.5" }));
 
     await expect(failure).rejects.toThrow(/bulkConfirmAbove/);
+  });
+});
+
+/**
+ * Read off the schema rather than through `loadConfig`: `files.localRoot` has no
+ * environment equivalent, and the config file is stubbed away above.
+ */
+describe("local file directory", () => {
+  it("takes a named directory", () => {
+    const config = configSchema.parse({
+      ...CREDENTIALS,
+      files: { localRoot: "/Users/you/jmap-files" },
+    });
+
+    expect(config.files.localRoot).toBe("/Users/you/jmap-files");
+  });
+
+  it("refuses a relative path, naming the key", () => {
+    const failure = () =>
+      configSchema.parse({ ...CREDENTIALS, files: { localRoot: "jmap-files" } });
+
+    expect(failure).toThrow(/files\.localRoot/);
+  });
+
+  it("refuses the filesystem root at load, not at the first transfer", () => {
+    const failure = () => configSchema.parse({ ...CREDENTIALS, files: { localRoot: "/" } });
+
+    // The containment check would refuse every path under it anyway, but by
+    // accident and with a sentence blaming the path rather than the setting.
+    expect(failure).toThrow(/files\.localRoot cannot be the filesystem root/);
   });
 });

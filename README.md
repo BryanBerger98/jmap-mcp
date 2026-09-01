@@ -96,7 +96,7 @@ export JMAP_BEARER_TOKEN="…"   # never passed as a CLI argument
 
 Optional: `JMAP_ACCOUNT_ID` pins one account when the session exposes several, and `JMAP_BULK_CONFIRM_ABOVE` (config key `bulkConfirmAbove`, default `20`) sets how many objects a reversible write may touch before it asks.
 
-**Local file directory.** `files.localRoot` is the only directory `files_fetch` and `files_write` may read or write, and it has no environment equivalent — set it in the config file, as an absolute path.
+**Local file directory.** `files.localRoot` is the only directory `files_fetch` and `files_write` may read or write, and it has no environment equivalent — set it in the config file, as an absolute path. It cannot be `/`: a boundary drawn around the whole disk is not a boundary, so the filesystem root is refused when the configuration loads.
 
 ```json
 { "files": { "localRoot": "/Users/you/jmap-files" } }
