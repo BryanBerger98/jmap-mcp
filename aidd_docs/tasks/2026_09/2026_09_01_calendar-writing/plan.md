@@ -1,7 +1,7 @@
 ---
 objective: "L'assistant crée, corrige, répond et annule dans l'agenda du compte, aucun mail d'invitation ne partant sans une confirmation qui nomme ses destinataires."
 title: Plan — Écriture des agendas
-status: in-progress
+status: implemented
 updated: 2026-09-01
 owner: bryan
 ---
