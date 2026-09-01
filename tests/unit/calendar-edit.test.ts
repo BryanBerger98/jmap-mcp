@@ -191,6 +191,23 @@ describe("buildEventCreation", () => {
     expect(Object.values(created.participants ?? {})).toHaveLength(2);
   });
 
+  it("keeps the guests when no identity of the account could be settled", () => {
+    const created = buildEventCreation(
+      { title: "Atelier", participantsAdd: ["noor@example.org"] },
+      ["cal-1"],
+    );
+
+    // The event is local and correctable without an organizer; a guest dropped
+    // from the object is gone, with nothing on the event to say they were asked
+    // for.
+    expect(created.organizerCalendarAddress).toBeUndefined();
+    const participants = Object.values(created.participants ?? {});
+    expect(participants).toHaveLength(1);
+    expect(participants[0]?.calendarAddress).toBe("mailto:noor@example.org");
+    // No owner entry either: nothing established who would own the event.
+    for (const participant of participants) expect(participant.roles?.owner).toBeUndefined();
+  });
+
   it("states no organizer on an event nobody is invited to", () => {
     const created = buildEventCreation({ title: "Atelier" }, ["cal-1"], {
       calendarAddress: "bryan@example.com",

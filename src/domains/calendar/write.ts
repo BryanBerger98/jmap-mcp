@@ -500,10 +500,19 @@ function schedulingNote(
   organizer: EventOrganizer | undefined,
 ): string | undefined {
   if (input.notify !== true) {
-    return invited === 0
-      ? undefined
-      : `No invitation was requested: the ${invited} participant(s) were written onto the event ` +
-          "and nobody was mailed. Call again with notify to have the server mail them.";
+    if (invited === 0) return undefined;
+
+    const written =
+      `No invitation was requested: the ${invited} participant(s) were written onto the event ` +
+      "and nobody was mailed.";
+
+    // Pointing at `notify` would send the caller back for an invitation that
+    // cannot leave: without an identity the event carries no organiser, and the
+    // server has nobody to send as however the call is repeated.
+    return organizer === undefined
+      ? `${written} No scheduling identity of this account could be settled either, so the event ` +
+          "carries no organiser and calling again with notify would have nobody to send as."
+      : `${written} Call again with notify to have the server mail them.`;
   }
 
   const asked =

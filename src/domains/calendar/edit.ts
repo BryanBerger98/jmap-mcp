@@ -149,6 +149,11 @@ export function buildEventPatch(event: CalendarEvent, edit: EventEdit): EventPat
  * The organizer is stated only when somebody is invited: Stalwart refuses to
  * schedule an event whose organizer is not an identity of the account
  * (`NotOrganizer`), and an event nobody is invited to schedules nothing.
+ *
+ * The guests are written whether or not one was settled. An event carrying its
+ * guests and no organizer is local and correctable — the caller can settle an
+ * identity and call again — whereas guests dropped from the object are gone
+ * with nothing in the event to say they were ever asked for.
  */
 export function buildEventCreation(
   edit: EventEdit,
@@ -170,12 +175,18 @@ export function buildEventCreation(
   if (edit.location !== undefined) created.locations = { l1: { name: edit.location } };
 
   const invited = edit.participantsAdd ?? [];
-  if (invited.length > 0 && organizer !== undefined) {
-    created.organizerCalendarAddress = mailto(organizer.calendarAddress);
-    created.participants = {
-      p1: ownerParticipant(organizer),
-      ...buildParticipants(invited, new Set(["p1"])),
-    };
+  if (invited.length > 0) {
+    if (organizer === undefined) {
+      // Nobody to own the event, so no owner participant either: an entry the
+      // account cannot back would claim an attendance nothing established.
+      created.participants = buildParticipants(invited);
+    } else {
+      created.organizerCalendarAddress = mailto(organizer.calendarAddress);
+      created.participants = {
+        p1: ownerParticipant(organizer),
+        ...buildParticipants(invited, new Set(["p1"])),
+      };
+    }
   }
 
   return created;

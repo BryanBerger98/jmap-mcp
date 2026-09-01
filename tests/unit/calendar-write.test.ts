@@ -150,7 +150,7 @@ describe("calendar_write — creating", () => {
   });
 
   it("says so when no identity of the account can carry the invitation", async () => {
-    const { context } = fakeTransport([calendars, noIdentity, eventSet]);
+    const { context, requests } = fakeTransport([calendars, noIdentity, eventSet]);
 
     const result = await calendarWrite.run(
       { ...CREATE, participantsAdd: ["noor@example.org"], notify: true },
@@ -158,6 +158,23 @@ describe("calendar_write — creating", () => {
     );
 
     expect(result.text).toContain("no scheduling identity");
+    // Asserted on the wire and not only in the text: an unsettled identity used
+    // to take the guests out of the object with it, silently.
+    const created = createdEvent(requests);
+    expect(created.organizerCalendarAddress).toBeUndefined();
+    expect(Object.values(created.participants as object)).toHaveLength(1);
+  });
+
+  it("stops pointing at notify when there is nobody to send as", async () => {
+    const { context } = fakeTransport([calendars, noIdentity, eventSet]);
+
+    const result = await calendarWrite.run(
+      { ...CREATE, participantsAdd: ["noor@example.org"] },
+      context,
+    );
+
+    expect(result.text).toContain("No invitation was requested");
+    expect(result.text).toContain("nobody to send as");
   });
 
   it("writes the guests without mailing them when notify is left out", async () => {
