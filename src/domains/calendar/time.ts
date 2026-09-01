@@ -57,7 +57,9 @@ export function normalizeBound(value: string, edge: "start" | "end"): string | u
     return `${year}-${month}-${day}T${edge === "start" ? "00:00:00" : "23:59:59"}`;
   }
 
-  if (Number(hour) > 23 || Number(minute) > 59) return undefined;
+  // The seconds are checked here too: the schema pattern only counts digits, so
+  // an unreadable `:75` would otherwise travel all the way to the server.
+  if (Number(hour) > 23 || Number(minute) > 59 || Number(second ?? "0") > 59) return undefined;
 
   return `${year}-${month}-${day}T${hour}:${minute}:${second ?? "00"}`;
 }

@@ -41,9 +41,10 @@ describe("normalizeBound", () => {
     expect(normalizeBound("2026-13-01", "start")).toBeUndefined();
   });
 
-  it("rejects an hour or a minute out of range", () => {
+  it("rejects an hour, a minute or a second out of range", () => {
     expect(normalizeBound("2026-09-03T25:00", "start")).toBeUndefined();
     expect(normalizeBound("2026-09-03T12:75", "start")).toBeUndefined();
+    expect(normalizeBound("2026-09-03T14:00:75", "start")).toBeUndefined();
   });
 
   it("rejects what is not a date at all", () => {
