@@ -1,7 +1,7 @@
 ---
 title: Surface JMAP de Stalwart
 status: draft
-updated: 2026-08-29
+updated: 2026-09-01
 owner: bryan
 ---
 
@@ -194,13 +194,31 @@ Un dossier se distingue par `nodeType`, avec `blobId`, `size` et `type` à `null
 | `caseInsensitiveNames` | `false` |
 | `webTrashUrl` | `null` |
 
-Le tri par date est impossible.
-Deux plafonds de taille coexistent, `maxUploadSize` à 50 Mo et `FileStorage.maxSize` à 25 Mo : le plus bas gagne, et le refus tombe au `FileNode/set`.
+Le tri par date est impossible, et il échoue en silence plutôt qu'en erreur.
+Un comparateur non supporté n'est pas rejeté en `UnsupportedSort` : il est retiré de la liste à `query.rs:213-226`, et une liste entièrement vidée retombe en ordre de document.
+Une pagination qui croit trier par date paginera donc un ordre qu'elle n'a pas demandé.
+
+Un seul plafond de taille est lisible : `maxSizeUpload`, publié par la capacité noyau depuis `upload_max_size` (`jmap.rs`) et appliqué au point de téléversement.
+Le `FileStorage.maxSize` de 25 Mo qu'affirmait cette mémoire n'apparaît nulle part dans `file/set.rs`, pas plus qu'un refus de taille tombant au `FileNode/set`.
+
+**Le filtre qui ment**
+
+Vingt-deux conditions sont parsées, neuf sont exécutées : `parentId`, `ancestorId`, `descendantId`, `isTopLevel`, `nodeType`, `name`, `nameMatch`, `minSize`, `maxSize`.
+Les treize autres — `text`, `body`, `type`, `typeMatch`, `role`, `hasAnyRole`, `blobId`, `isExecutable` et les six bornes de date — tombent dans une branche vide de `query.rs:159-177`, sans erreur ni avertissement.
+Une requête qui en porte une rend donc plus de résultats que demandé, et rien dans la réponse ne le signale.
 
 **Opérations irréversibles**
 
 `onDestroyRemoveChildren` vrai détruit tout le sous-arbre.
-`onExists` vaut `"replace"` ou `"newest"` : les deux détruisent l'existant sous couvert de création.
+`onExists` a quatre valeurs, pas deux (`file_node.rs:320-336`).
+
+| Valeur | Effet sur l'existant |
+| --- | --- |
+| `null` et `""` | Reject, défaut serveur : rien n'est détruit |
+| `"replace"` | Détruit l'existant, sans condition |
+| `"newest"` | Détruit si l'entrant est plus récent |
+| `"rename"` | Ne détruit rien, renomme l'entrant |
+
 Ni corbeille ni versioning dans la spécification.
 
 ## 🔗 Partages, RFC 9670

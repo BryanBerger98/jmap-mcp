@@ -8,8 +8,8 @@ owner: bryan
 # Tests
 
 > [!NOTE]
-> 720 tests passent sur 48 fichiers, dont 13 de contrat.
-> Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact et les agendas, en lecture comme en écriture.
+> 940 tests passent sur 59 fichiers, dont 15 de contrat, chiffres relevés sur une exécution de `pnpm test`.
+> Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact, les agendas et les nœuds de fichier, en lecture comme en écriture.
 
 ## 🎯 Stratégie
 
@@ -33,11 +33,13 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | `organizing-takes-ids.test.ts` | Aucun outil de rangement ne prend un critère de recherche |
 | `bulk-confirmation.test.ts` | Au-delà du seuil : question avant écriture |
 | `destroy-needs-confirmation.test.ts` | Destruction non confirmée : aucune méthode émise |
-| `no-cascade-destroy.test.ts` | Tout `Mailbox/set` et tout `AddressBook/set` portent leur drapeau de cascade à faux |
+| `no-cascade-destroy.test.ts` | Les trois drapeaux de cascade sont toujours écrits, et seul celui des fichiers peut valoir vrai |
 | `contacts-read-only.test.ts` | Contacts en lecture : rien hors `get` et `query` |
 | `contacts-write-guard.test.ts` | Écriture des contacts : confirmation, identifiants, lot, création sans destruction |
 | `calendar-read-only.test.ts` | Agendas : rien hors les lectures nommées |
 | `calendar-write-guard.test.ts` | Écriture des agendas : `sendSchedulingMessages` toujours écrit, patch borné au participant du compte, destruction confirmée |
+| `files-read-only.test.ts` | Fichiers en lecture : rien hors `get` et `query`, et aucune condition hors des neuf honorées |
+| `files-write-guard.test.ts` | Écriture des fichiers : `onExists` toujours `null`, cascade demandée seule, lot et frontière du disque |
 
 Le contrat sur la lecture des contacts sépare deux affirmations : la classe déclarée d'une part, ce qui part réellement sur le fil d'autre part.
 Il exécute chaque outil du manifeste sur des arguments minimaux tirés de son propre schéma, donc il tient un outil ajouté au domaine sans être réécrit.
@@ -45,7 +47,8 @@ Il tient aussi le gating : sans la capacité contacts, aucun des deux manifestes
 
 Le contrat sur l'écriture parcourt lui aussi le manifeste, avec une exception assumée : les arguments qui atteignent la branche destructrice de chaque outil sont écrits à la main, une dérivation générique ne pouvant pas produire un appel qui franchisse le `precheck`.
 Un test d'exhaustivité tient cette table honnête : un outil qui déclare `destroy` sans y figurer fait tomber le contrat.
-La non-cascade porte désormais deux drapeaux, `onDestroyRemoveEmails` sur un dossier et `onDestroyRemoveContents` sur un carnet, et le contrat vérifie pour chacun qu'un seul module l'émet.
+La non-cascade porte désormais trois drapeaux : `onDestroyRemoveEmails` sur un dossier, `onDestroyRemoveContents` sur un carnet, `onDestroyRemoveChildren` sur un nœud de fichier.
+Les deux premiers sont écrits à faux sans exception ; le troisième répond à une règle plus étroite, énoncée plus bas.
 
 Le contrat sur les agendas reprend ce patron et durcit un point : sa liste blanche nomme des méthodes entières, jamais des suffixes.
 `Principal/getAvailability` ne finit pas par `/get`, et une règle assez lâche pour l'admettre admettrait aussi `CalendarEvent/set`.
@@ -55,6 +58,14 @@ Le contrat sur l'écriture des agendas parcourt le même manifeste et tient troi
 Tout `CalendarEvent/set` émis porte `sendSchedulingMessages`, sur chacun des chemins qui y mènent : une création, une création qui invite, une correction, une correction qui notifie, une réponse, une suppression.
 Tout patch de `calendar_respond` pointe sous `participants/{clé du compte}/` et nulle part ailleurs, la carte entière n'étant jamais écrite.
 Aucun outil du module n'émet `Calendar/set` : gérer les agendas eux-mêmes est hors périmètre, et rien ne doit y toucher par accident.
+
+Le contrat sur la lecture des fichiers reprend le patron des contacts et y ajoute deux assertions que ce domaine seul réclame.
+La première tient le filtre : tout `FileNode/query` émis ne porte que des conditions de la liste des neuf honorées, quels que soient les arguments d'entrée, parce que les treize autres sont parsées puis abandonnées sans erreur.
+La seconde tient les octets : `files_fetch` ne fait passer aucun contenu par le point JMAP, le canal de blobs étant le seul chemin.
+
+Le contrat sur l'écriture des fichiers pose la règle que les deux autres cascades n'ont pas.
+Tout `FileNode/set` émis porte `onExists` à `null` sur les cinq chemins qui y mènent, et `onDestroyRemoveChildren` ne vaut vrai que là où l'appel l'a demandé.
+Un test lit les sources pour vérifier qu'un seul module écrit ce drapeau à vrai et qu'un seul remplit `destroy` : un second émetteur passerait hors du comptage et hors de la confirmation.
 
 Une nuance y est assumée plutôt que masquée : une destruction non confirmée n'émet aucune écriture, mais une lecture peut la précéder.
 `precheck` et `summarize` tournent avant l'élicitation par construction, l'un pour qu'un appel voué au refus ne soit pas posé en question, l'autre pour que la question nomme ce sur quoi elle porte.

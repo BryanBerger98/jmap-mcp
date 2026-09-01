@@ -8,8 +8,9 @@ owner: bryan
 # Carte du code
 
 > [!NOTE]
-> Vingt et un outils sont exposés, le mail en portant dix : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` ; les contacts cinq, deux en lecture et trois en écriture : `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage` ; les agendas six, trois en lecture et trois en écriture : `calendar_search`, `calendar_read`, `calendar_availability`, `calendar_write`, `calendar_respond`, `calendar_delete`.
-> Les trois autres domaines restent des manifestes à `tools: []`.
+> Vingt-cinq outils sont exposés, le mail en portant dix : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` ; les contacts cinq, deux en lecture et trois en écriture : `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage` ; les agendas six, trois en lecture et trois en écriture : `calendar_search`, `calendar_read`, `calendar_availability`, `calendar_write`, `calendar_respond`, `calendar_delete` ; les fichiers quatre, deux en lecture et deux en écriture : `files_browse`, `files_fetch`, `files_write`, `files_delete`.
+> Les deux autres domaines, partages et Sieve, restent des manifestes à `tools: []`.
+> Le chiffre se relève sur le rapport de composition, jamais en comptant les fichiers sources ; la place qui reste sous la cible est arbitrée par `internal/tool-budget.md`.
 
 ## 🗺️ Découpe
 
@@ -46,7 +47,7 @@ flowchart TD
 
 Les types JMAP vivent sous `src/jmap/types/`, un fichier par spécification.
 Chaque domaine sous `src/domains/` regroupe ses outils par verbe métier, jamais par méthode JMAP.
-Un domaine peut se scinder en plusieurs manifestes : le mail en a trois, les contacts deux, les agendas trois.
+Un domaine peut se scinder en plusieurs manifestes : le mail en a trois, les contacts deux, les agendas trois, les fichiers deux.
 
 | Manifeste | Capacités | Outils |
 | --- | --- | --- |
@@ -58,6 +59,8 @@ Un domaine peut se scinder en plusieurs manifestes : le mail en a trois, les con
 | `calendarDomain` | `calendars` | `calendar_search`, `calendar_read` |
 | `calendarAvailabilityDomain` | `calendars`, `principals:availability` | `calendar_availability` |
 | `calendarWritingDomain` | `calendars` | `calendar_write`, `calendar_respond`, `calendar_delete` |
+| `filesDomain` | `filenode` | `files_browse`, `files_fetch` |
+| `filesWritingDomain` | `filenode` | `files_write`, `files_delete` |
 
 Sans ce découpage, un serveur qui n'expédie pas ferait taire aussi les outils de lecture.
 Le rangement est séparé de la lecture sur la même capacité, pour une autre raison : `mailDomain` reste ainsi prouvablement en lecture seule, et le contrat qui l'affirme vaut mieux qu'un fichier de moins.
@@ -75,9 +78,23 @@ L'écriture des agendas forme un troisième manifeste, sur la capacité des lect
 `src/domains/calendar/edit.ts` porte ce que les trois outils d'écriture partagent : construction du patch et de la création, résolution des agendas et des identités mises en cache, clé du participant que le compte occupe, refus d'une occurrence isolée, rendu des refus par identifiant.
 Seules deux de ses fonctions touchent le réseau, tout le reste se teste sans serveur.
 
+Les fichiers se scindent pour la même raison que les trois autres, et le manifeste d'écriture s'appelle `files-writing` et non `files` : le rapport de composition nomme un domaine écarté, et deux entrées portant le même nom ne diraient pas laquelle des deux surfaces s'est tue.
+Cinq modules se partagent le domaine, dont un seul touche le disque local.
+
+| Module | Ce qu'il porte |
+| --- | --- |
+| `node.ts` | Rendu d'un nœud, taille lisible, résolution mise en cache |
+| `edit.ts` | Patch, création, arguments de `FileNode/set`, refus traduits |
+| `local.ts` | Frontière du disque : racine, résolution, taille, lecture |
+| `name.ts` | Contrôle du nom et type MIME déduit de l'extension |
+| `delete.ts` | Comptage du sous-arbre, partagé par `precheck` et `summarize` |
+
+Le canal d'octets vit dans `src/jmap/blob.ts` et non dans le domaine, parce qu'il ferme sur le jeton et sur les deux gabarits d'URL du noyau.
+Un outil qui atteindrait les blobs lui-même aurait le jeton en main ; ce qui lui parvient est deux méthodes, `upload` et `download`, et rien qu'il puisse divulguer.
+
 Deux choses vivent hors du domaine parce qu'un second domaine les lit déjà.
-`src/shared/pagination.ts` remet les identifiants demandés dans leur ordre, pour le mail, les contacts et les agendas.
-`src/shared/batch.ts` porte le plafond dur de cinquante identifiants par appel, que le rangement du mail, l'écriture des contacts et celle des agendas partagent : trois plafonds auraient divergé au premier ajustement.
+`src/shared/pagination.ts` remet les identifiants demandés dans leur ordre, pour le mail, les contacts, les agendas et les fichiers.
+`src/shared/batch.ts` porte le plafond dur de cinquante identifiants par appel, que le rangement du mail et l'écriture des contacts, des agendas et des fichiers partagent : quatre plafonds auraient divergé au premier ajustement.
 
 ## 🚪 Points d'entrée
 
