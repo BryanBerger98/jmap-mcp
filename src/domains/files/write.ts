@@ -33,6 +33,15 @@ import {
   resolveNodes,
 } from "./node.js";
 
+/**
+ * The one schema of this module on `z.object` rather than `z.strictObject`.
+ *
+ * Stripping is the point. A caller that names `onExists` or
+ * `onDestroyRemoveChildren` has the key dropped here and never sees it reach the
+ * request, `fileNodeSetArguments` writing both itself. Refusing the call instead
+ * would turn a key this server ignores into an error the caller must work
+ * around, and the strictness would guard nothing the factory does not already.
+ */
 const inputSchema = z
   .object({
     action: z
