@@ -22,6 +22,7 @@ import type {
 import type { GetResponse, Id, SetError, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CONTACTS, CAPABILITY_CORE } from "../../jmap/types/core.js";
 import type { ToolContext } from "../../registry/define-tool.js";
+import type { BatchSubject } from "../../shared/batch.js";
 import { renderTable } from "../../shared/render.js";
 import { BOOK_PROPERTIES } from "./card.js";
 
@@ -33,6 +34,12 @@ import { BOOK_PROPERTIES } from "./card.js";
  * the two reads one round trip instead of two.
  */
 export const BOOKS_KEY = "contacts:books";
+
+/** What a batch of cards is made of, for the refusal every writing tool shares. */
+export const CONTACT_CARDS: BatchSubject = {
+  noun: "contact card",
+  discoveredBy: "contacts_search",
+};
 
 /** The properties a patch needs to see before it can be built. */
 export const EDITABLE_PROPERTIES = [

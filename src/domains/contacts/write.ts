@@ -23,6 +23,7 @@ import {
   buildCreation,
   buildPatch,
   type CardEdit,
+  CONTACT_CARDS,
   defaultBook,
   describeBooks,
   describeCardOutcome,
@@ -36,9 +37,6 @@ import {
 
 /** The creation id the server maps to a real one; only ever one per call. */
 const CREATION_KEY = "new";
-
-/** What a batch of cards is made of, for the shared refusal. */
-const CARDS = { noun: "contact card", discoveredBy: "contacts_search" };
 
 /**
  * The fields that describe one person and cannot be spread over a batch.
@@ -183,7 +181,7 @@ async function refuse(input: WriteInput, context: ToolContext): Promise<string |
   const ids = input.cardIds ?? [];
 
   if (ids.length > 0) {
-    const oversized = refuseOversizedBatch(ids, CARDS);
+    const oversized = refuseOversizedBatch(ids, CONTACT_CARDS);
     if (oversized !== undefined) return oversized;
   }
 

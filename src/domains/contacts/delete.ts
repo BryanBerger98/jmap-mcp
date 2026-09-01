@@ -9,13 +9,10 @@ import { CAPABILITY_CONTACTS, CAPABILITY_CORE } from "../../jmap/types/core.js";
 import { defineTool, type ToolContext } from "../../registry/define-tool.js";
 import { refuseOversizedBatch } from "../../shared/batch.js";
 import { displayName, primaryEmail } from "./card.js";
-import { describeCardOutcome } from "./edit.js";
+import { CONTACT_CARDS, describeCardOutcome } from "./edit.js";
 
 /** How many cards a confirmation spells out before it counts the rest. */
 const CARDS_NAMED = 5;
-
-/** What a batch of cards is made of, for the shared refusal. */
-const CARDS = { noun: "contact card", discoveredBy: "contacts_search" };
 
 const inputSchema = z.object({
   ids: z
@@ -40,7 +37,7 @@ export const contactsDelete = defineTool({
   summarize: async (input, context) =>
     `Permanently destroy ${await describeCards(input.ids, context)}. Contacts have no trash: ` +
     "nothing recovers them afterwards.",
-  precheck: (input) => refuseOversizedBatch(input.ids, CARDS),
+  precheck: (input) => refuseOversizedBatch(input.ids, CONTACT_CARDS),
   run: async (input, context) => {
     // `destroy` alone: an `update` riding along would change cards under a
     // confirmation the user read as a destruction, and a `create` would add one.
