@@ -489,7 +489,8 @@ function fold(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function describeSetError(error: SetError): string {
+/** A `SetError` in one line, wherever a refusal has to be read rather than parsed. */
+export function describeSetError(error: SetError): string {
   return error.description === undefined ? error.type : `${error.type} — ${error.description}`;
 }
 

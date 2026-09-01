@@ -7,7 +7,7 @@ import type {
 import type { Id, QueryResponse, SetError, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CONTACTS, CAPABILITY_CORE } from "../../jmap/types/core.js";
 import { defineTool, type ToolContext } from "../../registry/define-tool.js";
-import { describeBooks, resolveBooks } from "./edit.js";
+import { describeBooks, describeSetError, resolveBooks } from "./edit.js";
 
 /** The key a creation is filed under: JMAP hands back the real id in `created`. */
 const CREATION_KEY = "new";
@@ -179,7 +179,7 @@ function describeOutcome(input: Input, response: SetResponse<AddressBook>): stri
 
 /** The server's own words: it knows things the precheck cannot. */
 function refusedBy(error: SetError): string {
-  return `Refused by the contacts server: ${error.type}${error.description === undefined ? "" : ` — ${error.description}`}`;
+  return `Refused by the contacts server: ${describeSetError(error)}`;
 }
 
 /**

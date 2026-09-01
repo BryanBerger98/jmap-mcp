@@ -26,6 +26,7 @@ import {
   defaultBook,
   describeBooks,
   describeCardOutcome,
+  describeSetError,
   EDITABLE_PROPERTIES,
   outsidePerimeterNote,
   resolveBooks,
@@ -354,7 +355,7 @@ async function createCard(input: WriteInput, context: ToolContext) {
   const rejected = response.notCreated?.[CREATION_KEY];
 
   if (created === undefined) {
-    const reason = rejected === undefined ? "the server said nothing" : describeReason(rejected);
+    const reason = rejected === undefined ? "the server said nothing" : describeSetError(rejected);
     return { text: `No card was created: ${reason}.` };
   }
 
@@ -544,10 +545,6 @@ async function nameCards(ids: readonly Id[], context: ToolContext): Promise<stri
   } catch {
     return counted;
   }
-}
-
-function describeReason(error: { type: string; description?: string }): string {
-  return error.description === undefined ? error.type : `${error.type} — ${error.description}`;
 }
 
 function isPresent<T>(value: T | undefined): value is T {
