@@ -221,6 +221,18 @@ describe("contacts_write — refusals", () => {
     expect(named(requests, "ContactCard/set")).toHaveLength(0);
   });
 
+  it("refuses a creation asked to be taken out of a book, rather than dropping it", async () => {
+    const { context, requests } = fakeTransport([undecidedBooks]);
+
+    const refusal = await contactsWrite.precheck?.(
+      { name: "Noor Haddad", addressBooks: { remove: ["bk-4"] } },
+      context,
+    );
+
+    expect(refusal).toContain("addressBooks.remove");
+    expect(named(requests, "ContactCard/set")).toHaveLength(0);
+  });
+
   it("refuses to take a card out of its last address book", async () => {
     const { context, requests } = fakeTransport([books, cardsResponse(["card-e2"])]);
 

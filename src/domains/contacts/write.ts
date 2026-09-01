@@ -206,6 +206,15 @@ async function refuse(input: WriteInput, context: ToolContext): Promise<string |
         "would designate the card afterwards and every listing would show it as (unnamed)."
       );
     }
+
+    // A creation has no membership to amend, and the creation path reads `set`
+    // and `add` alone: accepting a `remove` here would drop it without a word.
+    if ((input.addressBooks?.remove ?? []).length > 0) {
+      return (
+        "Refused: a new card cannot be taken out of an address book it was never in. Name the " +
+        "books it is to land in with addressBooks.add, and drop addressBooks.remove."
+      );
+    }
   }
 
   // From here on the address books are needed, so they are read — but only when
@@ -217,11 +226,12 @@ async function refuse(input: WriteInput, context: ToolContext): Promise<string |
     const books = await resolveBooks(context);
     const known = new Set(books.map((book) => book.id));
 
-    const asked = [
-      ...(input.addressBooks?.set ?? []),
-      ...(input.addressBooks?.add ?? []),
-      ...(input.addressBooks?.remove ?? []),
-    ];
+    // What a creation would land in, which is what `createCard` reads: a book
+    // named only to be removed from files nothing, so it cannot answer for the
+    // absence of a default one.
+    const filed = [...(input.addressBooks?.set ?? []), ...(input.addressBooks?.add ?? [])];
+    const asked = [...filed, ...(input.addressBooks?.remove ?? [])];
+
     const unknown = asked.find((id) => !known.has(id));
     if (unknown !== undefined) {
       return (
@@ -230,7 +240,7 @@ async function refuse(input: WriteInput, context: ToolContext): Promise<string |
       );
     }
 
-    if (ids.length === 0 && asked.length === 0 && defaultBook(books) === undefined) {
+    if (ids.length === 0 && filed.length === 0 && defaultBook(books) === undefined) {
       return (
         "Refused: this account marks no default address book, so there is no book to put a new " +
         `card in. Name one in addressBooks.add — the account holds ${describeBooks(books)}.`
