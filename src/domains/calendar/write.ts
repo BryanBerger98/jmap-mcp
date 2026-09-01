@@ -22,6 +22,7 @@ import {
   EVENT_WRITE_PROPERTIES,
   type EventEdit,
   type EventOrganizer,
+  participantsOf,
   refuseIsolatedOccurrence,
   resolveCalendars,
   resolveParticipantIdentities,
@@ -265,10 +266,25 @@ async function refuse(input: WriteInput, context: ToolContext): Promise<string |
 
   if (ids.length === 0) return undefined;
 
-  // The last refusal reads the events themselves: whether an id names a whole
-  // event or one expanded occurrence is an answer only the server carries.
+  // The last refusals read the events themselves: whether an id names a whole
+  // event or one expanded occurrence is an answer only the server carries, and
+  // so is who a correction would mail.
   const events = await readEvents(ids, context);
-  return refuseIsolatedOccurrence(events);
+
+  const isolated = refuseIsolatedOccurrence(events);
+  if (isolated !== undefined) return isolated;
+
+  if (input.notify !== true) return undefined;
+
+  // `sendSchedulingMessages` addresses the participant list the event already
+  // carries, never the guests this call happens to add: a correction that
+  // notifies mails people `participantsAdd` never names, and the perimeter is
+  // about who leaves the account rather than about who an argument spells out.
+  const addressed = participantsOf(events);
+  if (addressed.length === 0) return undefined;
+
+  const check = checkRecipients(addressed, context.recipients);
+  return check.ok ? undefined : check.refusal;
 }
 
 /** Creates the event, and says where it landed and in which zone it was read. */

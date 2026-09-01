@@ -583,6 +583,26 @@ describe("the refusals that precede the question", () => {
     expect(methodsOf(requests)).toEqual([]);
   });
 
+  it("refuses a guest already on the event before the correction is confirmed", async () => {
+    const { write, requests } = writingSurface(
+      [only("ev-invited"), calendars, eventSet],
+      { elicitation: {} },
+      { recipients: restrictTo({ fromContacts: ["paul@example.org"], allow: [] }) },
+    );
+
+    // No `participantsAdd` at all: what leaves is aimed at the participants the
+    // event already carries, and the perimeter has to see them.
+    const result = await write(
+      { eventIds: ["ev-invited"], status: "cancelled", notify: true },
+      UNANSWERED,
+    );
+
+    expect(isInputRequiredResult(result)).toBe(false);
+    expect((result as { isError?: boolean }).isError).toBe(true);
+    expect(textOf(result)).toContain("outside the recipient perimeter");
+    expect(writesIn(requests)).toEqual([]);
+  });
+
   it("refuses an isolated occurrence by naming the event that carries the rule", async () => {
     const { write, requests } = writingSurface([only("ev-series_20260914T093000")], {
       elicitation: {},

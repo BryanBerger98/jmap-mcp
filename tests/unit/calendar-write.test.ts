@@ -385,6 +385,34 @@ describe("calendar_write — the refusals", () => {
     }
   });
 
+  it("refuses a guest already on the event when a correction is about to mail them", async () => {
+    const scope = restrictTo({ fromContacts: ["paul@example.org"], allow: [] });
+    const { context } = fakeTransport([only("ev-invited")], scope);
+
+    // Nothing here names a recipient: `sendSchedulingMessages` mails the
+    // participant list the event already carries, and claire@example.org is on
+    // it without `participantsAdd` ever spelling her out.
+    const refusal = await calendarWrite.precheck?.(
+      { eventIds: ["ev-invited"], status: "cancelled", notify: true },
+      context,
+    );
+
+    expect(refusal).toContain("outside the recipient perimeter");
+    expect(refusal).toContain("claire@example.org");
+  });
+
+  it("leaves the guests already on the event alone when nothing is mailed", async () => {
+    const scope = restrictTo({ fromContacts: ["paul@example.org"], allow: [] });
+    const { context } = fakeTransport([only("ev-invited")], scope);
+
+    const refusal = await calendarWrite.precheck?.(
+      { eventIds: ["ev-invited"], status: "cancelled" },
+      context,
+    );
+
+    expect(refusal).toBeUndefined();
+  });
+
   it("refuses again inside run, on a hook that swallowed a failed read", async () => {
     const { context, requests } = fakeTransport([calendars]);
 

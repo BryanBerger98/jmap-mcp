@@ -24,6 +24,7 @@ import {
   CALENDAR_EVENTS,
   describeEventOutcome,
   EVENT_WRITE_PROPERTIES,
+  participantsOf,
   refuseIsolatedOccurrence,
 } from "./edit.js";
 import { eventTitle } from "./event.js";
@@ -217,35 +218,6 @@ function seriesNote(events: readonly CalendarEvent[]): string | undefined {
 function describeWhen(event: CalendarEvent): string {
   if (event.start === undefined) return "no start";
   return event.timeZone === undefined ? event.start : `${event.start} ${event.timeZone}`;
-}
-
-/**
- * Every address a cancellation would reach, once, across the whole batch.
- *
- * Deduplicated on the folded address and rendered as the event spells it: the
- * same person on three deleted events is one recipient to check, and a
- * confirmation counting them three times overstates what is about to leave.
- */
-function participantsOf(events: readonly CalendarEvent[]): string[] {
-  const seen = new Map<string, string>();
-
-  for (const event of events) {
-    for (const participant of Object.values(event.participants ?? {})) {
-      const address = participant.email ?? participant.calendarAddress;
-      if (address === undefined || address.trim() === "") continue;
-
-      const bare = bareAddress(address);
-      if (!seen.has(bare.toLowerCase())) seen.set(bare.toLowerCase(), bare);
-    }
-  }
-
-  return [...seen.values()];
-}
-
-/** `mailto:` is how iTIP addresses a person; a perimeter is a list of addresses. */
-function bareAddress(address: string): string {
-  const trimmed = address.trim();
-  return trimmed.toLowerCase().startsWith("mailto:") ? trimmed.slice("mailto:".length) : trimmed;
 }
 
 /**

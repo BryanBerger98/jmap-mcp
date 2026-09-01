@@ -359,6 +359,33 @@ export function refuseIsolatedOccurrence(events: readonly CalendarEvent[]): stri
 }
 
 /**
+ * Every address a scheduling message would reach, once, across the whole batch.
+ *
+ * Deduplicated on the folded address and rendered as the event spells it: the
+ * same person on three events is one recipient to check, and a confirmation
+ * counting them three times overstates what is about to leave.
+ *
+ * This is who `sendSchedulingMessages` addresses — the participant list as the
+ * event already carries it — which is never the same set as the guests one call
+ * happens to add.
+ */
+export function participantsOf(events: readonly CalendarEvent[]): string[] {
+  const seen = new Map<string, string>();
+
+  for (const event of events) {
+    for (const participant of Object.values(event.participants ?? {})) {
+      const address = participant.email ?? participant.calendarAddress;
+      if (address === undefined || address.trim() === "") continue;
+
+      const bare = bareAddress(address);
+      if (!seen.has(bare.toLowerCase())) seen.set(bare.toLowerCase(), bare);
+    }
+  }
+
+  return [...seen.values()];
+}
+
+/**
  * Accounts for a `CalendarEvent/set`, id by id.
  *
  * `done` reads as a past participle — "updated", "destroyed" — so one rendering
