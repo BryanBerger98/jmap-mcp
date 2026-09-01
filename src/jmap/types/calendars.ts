@@ -15,6 +15,17 @@
  * - `expandRecurrences` on `CalendarEvent/query` demands both `after` and
  *   `before`. Without a window there is no expansion, so a search without one
  *   returns base events and has to say so.
+ *
+ * Two more carry the writing side:
+ *
+ * - `sendSchedulingMessages` decides whether a write leaves the account as mail.
+ *   It is required by `CalendarEventSetArguments` and therefore written on every
+ *   single `CalendarEvent/set`, including the ones that send nothing: a server
+ *   default is not a guarantee, and an absent argument shows up on no test.
+ * - `utcStart` is computed by the server and never written. A write states the
+ *   local `start`, its `duration` and its `timeZone`; the draft refuses
+ *   `utcStart` alongside either, and a recurrence follows wall-clock time rather
+ *   than a frozen instant anyway.
  */
 
 import type { Id } from "./core.js";
@@ -62,13 +73,22 @@ export interface CalendarVirtualLocation {
  *
  * `name` is optional in RFC 8984 and frequently absent on an invitation sent to
  * an address book entry nobody named, so every renderer falls back on `email`.
+ *
+ * `calendarAddress` and `email` both exist and are not interchangeable: the
+ * first is the iTIP identity a scheduling message is addressed to, the second is
+ * a display coordinate. A write states the first; a read falls back on either.
  */
 export interface CalendarParticipant {
   name?: string;
   email?: string;
+  /** `mailto:` URI, and what an identity of the account is matched against. */
+  calendarAddress?: string;
+  /** Delivery methods, keyed by name — `imip` for mail. Read, never written. */
+  sendTo?: Record<string, string>;
   kind?: string;
   roles?: Record<string, boolean>;
   participationStatus?: string;
+  participationComment?: string;
   expectReply?: boolean;
 }
 
@@ -104,9 +124,25 @@ export interface CalendarEvent {
   recurrenceId?: string | null;
   title?: string;
   description?: string;
+  /** LocalDateTime, read in `timeZone`. What a write states, `utcStart` never. */
+  start?: string;
+  /** ISO 8601 duration, `PT1H`. Paired with `start`, never with `utcStart`. */
+  duration?: string;
+  /** IANA name, nullable: an event may float, meaning every zone reads it alike. */
+  timeZone?: string | null;
   showWithoutTime?: boolean;
   status?: string;
   freeBusyStatus?: string;
+  /** The iTIP identity organizing the event, as a `mailto:` URI. */
+  organizerCalendarAddress?: string;
+  /**
+   * Held in the type so nothing writes it by accident.
+   *
+   * The draft only lets it go from true to false, never back: an event created
+   * as a draft can be released, and one released can never be locked again.
+   * This server has no use for that one-way door, so no call sets it.
+   */
+  isDraft?: boolean;
   privacy?: string;
   locations?: Record<string, CalendarLocation>;
   virtualLocations?: Record<string, CalendarVirtualLocation>;
@@ -161,6 +197,49 @@ export type CalendarEventGetArguments = {
 };
 
 export type CalendarGetArguments = {
+  accountId: Id;
+  ids?: Id[] | null;
+  properties?: string[] | null;
+};
+
+/** The patch one event is to receive, keyed by JSON pointer (RFC 8620 §5.3). */
+export type EventPatch = Record<string, unknown>;
+
+/**
+ * `CalendarEvent/set` arguments.
+ *
+ * `sendSchedulingMessages` is required here and optional in the draft, on the
+ * `onDestroyRemoveEmails` pattern: the draft defaults it to false, and a default
+ * is not a guarantee. Making it mandatory means a `CalendarEvent/set` that
+ * forgets to state it does not compile, so no write inherits the server's idea
+ * of whether mail leaves the account. It is honoured on `destroy` too, where it
+ * sends a cancellation to every participant.
+ */
+export type CalendarEventSetArguments = {
+  accountId: Id;
+  /** Creation id to object; the server hands back the real id in `created`. */
+  create?: Record<Id, Partial<CalendarEvent>>;
+  update?: Record<Id, EventPatch>;
+  destroy?: Id[];
+  sendSchedulingMessages: boolean;
+};
+
+/**
+ * One iTIP identity of the account: who it is, when it schedules.
+ *
+ * The address a scheduling message goes out as, and the one a participant of an
+ * invitation is matched against. An account carries several, which is why no
+ * tool here picks one when the match is ambiguous.
+ */
+export interface ParticipantIdentity {
+  id: Id;
+  name?: string;
+  /** `mailto:` URI. The draft states one identity per address, not one per name. */
+  calendarAddress: string;
+  isDefault?: boolean;
+}
+
+export type ParticipantIdentityGetArguments = {
   accountId: Id;
   ids?: Id[] | null;
   properties?: string[] | null;

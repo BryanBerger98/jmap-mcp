@@ -1,0 +1,23 @@
+{
+  "accountId": "acc-1",
+  "oldState": "cal-events-3",
+  "newState": "cal-events-4",
+  "created": {
+    "new-1": { "id": "ev-new-1", "uid": "0f2a-new" }
+  },
+  "updated": {
+    "ev-simple": null
+  },
+  "notUpdated": {
+    "ev-series": {
+      "type": "forbidden",
+      "description": "The account may not write to this calendar."
+    }
+  },
+  "destroyed": ["ev-invited"],
+  "notDestroyed": {
+    "ev-both-identities": {
+      "type": "notFound"
+    }
+  }
+}

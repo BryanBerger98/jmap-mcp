@@ -127,6 +127,7 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
         client: input.client,
         session: input.session,
         recipients: input.recipients ?? OPEN_SCOPE,
+        policy: input.policy,
         bulkConfirmAbove: input.bulkConfirmAbove ?? DEFAULT_BULK_CONFIRM_ABOVE,
         // Built here and nowhere else: the invocation that asks the question
         // and the one that carries the answer must not share a cached read.

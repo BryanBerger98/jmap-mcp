@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { DEFAULT_POLICY, type WritePolicy } from "../../src/config/policy.js";
 import { OPEN_SCOPE, type RecipientScope } from "../../src/config/recipients.js";
 import { DEFAULT_BULK_CONFIRM_ABOVE } from "../../src/config/schema.js";
 import { JmapClient } from "../../src/jmap/client.js";
@@ -41,6 +42,9 @@ export function fakeTransport(
   results: unknown[],
   recipients: RecipientScope = OPEN_SCOPE,
   bulkConfirmAbove: number = DEFAULT_BULK_CONFIRM_ABOVE,
+  // The default the server ships with, so a test that says nothing about the
+  // policy is testing the configuration almost everybody runs.
+  policy: WritePolicy = DEFAULT_POLICY,
 ): FakeTransport {
   const requests: JmapRequest[] = [];
   let served = 0;
@@ -74,6 +78,7 @@ export function fakeTransport(
       client,
       session: fixtureSession(),
       recipients,
+      policy,
       bulkConfirmAbove,
       once: perInvocationCache(),
     },

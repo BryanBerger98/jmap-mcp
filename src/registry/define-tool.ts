@@ -1,5 +1,5 @@
 import type { ZodType, z } from "zod";
-import type { OperationClass } from "../config/policy.js";
+import type { OperationClass, WritePolicy } from "../config/policy.js";
 import type { RecipientScope } from "../config/recipients.js";
 import type { JmapClient } from "../jmap/client.js";
 import type { JmapSession } from "../jmap/session.js";
@@ -9,6 +9,17 @@ export interface ToolContext {
   session: JmapSession;
   /** Who this server may write to, resolved once at startup. */
   recipients: RecipientScope;
+  /**
+   * The configured policy, for the one hook that has to read it rather than be
+   * governed by it.
+   *
+   * The registry guards a call on the class `classify` returns, and that is one
+   * class per call. A destruction whose side effect is a send reaches the guard
+   * as a `destroy` alone, so a configuration refusing `send` would let the
+   * cancellation leave anyway: `precheck` is where that gap is closed, and it
+   * needs the policy in hand to close it. Read here, never written.
+   */
+  policy: WritePolicy;
   /**
    * Above how many objects a reversible bulk write should ask before running.
    *
