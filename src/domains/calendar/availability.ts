@@ -42,6 +42,21 @@ const DEFAULT_MAX_WINDOW_MS = 365 * 24 * 60 * 60 * 1000;
 /** How many events the fallback reads before it admits the window is too wide. */
 const FALLBACK_EVENT_LIMIT = 200;
 
+/**
+ * What a busy period is built from, and nothing the answer does not render.
+ *
+ * The list is the fallback's own ceiling: it must not be able to hand back what
+ * the server path cannot, so no title, participant or description belongs here.
+ */
+const BUSY_PROPERTIES = [
+  "id",
+  "calendarIds",
+  "utcStart",
+  "utcEnd",
+  "freeBusyStatus",
+  "status",
+] as const;
+
 /** The status of an event that occupies nobody's time. */
 const STATUS_CANCELLED = "cancelled";
 
@@ -257,9 +272,7 @@ async function readOwnCalendars(
         {
           accountId: session.accountId,
           "#ids": idsFromQuery,
-          // The four properties a busy period is built from, and no fifth: this
-          // path must not be able to render what the server path cannot.
-          properties: ["id", "calendarIds", "utcStart", "utcEnd", "freeBusyStatus", "status"],
+          properties: [...BUSY_PROPERTIES],
           timeZone: zone,
         },
         "1",
