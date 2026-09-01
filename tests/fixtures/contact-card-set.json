@@ -1,0 +1,78 @@
+{
+  "created": {
+    "accountId": "acc-1",
+    "oldState": "contact-state-4",
+    "newState": "contact-state-5",
+    "created": {
+      "new": {
+        "id": "card-new",
+        "uid": "urn:uuid:8f3a1c2e-2001",
+        "created": "2026-09-01T10:00:00Z",
+        "updated": "2026-09-01T10:00:00Z"
+      }
+    }
+  },
+  "notCreated": {
+    "accountId": "acc-1",
+    "oldState": "contact-state-4",
+    "newState": "contact-state-4",
+    "notCreated": {
+      "new": {
+        "type": "invalidProperties",
+        "description": "The address book is read-only.",
+        "properties": ["addressBookIds"]
+      }
+    }
+  },
+  "updated": {
+    "accountId": "acc-1",
+    "oldState": "contact-state-4",
+    "newState": "contact-state-5",
+    "updated": { "card-e1": null }
+  },
+  "partiallyUpdated": {
+    "accountId": "acc-1",
+    "oldState": "contact-state-4",
+    "newState": "contact-state-5",
+    "updated": { "card-e1": null, "card-e2": null },
+    "notUpdated": {
+      "card-e3": {
+        "type": "forbidden",
+        "description": "The address book is read-only."
+      }
+    }
+  },
+  "destroyed": {
+    "accountId": "acc-1",
+    "oldState": "contact-state-4",
+    "newState": "contact-state-5",
+    "destroyed": ["card-e1"]
+  },
+  "notDestroyed": {
+    "accountId": "acc-1",
+    "oldState": "contact-state-4",
+    "newState": "contact-state-4",
+    "notDestroyed": {
+      "card-e1": {
+        "type": "forbidden",
+        "description": "The address book is read-only."
+      }
+    }
+  },
+  "noMatch": {
+    "accountId": "acc-1",
+    "queryState": "contact-query-1",
+    "canCalculateChanges": false,
+    "position": 0,
+    "ids": [],
+    "total": 0
+  },
+  "oneMatch": {
+    "accountId": "acc-1",
+    "queryState": "contact-query-1",
+    "canCalculateChanges": false,
+    "position": 0,
+    "ids": ["card-e1"],
+    "total": 1
+  }
+}

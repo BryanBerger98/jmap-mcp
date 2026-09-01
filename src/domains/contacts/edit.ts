@@ -25,8 +25,14 @@ import type { ToolContext } from "../../registry/define-tool.js";
 import { renderTable } from "../../shared/render.js";
 import { BOOK_PROPERTIES } from "./card.js";
 
-/** One read per handler invocation, whichever hook asks for it first. */
-const BOOKS_KEY = "contacts:books";
+/**
+ * One read per handler invocation, whichever hook asks for it first.
+ *
+ * Exported because a tool that needs the books *and* the cards asks for both in
+ * one request and seeds this key with half the answer: the cache is what makes
+ * the two reads one round trip instead of two.
+ */
+export const BOOKS_KEY = "contacts:books";
 
 /** The properties a patch needs to see before it can be built. */
 export const EDITABLE_PROPERTIES = [
@@ -46,8 +52,8 @@ export const EDITABLE_PROPERTIES = [
 
 /** What a set of members or coordinates gains and loses. */
 export interface AddRemove<T> {
-  add?: readonly T[];
-  remove?: readonly T[];
+  add?: readonly T[] | undefined;
+  remove?: readonly T[] | undefined;
 }
 
 /**
@@ -58,18 +64,18 @@ export interface AddRemove<T> {
  * those keys are opaque, and no tool of this server ever shows them.
  */
 export interface CardEdit {
-  name?: string;
-  organization?: string;
-  title?: string;
-  nickname?: string;
-  note?: string;
-  kind?: string;
-  emails?: AddRemove<string>;
-  phones?: AddRemove<string>;
+  name?: string | undefined;
+  organization?: string | undefined;
+  title?: string | undefined;
+  nickname?: string | undefined;
+  note?: string | undefined;
+  kind?: string | undefined;
+  emails?: AddRemove<string> | undefined;
+  phones?: AddRemove<string> | undefined;
   /** `set` replaces the membership whole; `add` and `remove` amend it. */
-  addressBooks?: { set?: readonly Id[] } & AddRemove<Id>;
+  addressBooks?: ({ set?: readonly Id[] | undefined } & AddRemove<Id>) | undefined;
   /** Keyed by uid on the wire: these are the uids, already resolved. */
-  members?: AddRemove<string>;
+  members?: AddRemove<string> | undefined;
 }
 
 /**
@@ -395,7 +401,7 @@ function patchMembership(
   patch: PatchObject,
   existing: Record<string, boolean> | undefined,
   map: string,
-  asked: ({ set?: readonly Id[] } & AddRemove<string>) | undefined,
+  asked: ({ set?: readonly Id[] | undefined } & AddRemove<string>) | undefined,
 ): void {
   if (asked === undefined) return;
 
