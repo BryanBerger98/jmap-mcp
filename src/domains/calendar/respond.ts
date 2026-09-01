@@ -94,7 +94,14 @@ export const calendarRespond = defineTool({
   classify: (input) => (input.notify === false ? "draft" : "send"),
   summarize: (input, context) => summarize(input, context),
   precheck: async (input, context) => {
-    // An open perimeter costs nothing: nothing is read at all.
+    // First of everything, the open perimeter included. Placed after the early
+    // return below, an oversized batch on the common configuration would reach
+    // `summarize`, spend its two reads and be put to the user, only to be
+    // refused by `run` once the answer came back.
+    const oversized = refuseOversizedBatch(input.eventIds, CALENDAR_EVENTS);
+    if (oversized !== undefined) return oversized;
+
+    // An open perimeter costs nothing more: nothing else is read at all.
     if (context.recipients.kind === "anyone") return undefined;
 
     // Every other refusal belongs to `run`, which reports it in its own words:
@@ -114,6 +121,8 @@ export const calendarRespond = defineTool({
     );
   },
   run: async (input, context) => {
+    // Checked again, and not only because `precheck` looked: no hook has the
+    // last word on how much one call writes.
     const oversized = refuseOversizedBatch(input.eventIds, CALENDAR_EVENTS);
     if (oversized !== undefined) return { text: oversized };
 

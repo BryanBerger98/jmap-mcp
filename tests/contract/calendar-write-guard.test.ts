@@ -583,6 +583,20 @@ describe("the refusals that precede the question", () => {
     expect(methodsOf(requests)).toEqual([]);
   });
 
+  it("refuses an answered batch past the hard ceiling, before any request at all", async () => {
+    // On the open perimeter, which is the common configuration: the cap has to
+    // sit ahead of the early return that skips the perimeter work, or 51 ids
+    // reach the reads and the question before anything refuses them.
+    const { respond, requests } = writingSurface([], { elicitation: {} });
+
+    const ids = Array.from({ length: MAX_IDS_PER_CALL + 1 }, (_, index) => `ev-${index}`);
+    const result = await respond({ eventIds: ids, status: "accepted" }, CONFIRMED);
+
+    expect((result as { isError?: boolean }).isError).toBe(true);
+    expect(textOf(result)).toContain(`batches of ${MAX_IDS_PER_CALL}`);
+    expect(methodsOf(requests)).toEqual([]);
+  });
+
   it("refuses a guest already on the event before the correction is confirmed", async () => {
     const { write, requests } = writingSurface(
       [only("ev-invited"), calendars, eventSet],
