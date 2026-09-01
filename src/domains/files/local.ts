@@ -8,7 +8,7 @@
  * time, and a check that only ran on the string would pass both.
  */
 
-import { realpath, stat, writeFile } from "node:fs/promises";
+import { readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import type { Config } from "../../config/schema.js";
 import type { JmapSession } from "../../jmap/session.js";
@@ -18,6 +18,8 @@ import { CAPABILITY_CORE, type CoreCapability } from "../../jmap/types/core.js";
 export const LOCAL_ROOT_KEY = "files.localRoot";
 
 export type LocalPath = { ok: true; path: string } | { ok: false; refusal: string };
+
+export type LocalBytes = { ok: true; bytes: Uint8Array } | { ok: false; refusal: string };
 
 export type LocalStat =
   | { kind: "file"; size: number }
@@ -76,6 +78,27 @@ export async function statLocalFile(path: string): Promise<LocalStat> {
     return entry.isDirectory() ? { kind: "directory" } : { kind: "file", size: entry.size };
   } catch {
     return { kind: "missing" };
+  }
+}
+
+/**
+ * Reads a local file, or refuses because it could not be read.
+ *
+ * The counterpart of the write below, and here for the same reason: every byte
+ * that crosses between this machine and the account goes through this module,
+ * so the path it touches has been through `resolveWithinRoot` first. A read that
+ * fails between the check and here is answered with a sentence rather than a
+ * stack trace — the file may have moved in between, and that is not a bug to
+ * report but a call to run again.
+ */
+export async function readLocalFile(path: string): Promise<LocalBytes> {
+  try {
+    return { ok: true, bytes: new Uint8Array(await readFile(path)) };
+  } catch (error) {
+    return {
+      ok: false,
+      refusal: `Refused: reading ${path} failed — ${(error as Error).message}`,
+    };
   }
 }
 

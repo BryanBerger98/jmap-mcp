@@ -1,6 +1,6 @@
 ---
 title: Instruction — Déposer et ranger
-status: pending
+status: done
 updated: 2026-09-01
 owner: bryan
 ---
