@@ -3,7 +3,7 @@ import { defineTool } from "../../registry/define-tool.js";
 import { renderFields } from "../../shared/render.js";
 import {
   MISSING_ROOT_REFUSAL,
-  refuseMissingRoot,
+  refuseUnusableRoot,
   resolveWithinRoot,
   statLocalFile,
   writeWithoutOverwrite,
@@ -42,8 +42,8 @@ export const filesFetch = defineTool({
   summarize: (input) => `Fetch file node ${input.id} to the local directory.`,
   // Asked before anything else: a fetch with nowhere to write is refused whatever
   // the node turns out to be, and reading it first would spend a round trip on a
-  // call that was already lost.
-  precheck: (_input, context) => refuseMissingRoot(context.files),
+  // call that was already lost. Unnamed and named-but-absent are both nowhere.
+  precheck: (_input, context) => refuseUnusableRoot(context.files.localRoot),
   run: async (input, context) => {
     const { localRoot } = context.files;
     if (localRoot === undefined) {
@@ -52,6 +52,12 @@ export const filesFetch = defineTool({
       // an absent root must never reach the resolver.
       return { text: MISSING_ROOT_REFUSAL };
     }
+
+    // Repeated from the `precheck` and kept ahead of the download on purpose:
+    // the root may have gone between the two, and the whole point of asking is
+    // to not spend a full transfer discovering it.
+    const unusableRoot = await refuseUnusableRoot(localRoot);
+    if (unusableRoot !== undefined) return { text: unusableRoot };
 
     const [node] = await resolveNodes([input.id], context);
     if (node === undefined) {

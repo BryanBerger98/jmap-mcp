@@ -6,6 +6,7 @@ import {
   LOCAL_ROOT_KEY,
   maxUploadSize,
   refuseMissingRoot,
+  refuseUnusableRoot,
   resolveWithinRoot,
   statLocalFile,
   writeWithoutOverwrite,
@@ -49,6 +50,55 @@ describe("refuseMissingRoot", () => {
   it("lets the call through once a root is configured", () => {
     expect(refuseMissingRoot({ localRoot: "/somewhere" })).toBeUndefined();
   });
+});
+
+describe("refuseUnusableRoot", () => {
+  it("lets a real directory through", async () => {
+    expect(await refuseUnusableRoot(root)).toBeUndefined();
+  });
+
+  it("falls back on the missing-root sentence when nothing is configured", async () => {
+    expect(await refuseUnusableRoot(undefined)).toContain(LOCAL_ROOT_KEY);
+  });
+
+  it("names the setting when the configured directory is not on the disk", async () => {
+    const gone = await mkdtemp(join(tmpdir(), "jmap-mcp-gone-"));
+    await rm(gone, { recursive: true, force: true });
+
+    const refusal = await refuseUnusableRoot(gone);
+
+    // Without this check the containment test still passes, and the failure
+    // surfaces as an ENOENT about a path the caller never typed.
+    expect(refusal).toContain(LOCAL_ROOT_KEY);
+    expect(refusal).toMatch(/no such directory/);
+  });
+
+  it("says a root pointing at a file is not a directory", async () => {
+    const refusal = await refuseUnusableRoot(join(root, "present.txt"));
+
+    expect(refusal).toMatch(/is a file, not a directory/);
+  });
+
+  // Root traverses a directory whatever its mode, so the case cannot be staged.
+  it.skipIf(process.getuid?.() === 0)(
+    "tells a root it may not examine apart from one that is absent",
+    async () => {
+      const locked = join(root, "locked-root");
+      await mkdir(locked);
+      await mkdir(join(locked, "inner"));
+      await chmod(locked, 0o000);
+
+      try {
+        const refusal = await refuseUnusableRoot(join(locked, "inner"));
+
+        expect(refusal).toContain("EACCES");
+        expect(refusal).not.toMatch(/no such directory/);
+      } finally {
+        await chmod(locked, 0o700);
+        await rm(locked, { recursive: true, force: true });
+      }
+    },
+  );
 });
 
 describe("resolveWithinRoot", () => {

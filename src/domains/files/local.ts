@@ -70,6 +70,46 @@ export function refuseMissingRoot(files: Config["files"]): string | undefined {
 }
 
 /**
+ * The refusal to raise when the configured root is not a directory on this disk.
+ *
+ * Every other check compares a path to the root and never asks whether the root
+ * is there. A directory that was renamed, deleted or left unmounted therefore
+ * passes containment and fails at the last step: a deposit blames the file it
+ * was told to read, and a fetch downloads the whole blob before `open` answers
+ * `ENOENT` about a path nobody typed. Asked once, up front, the answer names the
+ * setting that is wrong.
+ *
+ * Absence and permission are kept apart for the reason `statLocalFile` keeps
+ * them apart: a root that exists but cannot be traversed is a mode to fix, not a
+ * directory to create.
+ */
+export async function refuseUnusableRoot(root: string | undefined): Promise<string | undefined> {
+  if (root === undefined) return MISSING_ROOT_REFUSAL;
+
+  const entry = await statLocalFile(root);
+  switch (entry.kind) {
+    case "directory":
+      return undefined;
+    case "missing":
+      return (
+        `Refused: ${LOCAL_ROOT_KEY} names ${root}, and there is no such directory on this machine. ` +
+        "Create it, or point the setting at a directory that exists, then retry. Nothing was transferred."
+      );
+    case "unreadable":
+      return (
+        `Refused: ${LOCAL_ROOT_KEY} names ${root}, which this server could not examine — ` +
+        `${entry.reason}. Check the permissions on it and on the directories above it. ` +
+        "Nothing was transferred."
+      );
+    default:
+      return (
+        `Refused: ${LOCAL_ROOT_KEY} names ${root}, which is a file, not a directory. Point the ` +
+        "setting at a directory this server may read and write in. Nothing was transferred."
+      );
+  }
+}
+
+/**
  * Resolves a path under the root, or refuses it.
  *
  * A relative path is taken from the root. An absolute one is accepted only if it

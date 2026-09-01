@@ -21,6 +21,7 @@ import {
   maxUploadSize,
   readLocalFile,
   refuseMissingRoot,
+  refuseUnusableRoot,
   resolveWithinRoot,
   statLocalFile,
 } from "./local.js";
@@ -166,6 +167,11 @@ export const filesWrite = defineTool({
 async function runUpload(input: Input, context: ToolContext): Promise<ToolResult> {
   const { localRoot } = context.files;
   if (localRoot === undefined) return { text: MISSING_ROOT_REFUSAL };
+
+  // Repeated from the `precheck`: a root that went missing in between would
+  // otherwise be reported as a missing source file, blaming the wrong thing.
+  const unusableRoot = await refuseUnusableRoot(localRoot);
+  if (unusableRoot !== undefined) return { text: unusableRoot };
 
   const source = await resolveWithinRoot(demand(input.path, "path"), localRoot);
   if (!source.ok) return { text: source.refusal };
@@ -335,6 +341,9 @@ async function refuseUnusableSource(
 
   const { localRoot } = context.files;
   if (localRoot === undefined) return MISSING_ROOT_REFUSAL;
+
+  const unusableRoot = await refuseUnusableRoot(localRoot);
+  if (unusableRoot !== undefined) return unusableRoot;
 
   const source = await resolveWithinRoot(demand(input.path, "path"), localRoot);
   if (!source.ok) return source.refusal;
