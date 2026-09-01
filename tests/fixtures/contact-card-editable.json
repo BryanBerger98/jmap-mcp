@@ -1,0 +1,40 @@
+{
+  "accountId": "acc-1",
+  "state": "contact-state-4",
+  "list": [
+    {
+      "id": "card-e1",
+      "kind": "individual",
+      "uid": "urn:uuid:8f3a1c2e-1001",
+      "name": {
+        "full": "Camille Roy",
+        "components": [
+          { "kind": "given", "value": "Camille" },
+          { "kind": "surname", "value": "Roy" }
+        ]
+      },
+      "nicknames": { "n1": { "name": "Cam" } },
+      "organizations": { "o1": { "name": "Stalwart Labs" } },
+      "titles": { "t1": { "name": "Head of Infrastructure" } },
+      "emails": {
+        "personal": { "address": "camille@example.org", "contexts": { "private": true } },
+        "work": { "address": "camille.pro@example.net", "contexts": { "work": true }, "pref": 1 }
+      },
+      "phones": { "p1": { "number": "+33 1 23 45 67 89", "contexts": { "work": true } } },
+      "notes": { "no1": { "note": "Met at the JMAP working group." } },
+      "addressBookIds": { "bk-1": true, "bk-3": true },
+      "created": "2026-02-11T09:00:00Z",
+      "updated": "2026-08-20T14:30:00Z"
+    },
+    {
+      "id": "card-e2",
+      "kind": "individual",
+      "uid": "urn:uuid:8f3a1c2e-1002",
+      "name": { "full": "Noor Haddad" },
+      "addressBookIds": { "bk-2": true },
+      "created": "2026-05-04T11:00:00Z",
+      "updated": "2026-05-04T11:00:00Z"
+    }
+  ],
+  "notFound": []
+}

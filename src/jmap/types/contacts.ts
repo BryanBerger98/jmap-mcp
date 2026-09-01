@@ -1,10 +1,19 @@
 /**
  * JMAP for Contacts (RFC 9610) and the JSContact objects it carries (RFC 9553).
  *
- * Only the read slice is declared: the two tools of the domain search and read,
- * and a property nobody requests would be typed as present on a response that
- * never carries it. `shareWith` and `myRights` stay out for that reason — the
- * sharing module will add them when it reads them.
+ * Only what the domain reads and writes is declared: a property nobody requests
+ * would be typed as present on a response that never carries it. `shareWith` and
+ * `myRights` stay out for that reason — the sharing module will add them when it
+ * reads them.
+ *
+ * Two rules of the specification are load-bearing here and are easy to lose:
+ *
+ * - The keys of `members` are the **uids** of the cards a group holds, never
+ *   their JMAP ids (RFC 9553 §2.1.9). The two look alike on the wire and name
+ *   different things, and a group written with ids holds nobody.
+ * - A card belongs to at least one address book for as long as it exists
+ *   (RFC 9610 §3). `addressBookIds` can therefore never be written empty, and no
+ *   book is assigned by default in its place.
  */
 
 import type { Id } from "./core.js";
@@ -153,4 +162,38 @@ export type AddressBookGetArguments = {
   accountId: Id;
   ids?: Id[] | null;
   properties?: string[] | null;
+};
+
+/**
+ * A patch, as RFC 8620 §5.3 defines it: keys are JSON pointers into the object.
+ *
+ * Deliberately not a `Partial<ContactCard>`. A patch is not a partial object —
+ * `emails/work/address` is one key here and three levels of nesting there — and
+ * typing it as one would let a whole `emails` map be sent under a name that
+ * reads like a correction while it in fact replaces everything the card held.
+ */
+export type PatchObject = Record<string, unknown>;
+
+export type ContactCardSetArguments = {
+  accountId: Id;
+  /** Creation id to object; the server hands back the real id in `created`. */
+  create?: Record<Id, Partial<ContactCard>>;
+  update?: Record<Id, PatchObject>;
+  destroy?: Id[];
+};
+
+export type AddressBookSetArguments = {
+  accountId: Id;
+  create?: Record<Id, Partial<AddressBook>>;
+  update?: Record<Id, PatchObject>;
+  destroy?: Id[];
+  /**
+   * Required by this type, optional in the RFC.
+   *
+   * The specification defaults it to false, and a default is not a guarantee:
+   * making it mandatory means an `AddressBook/set` that forgets to state it does
+   * not compile, so no write can quietly inherit a server's idea of the answer.
+   * True empties the whole book, cards included — this server never sends true.
+   */
+  onDestroyRemoveContents: boolean;
 };
