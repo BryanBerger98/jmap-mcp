@@ -7,7 +7,8 @@ import {
 import { z } from "zod";
 import type { OperationClass, WritePolicy } from "../config/policy.js";
 import { OPEN_SCOPE, type RecipientScope } from "../config/recipients.js";
-import { DEFAULT_BULK_CONFIRM_ABOVE } from "../config/schema.js";
+import { type Config, DEFAULT_BULK_CONFIRM_ABOVE } from "../config/schema.js";
+import { type BlobChannel, UNWIRED_BLOBS } from "../jmap/blob.js";
 import type { JmapClient } from "../jmap/client.js";
 import type { JmapSession } from "../jmap/session.js";
 import { perInvocationCache, type ToolContext, type ToolDefinition } from "./define-tool.js";
@@ -24,6 +25,10 @@ export interface CompositionInput {
   recipients?: RecipientScope;
   /** Volume past which a reversible bulk call asks. Absent means the default. */
   bulkConfirmAbove?: number;
+  /** How bytes move. Absent leaves a channel that refuses rather than one that lies. */
+  blobs?: BlobChannel;
+  /** Where bytes may touch the disk. Absent means no local directory was named. */
+  files?: Config["files"];
 }
 
 export interface ComposeReport {
@@ -126,6 +131,8 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
       const context: ToolContext = {
         client: input.client,
         session: input.session,
+        blobs: input.blobs ?? UNWIRED_BLOBS,
+        files: input.files ?? {},
         recipients: input.recipients ?? OPEN_SCOPE,
         policy: input.policy,
         bulkConfirmAbove: input.bulkConfirmAbove ?? DEFAULT_BULK_CONFIRM_ABOVE,

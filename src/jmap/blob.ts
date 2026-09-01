@@ -1,4 +1,5 @@
 import { JmapError } from "./errors.js";
+import type { JmapSession } from "./session.js";
 import type { Id } from "./types/core.js";
 
 export interface BlobUploadResult {
@@ -7,6 +8,67 @@ export interface BlobUploadResult {
   type: string;
   size: number;
 }
+
+/**
+ * The only way a tool moves bytes.
+ *
+ * Blobs travel over plain HTTP against the session's upload and download URLs,
+ * not over the JMAP endpoint, so a tool that needed to reach them itself would
+ * need the bearer token and both URL templates in hand. The channel closes over
+ * all three: what reaches a tool is two methods, and nothing it could leak.
+ */
+export interface BlobChannel {
+  upload: (body: Uint8Array, contentType: string) => Promise<BlobUploadResult>;
+  /** `name` and `type` fill the URL template; the server may echo them back. */
+  download: (blobId: Id, name: string, type: string) => Promise<Uint8Array>;
+}
+
+/**
+ * Binds a channel to one session and one token.
+ *
+ * Built in `src/server.ts`, where the configuration still exists, and handed to
+ * `compose()`. Nothing downstream ever sees the token again.
+ */
+export function blobChannel(
+  session: JmapSession,
+  bearerToken: string,
+  fetchImpl: typeof fetch = fetch,
+): BlobChannel {
+  return {
+    upload: (body, contentType) =>
+      uploadBlob(
+        session.raw.uploadUrl,
+        session.accountId,
+        bearerToken,
+        body,
+        contentType,
+        fetchImpl,
+      ),
+    download: (blobId, name, type) =>
+      downloadBlob(
+        session.raw.downloadUrl,
+        bearerToken,
+        { accountId: session.accountId, blobId, name, type },
+        fetchImpl,
+      ),
+  };
+}
+
+/**
+ * The channel a composition falls back on when none was wired.
+ *
+ * It throws rather than returning empty bytes: a composition without a channel
+ * is a wiring mistake, and a tool that quietly uploaded nothing would report a
+ * success the account does not hold.
+ */
+export const UNWIRED_BLOBS: BlobChannel = {
+  upload: () => {
+    throw new JmapError("about:blank", "No blob channel was wired into this server");
+  },
+  download: () => {
+    throw new JmapError("about:blank", "No blob channel was wired into this server");
+  },
+};
 
 /** Uploads bytes and returns the blobId a later Set call can reference. */
 export async function uploadBlob(

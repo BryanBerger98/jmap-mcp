@@ -17,7 +17,7 @@ import type {
   JmapResponse,
 } from "../../src/jmap/types/core.js";
 import { perInvocationCache, type ToolContext } from "../../src/registry/define-tool.js";
-import { fixtureSession, loadFixture } from "../fixtures/client.js";
+import { fakeBlobs, fixtureSession, loadFixture } from "../fixtures/client.js";
 
 const calendars = loadFixture<GetResponse<Calendar>>("calendar-get.json");
 const availability = loadFixture<{ accountId: string; list: unknown[] }>(
@@ -139,6 +139,8 @@ function scripted(script: Script): { context: ToolContext; requests: JmapRequest
         fetchImpl,
       }),
       session: fixtureSession(),
+      blobs: fakeBlobs({ uploads: [], downloads: [] }),
+      files: {},
       recipients: OPEN_SCOPE,
       policy: DEFAULT_POLICY,
       bulkConfirmAbove: DEFAULT_BULK_CONFIRM_ABOVE,

@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { OPEN_SCOPE, type RecipientScope, restrictTo } from "./config/recipients.js";
 import type { Config, RecipientsSetting } from "./config/schema.js";
 import { ALL_DOMAINS } from "./domains/index.js";
+import { blobChannel } from "./jmap/blob.js";
 import { JmapClient } from "./jmap/client.js";
 import type { JmapSession } from "./jmap/session.js";
 import { discoverSession } from "./jmap/session.js";
@@ -72,6 +73,10 @@ export async function buildServer(
     policy: config.policy,
     recipients,
     bulkConfirmAbove: config.bulkConfirmAbove,
+    // Built here, where the token still exists, and nowhere downstream: this is
+    // the last place in the call chain that is allowed to see it.
+    blobs: blobChannel(session, config.bearerToken),
+    files: config.files,
   });
 
   return { server, report };

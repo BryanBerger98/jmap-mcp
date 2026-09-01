@@ -1,3 +1,4 @@
+import { isAbsolute } from "node:path";
 import { z } from "zod";
 import { DEFAULT_POLICY, POLICY_LEVELS, type WritePolicy } from "./policy.js";
 
@@ -74,6 +75,23 @@ const recipientsSchema = z
  */
 export const DEFAULT_BULK_CONFIRM_ABOVE = 20;
 
+/**
+ * The one directory this server may read from and write to on the local disk.
+ *
+ * No default, deliberately. A temporary directory the user never named is a
+ * directory they never watch, and the two tools that move bytes refuse by naming
+ * this key rather than inventing a destination. Everything else — browsing,
+ * creating a folder, organizing, deleting — works without it.
+ */
+const filesSchema = z
+  .object({
+    localRoot: z
+      .string()
+      .refine(isAbsolute, { message: "files.localRoot must be an absolute path" })
+      .optional(),
+  })
+  .default({});
+
 export const configSchema = z.object({
   /** The JMAP session resource, e.g. https://mail.example.com/.well-known/jmap */
   sessionUrl: z.url(),
@@ -83,6 +101,7 @@ export const configSchema = z.object({
   accountId: z.string().min(1).optional(),
   policy: writePolicySchema.default(DEFAULT_POLICY),
   recipients: recipientsSchema.default(OPEN_RECIPIENTS),
+  files: filesSchema,
   bulkConfirmAbove: z
     .int()
     .min(1)
