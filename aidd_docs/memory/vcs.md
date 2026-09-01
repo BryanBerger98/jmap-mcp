@@ -1,7 +1,7 @@
 ---
 title: VCS
 status: draft
-updated: 2026-08-30
+updated: 2026-09-02
 owner: bryan
 ---
 
@@ -29,7 +29,7 @@ owner: bryan
 ## 🔀 Pull requests
 
 - Base : toujours `main`, aucun préfixe de branche n'en désigne une autre.
-- Ouverture en draft, la promotion est un geste humain.
+- Ouverture prête à relire, jamais en draft : le skill `aidd-vcs` dit l'inverse, cette règle le prime.
 - Aucun template dans le dépôt : celui du skill `aidd-vcs` fait foi.
 - Label de triage déduit du préfixe, posé seulement s'il existe déjà.
 
