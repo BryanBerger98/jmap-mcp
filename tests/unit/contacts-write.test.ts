@@ -23,6 +23,21 @@ function cardsResponse(ids: string[]): GetResponse<ContactCard> {
   };
 }
 
+/**
+ * The three cards the batch below patches, card-e3 standing in as a copy.
+ *
+ * Built rather than filtered out of the pool because the write only patches the
+ * ids the read handed back: a card-e3 the read omitted would never reach the
+ * server, and the refusal the set fixture carries for it could not happen.
+ */
+const trio: GetResponse<ContactCard> = {
+  ...cardsResponse(["card-e1", "card-e2"]),
+  list: [
+    ...cardsResponse(["card-e1", "card-e2"]).list,
+    { ...(editable.list[0] as ContactCard), id: "card-e3" },
+  ],
+};
+
 /** An account whose books carry no default mark, and holds more than one. */
 const undecidedBooks: GetResponse<AddressBook> = {
   accountId: "acc-1",
@@ -103,11 +118,7 @@ describe("contacts_write — correcting", () => {
   });
 
   it("files three cards in two round trips, one line accounting for each", async () => {
-    const { context, requests } = fakeTransport([
-      books,
-      cardsResponse(["card-e1", "card-e2", "card-e3"]),
-      sets.partiallyUpdated,
-    ]);
+    const { context, requests } = fakeTransport([books, trio, sets.partiallyUpdated]);
 
     const result = await contactsWrite.run(
       { cardIds: ["card-e1", "card-e2", "card-e3"], addressBooks: { add: ["bk-2"] } },
@@ -122,6 +133,26 @@ describe("contacts_write — correcting", () => {
     for (const patch of Object.values(args.update as Record<string, object>)) {
       expect(Object.keys(patch)).toEqual(["addressBookIds/bk-2"]);
     }
+  });
+
+  it("keeps an id the read never returned out of the updated count", async () => {
+    const { context, requests } = fakeTransport([
+      books,
+      cardsResponse(["card-e1", "card-ghost"]),
+      sets.updated,
+    ]);
+
+    const result = await contactsWrite.run(
+      { cardIds: ["card-e1", "card-ghost"], addressBooks: { add: ["bk-2"] } },
+      context,
+    );
+
+    expect(result.text).toContain("1 contact card updated.");
+    expect(result.text).toContain("Not found: card-ghost");
+    expect(result.text).not.toMatch(/card-ghost\s*\|\s*updated/);
+
+    const [, args] = named(requests, "ContactCard/set")[0] as Invocation;
+    expect(Object.keys(args.update as Record<string, object>)).toEqual(["card-e1"]);
   });
 
   it("resolves a member's card id into the uid the group is keyed by", async () => {

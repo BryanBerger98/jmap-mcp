@@ -355,9 +355,13 @@ async function correctCards(input: WriteInput, context: ToolContext) {
   for (const id of ids) {
     const card = byId.get(id);
     // A card the read did not return is left out of the patch rather than sent
-    // a blind one: the server answers `notFound` for it in the same shape.
+    // a blind one. It is also left out of the accounting below: the server was
+    // never asked about it, so its silence says nothing about that id.
     if (card !== undefined) update[id] = buildPatch(card, edit);
   }
+
+  const patched = Object.keys(update);
+  const missing = ids.filter((id) => update[id] === undefined);
 
   const written = writtenAddresses(input);
   const args: ContactCardSetArguments = { accountId: context.session.accountId, update };
@@ -369,7 +373,8 @@ async function correctCards(input: WriteInput, context: ToolContext) {
 
   const response = responses[responses.length - 1] as SetResponse<ContactCard>;
   const lines = [
-    describeCardOutcome(response, ids, "updated"),
+    patched.length === 0 ? undefined : describeCardOutcome(response, patched, "updated"),
+    missing.length === 0 ? undefined : `Not found: ${missing.join(", ")}`,
     duplicateNote(written, responses.slice(0, -1) as QueryResponse[], ids),
     outsidePerimeterNote(written, context.recipients),
   ];
