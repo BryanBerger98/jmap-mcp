@@ -1,5 +1,9 @@
 import type { DomainManifest } from "../registry/manifest.js";
-import { calendarAvailabilityDomain, calendarDomain } from "./calendar/index.js";
+import {
+  calendarAvailabilityDomain,
+  calendarDomain,
+  calendarWritingDomain,
+} from "./calendar/index.js";
 import { contactsDomain, contactsWritingDomain } from "./contacts/index.js";
 import { filesDomain } from "./files/index.js";
 import { mailDomain, mailOrganizingDomain, mailSendingDomain } from "./mail/index.js";
@@ -12,6 +16,7 @@ export const ALL_DOMAINS: readonly DomainManifest[] = [
   mailSendingDomain,
   calendarDomain,
   calendarAvailabilityDomain,
+  calendarWritingDomain,
   contactsDomain,
   contactsWritingDomain,
   filesDomain,

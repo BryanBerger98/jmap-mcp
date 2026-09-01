@@ -3,7 +3,7 @@
   "oldState": "cal-events-3",
   "newState": "cal-events-4",
   "created": {
-    "new-1": { "id": "ev-new-1", "uid": "0f2a-new" }
+    "new": { "id": "ev-new-1", "uid": "0f2a-new" }
   },
   "updated": {
     "ev-simple": null
