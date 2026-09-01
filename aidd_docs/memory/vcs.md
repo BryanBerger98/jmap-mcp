@@ -23,7 +23,7 @@ owner: bryan
 
 - Convention : Conventional Commits.
 - Format : `type(scope): description`.
-- Règles : impératif, minuscule, sujet court.
+- Règles : impératif, minuscule, sujet tenant sur une seule ligne ; la phrase descriptive est le style de la maison, la limite est la ligne et non un compte de caractères.
 - Scope utile : le domaine touché (`mail`, `calendar`, `registry`, `config`).
 
 ## 🔀 Pull requests
