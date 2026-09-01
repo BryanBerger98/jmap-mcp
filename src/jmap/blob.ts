@@ -70,8 +70,17 @@ export const UNWIRED_BLOBS: BlobChannel = {
   },
 };
 
+/*
+ * The two transfers stay private to this module, and that is the point of it.
+ *
+ * Both take the bearer token as a parameter, so exporting them would reopen the
+ * very door `BlobChannel` exists to close: anything holding one of them holds
+ * the token. `blobChannel` already injects `fetchImpl`, so a test has its seam
+ * at the level that leaks nothing.
+ */
+
 /** Uploads bytes and returns the blobId a later Set call can reference. */
-export async function uploadBlob(
+async function uploadBlob(
   uploadUrl: string,
   accountId: Id,
   bearerToken: string,
@@ -119,7 +128,7 @@ async function readUploadResult(response: Response): Promise<BlobUploadResult> {
   return body as BlobUploadResult;
 }
 
-export async function downloadBlob(
+async function downloadBlob(
   downloadUrl: string,
   bearerToken: string,
   variables: { accountId: Id; blobId: Id; type: string; name: string },

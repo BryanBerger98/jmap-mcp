@@ -140,7 +140,7 @@ export function countSubtree(ids: readonly Id[], context: ToolContext): Promise<
 }
 
 /** The refusal a populated folder earns, naming the folder and what it holds. */
-export function refusePopulated(tree: Subtrees): string | undefined {
+function refusePopulated(tree: Subtrees): string | undefined {
   const populated = [...tree.counts.entries()].filter(([, count]) => held(count) > 0);
   if (populated.length === 0) return undefined;
 
