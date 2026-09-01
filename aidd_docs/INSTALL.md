@@ -1,7 +1,7 @@
 ---
 title: INSTALL — jmap-mcp
 status: draft
-updated: 2026-08-30
+updated: 2026-08-31
 owner: bryan
 ---
 
@@ -128,7 +128,11 @@ jmap-mcp/
 │   ├── domains/
 │   │   ├── mail/                 # search, read, compose, organize, attachments
 │   │   ├── calendar/             # events, availability, participants
-│   │   ├── contacts/             # books, cards
+│   │   ├── contacts/
+│   │   │   ├── index.ts          # manifeste, capacité contacts
+│   │   │   ├── card.ts           # rendu d'une fiche, carnets, marque de périmètre
+│   │   │   ├── search.ts         # contacts_search
+│   │   │   └── read.ts           # contacts_read
 │   │   ├── files/                # nodes, upload
 │   │   ├── sharing/              # principals, rights
 │   │   └── sieve/                # scripts, vacation

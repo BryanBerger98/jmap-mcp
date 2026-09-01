@@ -1,0 +1,1142 @@
+{
+  "accountId": "acc-1",
+  "state": "contact-state-3",
+  "list": [
+    {
+      "id": "cc-01",
+      "kind": "individual",
+      "name": {
+        "full": "Ana Silva"
+      },
+      "emails": {
+        "main": {
+          "address": "ana.silva0@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-02",
+      "kind": "individual",
+      "name": {
+        "full": "Bruno Silva"
+      },
+      "emails": {
+        "main": {
+          "address": "bruno.silva1@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-03",
+      "kind": "individual",
+      "name": {
+        "full": "Camille Silva"
+      },
+      "emails": {
+        "main": {
+          "address": "camille.silva2@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Atelier Ondes"
+        }
+      }
+    },
+    {
+      "id": "cc-04",
+      "kind": "individual",
+      "name": {
+        "full": "Dalia Silva"
+      },
+      "emails": {
+        "main": {
+          "address": "dalia.silva3@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      }
+    },
+    {
+      "id": "cc-05",
+      "kind": "individual",
+      "name": {
+        "full": "Elias Roy"
+      },
+      "emails": {
+        "main": {
+          "address": "elias.roy4@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    },
+    {
+      "id": "cc-06",
+      "kind": "individual",
+      "name": {
+        "full": "Farah Roy"
+      },
+      "emails": {
+        "main": {
+          "address": "farah.roy5@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-07",
+      "kind": "individual",
+      "name": {
+        "full": "Gaspard Roy"
+      },
+      "emails": {
+        "main": {
+          "address": "gaspard.roy6@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-08",
+      "kind": "group",
+      "name": {
+        "full": "Infra team"
+      },
+      "emails": {},
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "members": {
+        "urn:uuid:1": true,
+        "urn:uuid:2": true
+      }
+    },
+    {
+      "id": "cc-09",
+      "kind": "individual",
+      "name": {
+        "full": "Ilan Nakamura"
+      },
+      "emails": {
+        "main": {
+          "address": "ilan.nakamura8@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      }
+    },
+    {
+      "id": "cc-10",
+      "kind": "individual",
+      "name": {
+        "full": "Juno Nakamura"
+      },
+      "emails": {
+        "main": {
+          "address": "juno.nakamura9@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    },
+    {
+      "id": "cc-11",
+      "kind": "individual",
+      "name": {
+        "full": "Ana Nakamura"
+      },
+      "emails": {
+        "main": {
+          "address": "ana.nakamura10@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-12",
+      "kind": "individual",
+      "name": {
+        "full": "Bruno Nakamura"
+      },
+      "emails": {
+        "main": {
+          "address": "bruno.nakamura11@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-13",
+      "kind": "individual",
+      "name": {
+        "full": "Camille Okafor"
+      },
+      "emails": {
+        "main": {
+          "address": "camille.okafor12@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Atelier Ondes"
+        }
+      }
+    },
+    {
+      "id": "cc-14",
+      "kind": "individual",
+      "name": {
+        "full": "Dalia Okafor"
+      },
+      "emails": {
+        "main": {
+          "address": "dalia.okafor13@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      }
+    },
+    {
+      "id": "cc-15",
+      "kind": "individual",
+      "name": {
+        "full": "Elias Okafor"
+      },
+      "emails": {
+        "main": {
+          "address": "elias.okafor14@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    },
+    {
+      "id": "cc-16",
+      "kind": "individual",
+      "name": {
+        "full": "Farah Okafor"
+      },
+      "emails": {
+        "main": {
+          "address": "farah.okafor15@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-17",
+      "kind": "individual",
+      "name": {
+        "full": "Gaspard Lindqvist"
+      },
+      "emails": {
+        "main": {
+          "address": "gaspard.lindqvist16@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-18",
+      "kind": "individual",
+      "name": {
+        "full": "Hana Lindqvist"
+      },
+      "emails": {
+        "main": {
+          "address": "hana.lindqvist17@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Atelier Ondes"
+        }
+      }
+    },
+    {
+      "id": "cc-19",
+      "kind": "individual",
+      "name": {
+        "full": "Ilan Lindqvist"
+      },
+      "emails": {
+        "main": {
+          "address": "ilan.lindqvist18@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      }
+    },
+    {
+      "id": "cc-20",
+      "kind": "individual",
+      "name": {
+        "full": "Juno Lindqvist"
+      },
+      "emails": {
+        "main": {
+          "address": "juno.lindqvist19@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    },
+    {
+      "id": "cc-21",
+      "kind": "individual",
+      "name": {
+        "full": "Ana Moreau"
+      },
+      "emails": {
+        "main": {
+          "address": "ana.moreau20@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-22",
+      "kind": "individual",
+      "name": {
+        "full": "Bruno Moreau"
+      },
+      "emails": {
+        "main": {
+          "address": "bruno.moreau21@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-23",
+      "kind": "individual",
+      "name": {
+        "full": "Camille Moreau"
+      },
+      "emails": {
+        "main": {
+          "address": "camille.moreau22@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Atelier Ondes"
+        }
+      }
+    },
+    {
+      "id": "cc-24",
+      "kind": "individual",
+      "name": {
+        "full": "Dalia Moreau"
+      },
+      "emails": {
+        "main": {
+          "address": "dalia.moreau23@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      }
+    },
+    {
+      "id": "cc-25",
+      "kind": "individual",
+      "name": {
+        "full": "Elias Haddad"
+      },
+      "emails": {
+        "main": {
+          "address": "elias.haddad24@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    },
+    {
+      "id": "cc-26",
+      "kind": "individual",
+      "name": {
+        "full": "Farah Haddad"
+      },
+      "emails": {
+        "main": {
+          "address": "farah.haddad25@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-27",
+      "kind": "individual",
+      "name": {
+        "full": "Gaspard Haddad"
+      },
+      "emails": {
+        "main": {
+          "address": "gaspard.haddad26@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-28",
+      "kind": "individual",
+      "name": {
+        "full": "Hana Haddad"
+      },
+      "emails": {
+        "main": {
+          "address": "hana.haddad27@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Atelier Ondes"
+        }
+      }
+    },
+    {
+      "id": "cc-29",
+      "kind": "individual",
+      "name": {
+        "full": "Ilan Vargas"
+      },
+      "emails": {
+        "main": {
+          "address": "ilan.vargas28@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      }
+    },
+    {
+      "id": "cc-30",
+      "kind": "individual",
+      "name": {
+        "full": "Juno Vargas"
+      },
+      "emails": {
+        "main": {
+          "address": "juno.vargas29@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    },
+    {
+      "id": "cc-31",
+      "kind": "individual",
+      "name": {
+        "full": "Ana Vargas"
+      },
+      "emails": {
+        "main": {
+          "address": "ana.vargas30@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-32",
+      "kind": "individual",
+      "name": {
+        "full": "Bruno Vargas"
+      },
+      "emails": {
+        "main": {
+          "address": "bruno.vargas31@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-33",
+      "kind": "individual",
+      "name": {
+        "full": "Camille Petrov"
+      },
+      "emails": {
+        "main": {
+          "address": "camille.petrov32@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Atelier Ondes"
+        }
+      }
+    },
+    {
+      "id": "cc-34",
+      "kind": "individual",
+      "name": {
+        "full": "Dalia Petrov"
+      },
+      "emails": {
+        "main": {
+          "address": "dalia.petrov33@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      }
+    },
+    {
+      "id": "cc-35",
+      "kind": "individual",
+      "name": {
+        "full": "Elias Petrov"
+      },
+      "emails": {
+        "main": {
+          "address": "elias.petrov34@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    },
+    {
+      "id": "cc-36",
+      "kind": "individual",
+      "name": {
+        "full": "Farah Petrov"
+      },
+      "emails": {
+        "main": {
+          "address": "farah.petrov35@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-37",
+      "kind": "individual",
+      "name": {
+        "full": "Gaspard Ye"
+      },
+      "emails": {
+        "main": {
+          "address": "gaspard.ye36@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-38",
+      "kind": "individual",
+      "name": {
+        "full": "Hana Ye"
+      },
+      "emails": {
+        "main": {
+          "address": "hana.ye37@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Atelier Ondes"
+        }
+      }
+    },
+    {
+      "id": "cc-39",
+      "kind": "individual",
+      "name": {
+        "full": "Ilan Ye"
+      },
+      "emails": {
+        "main": {
+          "address": "ilan.ye38@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      }
+    },
+    {
+      "id": "cc-40",
+      "kind": "individual",
+      "name": {
+        "full": "Juno Ye"
+      },
+      "emails": {
+        "main": {
+          "address": "juno.ye39@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    },
+    {
+      "id": "cc-41",
+      "kind": "individual",
+      "name": {
+        "full": "Ana Silva"
+      },
+      "emails": {
+        "main": {
+          "address": "ana.silva40@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-42",
+      "kind": "individual",
+      "name": {
+        "full": "Bruno Silva"
+      },
+      "emails": {
+        "main": {
+          "address": "bruno.silva41@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-43",
+      "kind": "individual",
+      "name": {
+        "full": "Camille Silva"
+      },
+      "emails": {
+        "main": {
+          "address": "camille.silva42@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Atelier Ondes"
+        }
+      }
+    },
+    {
+      "id": "cc-44",
+      "kind": "individual",
+      "name": {
+        "full": "Dalia Silva"
+      },
+      "emails": {
+        "main": {
+          "address": "dalia.silva43@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      }
+    },
+    {
+      "id": "cc-45",
+      "kind": "individual",
+      "name": {
+        "full": "Elias Roy"
+      },
+      "emails": {
+        "main": {
+          "address": "elias.roy44@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    },
+    {
+      "id": "cc-46",
+      "kind": "individual",
+      "name": {
+        "full": "Farah Roy"
+      },
+      "emails": {
+        "main": {
+          "address": "farah.roy45@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-47",
+      "kind": "individual",
+      "name": {
+        "full": "Gaspard Roy"
+      },
+      "emails": {
+        "main": {
+          "address": "gaspard.roy46@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-48",
+      "kind": "individual",
+      "name": {
+        "full": "Hana Roy"
+      },
+      "emails": {
+        "main": {
+          "address": "hana.roy47@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Atelier Ondes"
+        }
+      }
+    },
+    {
+      "id": "cc-49",
+      "kind": "individual",
+      "name": {
+        "full": "Ilan Nakamura"
+      },
+      "emails": {
+        "main": {
+          "address": "ilan.nakamura48@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      }
+    },
+    {
+      "id": "cc-50",
+      "kind": "individual",
+      "name": {
+        "full": "Juno Nakamura"
+      },
+      "emails": {
+        "main": {
+          "address": "juno.nakamura49@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    },
+    {
+      "id": "cc-51",
+      "kind": "individual",
+      "name": {
+        "full": "Ana Nakamura"
+      },
+      "emails": {
+        "main": {
+          "address": "ana.nakamura50@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-52",
+      "kind": "individual",
+      "name": {
+        "full": "Bruno Nakamura"
+      },
+      "emails": {
+        "main": {
+          "address": "bruno.nakamura51@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-53",
+      "kind": "individual",
+      "name": {
+        "full": "Camille Okafor"
+      },
+      "emails": {
+        "main": {
+          "address": "camille.okafor52@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Atelier Ondes"
+        }
+      }
+    },
+    {
+      "id": "cc-54",
+      "kind": "individual",
+      "name": {
+        "full": "Dalia Okafor"
+      },
+      "emails": {
+        "main": {
+          "address": "dalia.okafor53@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      }
+    },
+    {
+      "id": "cc-55",
+      "kind": "individual",
+      "name": {
+        "full": "Elias Okafor"
+      },
+      "emails": {
+        "main": {
+          "address": "elias.okafor54@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    },
+    {
+      "id": "cc-56",
+      "kind": "individual",
+      "name": {
+        "full": "Farah Okafor"
+      },
+      "emails": {
+        "main": {
+          "address": "farah.okafor55@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Stalwart Labs"
+        }
+      }
+    },
+    {
+      "id": "cc-57",
+      "kind": "individual",
+      "name": {
+        "full": "Gaspard Lindqvist"
+      },
+      "emails": {
+        "main": {
+          "address": "gaspard.lindqvist56@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Nephos"
+        }
+      }
+    },
+    {
+      "id": "cc-58",
+      "kind": "individual",
+      "name": {
+        "full": "Hana Lindqvist"
+      },
+      "emails": {
+        "main": {
+          "address": "hana.lindqvist57@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-2": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Atelier Ondes"
+        }
+      }
+    },
+    {
+      "id": "cc-59",
+      "kind": "individual",
+      "name": {
+        "full": "Ilan Lindqvist"
+      },
+      "emails": {
+        "main": {
+          "address": "ilan.lindqvist58@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      }
+    },
+    {
+      "id": "cc-60",
+      "kind": "individual",
+      "name": {
+        "full": "Juno Lindqvist"
+      },
+      "emails": {
+        "main": {
+          "address": "juno.lindqvist59@example.org"
+        }
+      },
+      "addressBookIds": {
+        "bk-1": true
+      },
+      "organizations": {
+        "o1": {
+          "name": "Cooperative Gaia"
+        }
+      }
+    }
+  ],
+  "notFound": []
+}

@@ -9,8 +9,8 @@ import type {
   EmailGetArguments,
 } from "../../jmap/types/mail.js";
 import { defineTool } from "../../registry/define-tool.js";
+import { inRequestedOrder } from "../../shared/pagination.js";
 import { htmlToText, renderFields } from "../../shared/render.js";
-import { inRequestedOrder } from "./search.js";
 
 /**
  * The ceiling on one body, in bytes.

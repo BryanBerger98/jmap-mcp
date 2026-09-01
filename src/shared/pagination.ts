@@ -6,6 +6,7 @@
  */
 
 import { createHash } from "node:crypto";
+import type { Id } from "../jmap/types/core.js";
 
 export interface Page<T> {
   items: T[];
@@ -84,4 +85,17 @@ export function takeWithinBudget<T>(
   }
 
   return { taken, remaining: items.length - taken.length };
+}
+
+/**
+ * Restores the order of the ids a `get` was given.
+ *
+ * No JMAP `get` promises to answer in the order it was asked, so every caller
+ * that has an order worth keeping — a query's ranking, or the caller's own list
+ * of ids — has to rebuild it here. The rule holds for any object carrying an
+ * `id`, which is every JMAP type, so it lives once rather than per domain.
+ */
+export function inRequestedOrder<T extends { id: Id }>(ids: Id[], list: T[]): T[] {
+  const byId = new Map(list.map((item) => [item.id, item]));
+  return ids.map((id) => byId.get(id)).filter((item): item is T => item !== undefined);
 }

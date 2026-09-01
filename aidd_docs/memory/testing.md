@@ -8,8 +8,8 @@ owner: bryan
 # Tests
 
 > [!NOTE]
-> 287 tests passent sur 27 fichiers, dont 9 de contrat.
-> Les fixtures couvrent la session, les messages, les dossiers, les identités et les fiches de contact.
+> 349 tests passent sur 31 fichiers, dont 10 de contrat.
+> Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses et les fiches de contact.
 
 ## 🎯 Stratégie
 
@@ -18,7 +18,7 @@ Deux couches, séparées par leur objet.
 | Couche | Couvre |
 | --- | --- |
 | `tests/unit/` | Rendu, pagination, mapping d'erreurs |
-| `tests/contract/` | Invariant de garde sur `send` et `destroy`, et pureté en lecture du domaine mail sans envoi |
+| `tests/contract/` | Garde sur `send` et `destroy`, pureté en lecture du mail et des contacts |
 
 Les tests de contrat sont la couche qui compte : ils vérifient qu'aucun outil de classe `send` ou `destroy` ne s'exécute sans passer par la garde de politique.
 Un module de domaine ne peut pas contourner le registre, et le test le prouve plutôt que la revue.
@@ -34,6 +34,11 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | `bulk-confirmation.test.ts` | Au-delà du seuil : question avant écriture |
 | `destroy-needs-confirmation.test.ts` | Destruction non confirmée : aucune méthode émise |
 | `no-cascade-destroy.test.ts` | Tout `Mailbox/set` porte `onDestroyRemoveEmails` à faux |
+| `contacts-read-only.test.ts` | Contacts : rien hors `get` et `query` |
+
+Le contrat sur les contacts sépare deux affirmations : la classe déclarée d'une part, ce qui part réellement sur le fil d'autre part.
+Il exécute chaque outil du manifeste sur des arguments minimaux tirés de son propre schéma, donc il tient un outil ajouté au domaine sans être réécrit.
+Il tient aussi le gating : sans la capacité contacts, aucun outil n'est enregistré et le rapport de composition nomme la capacité manquante.
 
 Le contrat sur le périmètre va plus loin que le refus : il assert aussi qu'aucune méthode JMAP n'a été émise, et que la question de confirmation n'a jamais été posée.
 
