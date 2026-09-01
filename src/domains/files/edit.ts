@@ -53,10 +53,10 @@ export interface NodeCreation extends NodeEdit {
 /**
  * The patch one node is to receive, keyed by JSON pointer.
  *
- * Only the properties the call named, and each of them at the top level: a node
- * has no nested family to point into, so there is no prefix collision to make.
- * The guard below states that rather than assuming it, because the day a nested
- * path is added is the day RFC 8620 §5.3 starts applying here too.
+ * Only the properties the call named, and each of them at the top level: `name`
+ * and `parentId` are the only two keys this builder ever writes, and neither is
+ * a prefix of the other, so there is no RFC 8620 §5.3 collision to make. The day
+ * a nested path is added here is the day that invariant needs a guard again.
  */
 export function buildNodePatch(edit: NodeEdit): NodePatch {
   const patch: NodePatch = {};
@@ -66,7 +66,6 @@ export function buildNodePatch(edit: NodeEdit): NodePatch {
   // folder and up to the top level.
   if (edit.parentId !== undefined) patch.parentId = edit.parentId;
 
-  refusePrefixCollision(patch);
   return patch;
 }
 
@@ -179,27 +178,5 @@ export function explainSetError(error: SetError): string {
       );
     default:
       return `Refused by the server: ${error.type}.${said}`;
-  }
-}
-
-/**
- * Two patches where one is the prefix of the other are invalid (RFC 8620 §5.3).
- *
- * Caught here rather than on the wire, as in the contacts module: the server
- * would answer `invalidPatch` and write nothing, which is safe but says nothing
- * about which two parts of the request contradict each other.
- */
-function refusePrefixCollision(patch: NodePatch): void {
-  const keys = Object.keys(patch);
-
-  for (const key of keys) {
-    const nested = keys.find((other) => other.startsWith(`${key}/`));
-    if (nested !== undefined) {
-      throw new Error(
-        `files: the patch would carry both ${key} and ${nested}, and a patch that is the prefix ` +
-          "of another is invalid. Replacing a property and amending it in the same call cannot " +
-          "both be honoured — do one or the other.",
-      );
-    }
   }
 }
