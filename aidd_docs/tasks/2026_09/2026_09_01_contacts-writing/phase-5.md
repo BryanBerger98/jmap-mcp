@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Contrats d'écriture et non-cascade
@@ -113,6 +113,25 @@ journey
 2. Faire exécuter `contacts_delete` sans élicitation, constater le rouge, remettre la garde.
 3. Ajouter une clé de recherche à un schéma d'écriture, constater le rouge, la retirer.
 4. Consigner les trois mutations vérifiées dans le compte-rendu de phase, jamais dans le code.
+
+## Compte-rendu de phase
+
+### 🧪 Mutations vérifiées
+
+Chaque mutation a été appliquée, constatée au rouge, puis annulée.
+Le vert final est celui de `pnpm test` sur les 442 tests des 37 fichiers.
+
+| Mutation | Ligne retirée | Contrat tombé | Tests au rouge |
+| --- | --- | --- | --- |
+| 1 | `onDestroyRemoveContents: false` de `book-manage.ts` | `no-cascade-destroy.test.ts` | 2 |
+| 2 | La classe `destroy` de `contacts_delete`, ramenée à `draft` | `contacts-write-guard.test.ts` | 4 |
+| 3 | Une clé `text` ajoutée au schéma de `contacts_write` | `contacts-write-guard.test.ts` | 1 |
+
+La mutation 1 tombe aussi au typage : `AddressBookSetArguments` rend le drapeau obligatoire, donc `pnpm typecheck` échoue avant même les tests.
+C'est la double barrière voulue par la tâche 2 de la phase 4, et le contrat reste utile pour le jour où le type serait assoupli.
+
+La mutation 2 fait tomber quatre tests, dont celui qui compte les outils destructeurs du manifeste.
+C'est ce test qui tient le contrat honnête : il refuse qu'un outil quitte la table des cas sans que quelqu'un s'en aperçoive.
 
 ## Test acceptance criteria
 
