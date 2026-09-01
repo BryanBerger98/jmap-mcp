@@ -5,7 +5,6 @@ import {
   describeNodes,
   formatSize,
   isDirectory,
-  renderNodeDetail,
   renderNodeRow,
   resolveNodes,
 } from "../../src/domains/files/node.js";
@@ -56,40 +55,6 @@ describe("renderNodeRow", () => {
     expect(row).toEqual({ type: "dir", name: "Documents", size: "", mime: "", id: "fn-1" });
     // Rendered, the row must carry neither a zero nor an invented media type.
     expect(Object.values(row).join(" ")).not.toMatch(/null|0 B|octet-stream/);
-  });
-});
-
-describe("renderNodeDetail", () => {
-  it("names the parent of a nested file", () => {
-    const detail = renderNodeDetail(node("fn-3"));
-
-    expect(detail).toContain("name: report.pdf");
-    expect(detail).toContain("size: 180 KiB");
-    expect(detail).toContain("parent: fn-1");
-  });
-
-  it("says top level rather than null, and drops the size of a folder", () => {
-    const detail = renderNodeDetail(node("fn-1"));
-
-    expect(detail).toContain("parent: (top level)");
-    expect(detail).not.toMatch(/^size:/m);
-    expect(detail).not.toMatch(/^mime:/m);
-  });
-
-  it("names only the rights the account does not have", () => {
-    const restricted: FileNode = {
-      ...node("fn-3"),
-      myRights: {
-        mayRead: true,
-        mayAddChildren: false,
-        mayRename: true,
-        mayDelete: false,
-        mayModifyContent: true,
-        mayShare: false,
-      },
-    };
-
-    expect(renderNodeDetail(restricted)).toContain("rights: cannot delete");
   });
 });
 

@@ -15,7 +15,7 @@ import type { GetResponse, Id, SetError, SetResponse } from "../../jmap/types/co
 import { CAPABILITY_CORE, CAPABILITY_FILENODE } from "../../jmap/types/core.js";
 import type { FileNode, FileNodeGetArguments } from "../../jmap/types/filenode.js";
 import type { ToolContext } from "../../registry/define-tool.js";
-import { renderFields, renderTable } from "../../shared/render.js";
+import { renderTable } from "../../shared/render.js";
 
 /**
  * What a `FileNode/get` is asked for when the whole node is wanted.
@@ -31,9 +31,6 @@ export const NODE_PROPERTIES = [
   "size",
   "name",
   "type",
-  "created",
-  "modified",
-  "myRights",
 ] as const;
 
 /** The columns of a node table, in reading order. */
@@ -82,23 +79,6 @@ export function renderNodeRow(node: FileNode): Record<string, unknown> {
     mime: directory ? "" : (node.type ?? ""),
     id: node.id,
   };
-}
-
-/** The detail block of one node. Empty fields are dropped, never padded. */
-export function renderNodeDetail(node: FileNode): string {
-  const directory = isDirectory(node);
-
-  return renderFields({
-    id: node.id,
-    name: node.name,
-    type: directory ? "directory" : "file",
-    size: directory || node.size === null || node.size === undefined ? "" : formatSize(node.size),
-    mime: directory ? "" : node.type,
-    parent: node.parentId ?? "(top level)",
-    created: node.created,
-    modified: node.modified,
-    rights: renderRights(node),
-  });
 }
 
 /**
@@ -184,25 +164,4 @@ export function describeNodeOutcome(
 /** A `SetError` as one line. The description is the useful half when there is one. */
 export function describeNodeSetError(error: SetError): string {
   return error.description === undefined ? error.type : `${error.type} — ${error.description}`;
-}
-
-/**
- * The rights worth naming: the ones whose absence explains a later refusal.
- *
- * A node the account may not delete or rename is a node whose refusal is already
- * decided, and reading that here saves a round trip to be told so.
- */
-function renderRights(node: FileNode): string {
-  const rights = node.myRights;
-  if (rights === undefined) return "";
-
-  const denied = [
-    rights.mayRead ? undefined : "cannot read",
-    rights.mayRename ? undefined : "cannot rename",
-    rights.mayDelete ? undefined : "cannot delete",
-    rights.mayModifyContent ? undefined : "cannot modify content",
-    isDirectory(node) && !rights.mayAddChildren ? "cannot add children" : undefined,
-  ].filter((entry): entry is string => entry !== undefined);
-
-  return denied.join(", ");
 }
