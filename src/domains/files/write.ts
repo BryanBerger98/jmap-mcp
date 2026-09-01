@@ -270,10 +270,9 @@ function setNodes(
     [CAPABILITY_CORE, CAPABILITY_FILENODE],
     [
       "FileNode/set",
-      fileNodeSetArguments(context.session.accountId, {
-        ...extra,
-        onDestroyRemoveChildren: false,
-      }),
+      // The flags are left to the factory rather than repeated here: two writers
+      // of the same key is how one of them ends up saying something else.
+      fileNodeSetArguments(context.session.accountId, extra),
       "0",
     ],
   );

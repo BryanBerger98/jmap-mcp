@@ -103,7 +103,7 @@ export function buildNodeCreation(creation: NodeCreation): Partial<FileNode> {
  */
 export function fileNodeSetArguments(
   accountId: Id,
-  extra: Omit<FileNodeSetArguments, "accountId" | "onExists"> | Record<string, never> = {},
+  extra: Partial<Omit<FileNodeSetArguments, "accountId" | "onExists">> = {},
 ): FileNodeSetArguments {
   return {
     accountId,

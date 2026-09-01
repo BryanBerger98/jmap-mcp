@@ -1,6 +1,7 @@
 import { CAPABILITY_FILENODE } from "../../jmap/types/core.js";
 import { defineDomain } from "../../registry/manifest.js";
 import { filesBrowse } from "./browse.js";
+import { filesDelete } from "./delete.js";
 import { filesFetch } from "./fetch.js";
 import { filesWrite } from "./write.js";
 
@@ -18,7 +19,10 @@ export const filesDomain = defineDomain({
  * two make it provable, and a contract test holds the line without a reviewer.
  */
 export const filesWritingDomain = defineDomain({
-  name: "files",
+  // Named apart from the reading manifest, as the other splits are: the
+  // composition report lists a skipped domain by name, and two entries reading
+  // "files" would say nothing about which surface went quiet.
+  name: "files-writing",
   requires: [CAPABILITY_FILENODE],
-  tools: [filesWrite],
+  tools: [filesWrite, filesDelete],
 });

@@ -1,6 +1,6 @@
 ---
 title: Instruction — Détruire, cascade nommée d'avance
-status: pending
+status: done
 updated: 2026-09-01
 owner: bryan
 ---
