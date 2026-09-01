@@ -20,7 +20,6 @@ import {
   MISSING_ROOT_REFUSAL,
   maxUploadSize,
   readLocalFile,
-  refuseMissingRoot,
   refuseUnusableRoot,
   resolveWithinRoot,
   statLocalFile,
@@ -336,9 +335,8 @@ async function refuseUnusableSource(
   input: Input,
   context: ToolContext,
 ): Promise<string | undefined> {
-  const missing = refuseMissingRoot(context.files);
-  if (missing !== undefined) return missing;
-
+  // The narrowing below is the check: it answers an unnamed root with the same
+  // sentence a helper would, and hands `resolveWithinRoot` the `string` it needs.
   const { localRoot } = context.files;
   if (localRoot === undefined) return MISSING_ROOT_REFUSAL;
 
