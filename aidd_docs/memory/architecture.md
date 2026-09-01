@@ -1,7 +1,7 @@
 ---
 title: Architecture
 status: draft
-updated: 2026-09-01
+updated: 2026-09-02
 owner: bryan
 ---
 
@@ -218,6 +218,6 @@ Une lecture en échec, un `total` que le serveur décline, et la confirmation so
 - Une occurrence isolée ne s'écrit pas. Stalwart accepte un identifiant synthétique et transforme silencieusement l'écriture en plan d'instance, donc les trois outils d'écriture le refusent côté client sur `baseEventId` : corriger un mardi n'est pas corriger la série, et la réponse ne dirait pas lequel a eu lieu.
 - La clé du participant que le compte occupe ne se devine pas. Zéro correspondance comme deux font refuser : prendre la première clé répondrait à la place de l'organisateur, et une réponse partie ne se rappelle pas.
 - Les trois champs de nom retombent sur le même index. Filtrer sur `name`, `name/given` ou `name/surname` rend le même résultat, donc chercher un prénom seul est hors de portée du serveur et la description de l'outil doit le dire.
-- `FileNode/query` parse vingt-deux conditions et n'en exécute que neuf. Les treize autres tombent dans une branche vide, sans erreur : une requête qui en porte une rend plus de résultats que demandé, donc le schéma d'entrée n'expose que les neuf honorées et un contrat le tient.
+- `FileNode/query` parse vingt-deux conditions et n'en exécute que neuf. Les treize autres tombent dans une branche vide, sans erreur : une requête qui en porte une rend plus de résultats que demandé, donc aucune condition hors des neuf honorées ne part sur le fil, et un contrat le tient.
 - Un comparateur de fichiers non supporté ne rend pas `UnsupportedSort`, il disparaît. La liste vidée retombe en ordre de document, et une pagination qui croit trier par date pagine alors un ordre qu'elle n'a pas demandé.
 - Le stockage de fichiers n'a pas de corbeille et `onExists` a quatre valeurs, dont deux détruisent. Ce serveur écrit `null` sur chaque `FileNode/set` : remplacer un fichier est une destruction, et une destruction passe par `files_delete`, où elle se confirme.

@@ -2,7 +2,7 @@
 objective: "L'assistant parcourt, récupère, dépose et supprime dans l'espace de fichiers du compte, aucun octet ne traversant la conversation et aucune destruction ne partant sans que son sous-arbre ait été compté."
 title: Plan — Stockage de fichiers
 status: implemented
-updated: 2026-09-01
+updated: 2026-09-02
 owner: bryan
 ---
 
@@ -79,7 +79,7 @@ Un serveur qui refuserait l'écriture ne ferait pas taire le parcours.
 
 **📏 La liste close des conditions**
 
-Le schéma d'entrée de `files_browse` n'expose que les neuf conditions honorées, et un test de contrat vérifie qu'aucune autre ne part sur le fil.
+Le schéma d'entrée de `files_browse` n'offre que sept des neuf conditions honorées, `descendantId` restant hors surface et `isTopLevel` étant posé en repli quand le filtre est vide, et un test de contrat vérifie qu'aucune condition hors des neuf ne part sur le fil.
 Restreindre le schéma ne suffit pas : la règle porte sur ce qui est émis, comme la liste blanche de méthodes du contrat des agendas.
 
 **🚪 La frontière du disque**
