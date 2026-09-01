@@ -30,6 +30,7 @@ import {
 import {
   BOUND_SCHEMA_PATTERN,
   formatInstant,
+  instantOf,
   localToUtc,
   normalizeBound,
   parseIsoDuration,
@@ -298,9 +299,9 @@ async function readOwnCalendars(
 
 function toIntervals(answer: PrincipalGetAvailabilityResponse): Interval[] {
   return (answer.list ?? []).flatMap((period: BusyPeriod) => {
-    const start = Date.parse(period.utcStart);
-    const end = Date.parse(period.utcEnd);
-    return Number.isNaN(start) || Number.isNaN(end) ? [] : [{ start, end }];
+    const start = instantOf(period.utcStart);
+    const end = instantOf(period.utcEnd);
+    return start === undefined || end === undefined ? [] : [{ start, end }];
   });
 }
 
