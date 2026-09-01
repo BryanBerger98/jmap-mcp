@@ -140,11 +140,6 @@ export const filesBrowse = defineTool({
     // nobody where they are. Read in the same round trip, and only when there is
     // one to name.
     const scopeId = input.parentId ?? input.ancestorId;
-    const scopeArguments: FileNodeGetArguments = {
-      accountId: session.accountId,
-      ids: scopeId === undefined ? [] : [scopeId],
-      properties: [...SCOPE_PROPERTIES],
-    };
 
     const calls: Invocation[] = [
       ["FileNode/query", queryArguments, "0"],
@@ -158,7 +153,16 @@ export const filesBrowse = defineTool({
         "1",
       ],
     ];
-    if (scopeId !== undefined) calls.push(["FileNode/get", scopeArguments, "2"]);
+    if (scopeId !== undefined)
+      calls.push([
+        "FileNode/get",
+        {
+          accountId: session.accountId,
+          ids: [scopeId],
+          properties: [...SCOPE_PROPERTIES],
+        } satisfies FileNodeGetArguments,
+        "2",
+      ]);
 
     const [query, fetched, scope] = await client.requestMany<
       [QueryResponse, GetResponse<FileNode>, GetResponse<FileNode>?]
