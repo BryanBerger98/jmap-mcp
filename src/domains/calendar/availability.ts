@@ -200,7 +200,7 @@ async function askServer(
   try {
     return await client.request<PrincipalGetAvailabilityResponse>(
       [CAPABILITY_CORE, CAPABILITY_CALENDARS, CAPABILITY_PRINCIPALS_AVAILABILITY],
-      ["Principal/getAvailability", args as unknown as Record<string, unknown>, "0"],
+      ["Principal/getAvailability", args, "0"],
     );
   } catch (error) {
     if (error instanceof JmapMethodError && error.type === "forbidden") return undefined;
