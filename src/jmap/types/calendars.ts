@@ -90,8 +90,9 @@ export interface CalendarRecurrenceRule {
  * An event: a JSCalendar object plus the JMAP properties of the draft.
  *
  * `utcStart` and `utcEnd` are computed by the server and are what every
- * rendering reads: `start` is a local time whose `timeZone` may be null, so
- * ordering or displaying it without the server's computation would be guesswork.
+ * rendering reads. The JSCalendar local start, its duration and its own zone are
+ * absent on purpose: that zone may be null, so ordering or displaying a local
+ * time without the server's computation would be guesswork.
  */
 export interface CalendarEvent {
   id: Id;
@@ -103,9 +104,6 @@ export interface CalendarEvent {
   recurrenceId?: string | null;
   title?: string;
   description?: string;
-  start?: string;
-  duration?: string;
-  timeZone?: string | null;
   showWithoutTime?: boolean;
   status?: string;
   freeBusyStatus?: string;

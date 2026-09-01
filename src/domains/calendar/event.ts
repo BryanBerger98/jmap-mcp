@@ -40,7 +40,6 @@ export const EVENT_ROW_PROPERTIES = [
   "status",
   "locations",
   "recurrenceRules",
-  "baseEventId",
 ] as const;
 
 /** What one detail block shows, on top of the row properties. */
@@ -52,9 +51,6 @@ export const EVENT_DETAIL_PROPERTIES = [
   "recurrenceId",
   "title",
   "description",
-  "start",
-  "duration",
-  "timeZone",
   "showWithoutTime",
   "status",
   "freeBusyStatus",
