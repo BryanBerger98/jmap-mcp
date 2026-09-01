@@ -1,0 +1,19 @@
+{
+  "accountId": "acc-1",
+  "state": "identities-1",
+  "list": [
+    {
+      "id": "pi-1",
+      "name": "Bryan Berger",
+      "calendarAddress": "mailto:Bryan@Example.COM",
+      "isDefault": true
+    },
+    {
+      "id": "pi-2",
+      "name": "Bryan Berger (contrats)",
+      "calendarAddress": "mailto:bryan.berger@example.com",
+      "isDefault": false
+    }
+  ],
+  "notFound": []
+}

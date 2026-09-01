@@ -1,8 +1,11 @@
 import { CAPABILITY_CALENDARS, CAPABILITY_PRINCIPALS_AVAILABILITY } from "../../jmap/types/core.js";
 import { defineDomain } from "../../registry/manifest.js";
 import { calendarAvailability } from "./availability.js";
+import { calendarDelete } from "./delete.js";
 import { calendarRead } from "./read.js";
+import { calendarRespond } from "./respond.js";
 import { calendarSearch } from "./search.js";
+import { calendarWrite } from "./write.js";
 
 /**
  * search, read.
@@ -32,4 +35,22 @@ export const calendarAvailabilityDomain = defineDomain({
   name: "calendar-availability",
   requires: [CAPABILITY_CALENDARS, CAPABILITY_PRINCIPALS_AVAILABILITY],
   tools: [calendarAvailability],
+});
+
+/**
+ * write, respond, delete.
+ *
+ * Split from the reading manifest on the `contactsWritingDomain` pattern, and for
+ * the same reason: `calendarDomain` stays provably free of any write, and the
+ * contract that asserts it keeps holding without a line rewritten each time a
+ * writing tool is added here.
+ *
+ * The capability is the same one the reads need. Nothing else is required: a
+ * write that mails its participants goes through `CalendarEvent/set` like any
+ * other, with `sendSchedulingMessages` deciding whether anything leaves.
+ */
+export const calendarWritingDomain = defineDomain({
+  name: "calendar-writing",
+  requires: [CAPABILITY_CALENDARS],
+  tools: [calendarWrite, calendarRespond, calendarDelete],
 });

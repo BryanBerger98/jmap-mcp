@@ -8,7 +8,7 @@ owner: bryan
 # Carte du code
 
 > [!NOTE]
-> Le mail expose dix outils : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` ; les contacts en exposent cinq, deux en lecture et trois en écriture : `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage` ; les agendas en exposent trois, tous en lecture : `calendar_search`, `calendar_read`, `calendar_availability`.
+> Vingt et un outils sont exposés, le mail en portant dix : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` ; les contacts cinq, deux en lecture et trois en écriture : `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage` ; les agendas six, trois en lecture et trois en écriture : `calendar_search`, `calendar_read`, `calendar_availability`, `calendar_write`, `calendar_respond`, `calendar_delete`.
 > Les trois autres domaines restent des manifestes à `tools: []`.
 
 ## 🗺️ Découpe
@@ -46,7 +46,7 @@ flowchart TD
 
 Les types JMAP vivent sous `src/jmap/types/`, un fichier par spécification.
 Chaque domaine sous `src/domains/` regroupe ses outils par verbe métier, jamais par méthode JMAP.
-Un domaine peut se scinder en plusieurs manifestes : le mail en a trois, les contacts deux, les agendas deux.
+Un domaine peut se scinder en plusieurs manifestes : le mail en a trois, les contacts deux, les agendas trois.
 
 | Manifeste | Capacités | Outils |
 | --- | --- | --- |
@@ -57,6 +57,7 @@ Un domaine peut se scinder en plusieurs manifestes : le mail en a trois, les con
 | `contactsWritingDomain` | `contacts` | `contacts_write`, `contacts_delete`, `contacts_book_manage` |
 | `calendarDomain` | `calendars` | `calendar_search`, `calendar_read` |
 | `calendarAvailabilityDomain` | `calendars`, `principals:availability` | `calendar_availability` |
+| `calendarWritingDomain` | `calendars` | `calendar_write`, `calendar_respond`, `calendar_delete` |
 
 Sans ce découpage, un serveur qui n'expédie pas ferait taire aussi les outils de lecture.
 Le rangement est séparé de la lecture sur la même capacité, pour une autre raison : `mailDomain` reste ainsi prouvablement en lecture seule, et le contrat qui l'affirme vaut mieux qu'un fichier de moins.
@@ -70,9 +71,13 @@ Les agendas se scindent pour une raison qui n'a rien à voir avec l'écriture : 
 `src/domains/calendar/time.ts` porte tout ce qui touche aux fuseaux et aux bornes : validation d'un nom IANA, normalisation d'une date locale, conversion local vers UTC par `Intl.DateTimeFormat`, `Temporal` étant absent de Node 24.
 `src/domains/calendar/event.ts` porte le rendu partagé : légende des agendas, chaîne de repli du fuseau, ligne d'événement, bloc de détail, participants, fusion d'intervalles. Il n'importe aucun client JMAP.
 
+L'écriture des agendas forme un troisième manifeste, sur la capacité des lectures, pour la raison qui vaut déjà pour le mail et les contacts : `calendarDomain` reste prouvablement sans écriture.
+`src/domains/calendar/edit.ts` porte ce que les trois outils d'écriture partagent : construction du patch et de la création, résolution des agendas et des identités mises en cache, clé du participant que le compte occupe, refus d'une occurrence isolée, rendu des refus par identifiant.
+Seules deux de ses fonctions touchent le réseau, tout le reste se teste sans serveur.
+
 Deux choses vivent hors du domaine parce qu'un second domaine les lit déjà.
 `src/shared/pagination.ts` remet les identifiants demandés dans leur ordre, pour le mail, les contacts et les agendas.
-`src/shared/batch.ts` porte le plafond dur de cinquante identifiants par appel, que le rangement du mail et l'écriture des contacts partagent : deux plafonds auraient divergé au premier ajustement.
+`src/shared/batch.ts` porte le plafond dur de cinquante identifiants par appel, que le rangement du mail, l'écriture des contacts et celle des agendas partagent : trois plafonds auraient divergé au premier ajustement.
 
 ## 🚪 Points d'entrée
 

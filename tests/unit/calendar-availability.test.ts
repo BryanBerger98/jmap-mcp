@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_POLICY } from "../../src/config/policy.js";
 import { OPEN_SCOPE } from "../../src/config/recipients.js";
 import { DEFAULT_BULK_CONFIRM_ABOVE } from "../../src/config/schema.js";
 import { calendarAvailability } from "../../src/domains/calendar/availability.js";
@@ -139,6 +140,7 @@ function scripted(script: Script): { context: ToolContext; requests: JmapRequest
       }),
       session: fixtureSession(),
       recipients: OPEN_SCOPE,
+      policy: DEFAULT_POLICY,
       bulkConfirmAbove: DEFAULT_BULK_CONFIRM_ABOVE,
       once: perInvocationCache(),
     },

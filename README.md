@@ -4,11 +4,11 @@ Local MCP server that exposes a [Stalwart](https://stalw.art) mail server's JMAP
 
 No data leaves your machine except the exchange with your own server.
 
-> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable and writable: cards and the address books that hold them. Calendars are readable: searching, reading and checking availability. The three other domains register nothing yet.
+> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable and writable: cards and the address books that hold them. Calendars are readable and writable: searching, reading, checking availability, creating, correcting, answering an invitation and deleting. The three other domains register nothing yet.
 
 ## Tools
 
-Eighteen tools across three domains, mail, calendar and contacts. The class is what the write policy below gates.
+Twenty-one tools across three domains, mail, calendar and contacts. The class is what the write policy below gates.
 
 | Tool | Class | Does |
 | --- | --- | --- |
@@ -30,6 +30,9 @@ Eighteen tools across three domains, mail, calendar and contacts. The class is w
 | `calendar_search` | `read` | Searches calendar events, paginated, every calendar named in the header |
 | `calendar_read` | `read` | Reads up to 20 events by id, participants included |
 | `calendar_availability` | `read` | Returns busy periods in a time window, no event detail |
+| `calendar_write` | `draft` or `send` | Creates an event, or corrects the named fields of one; `notify` mails the invitation |
+| `calendar_respond` | `send` or `draft` | Answers a received invitation; `notify: false` keeps the answer local |
+| `calendar_delete` | `destroy` | Erases events for good; `notify` mails a cancellation |
 
 A contact write only ever touches the fields the call names: it patches the paths given and leaves every other field of the card untouched. `contacts_delete` has no reversible form, which is why it carries a single class — no folder holds a destroyed card and no later call brings it back. Deleting an address book never destroys the cards inside it: a book still holding cards is refused, as are the default book and the last remaining one.
 
@@ -37,16 +40,20 @@ A contact write only ever touches the fields the call names: it patches the path
 
 `calendar_availability` answers through `Principal/getAvailability` first, and only falls back to reading the account's own calendars when the server refuses that method with `forbidden`. The fallback cannot see calendars shared with the account by someone else, and it counts every event on an attendance-limited calendar rather than checking who is actually invited — both gaps make it under-report busy time, never over-report it.
 
+The three calendar writes read their class off `notify`, because that argument decides whether mail leaves the account: `calendar_write` is a `draft` until it invites, and `calendar_respond` is a `send` unless `notify: false` keeps the answer to yourself. `calendar_delete` stays `destroy` whatever `notify` says — telling the participants widens who learns about the deletion, it does not soften it — and it refuses outright when the policy denies sends but the call asks to cancel. Every write states on the wire whether the server should send scheduling mail, and a successful write never proves a mail actually left: Stalwart skips scheduling silently when iTIP is off, when the account lacks the permission, or when the event is entirely in the past, so the answer says what was asked for, not what was delivered.
+
+One gap is deliberate: a single occurrence of a recurring series cannot be corrected, answered or deleted on its own. Passing an occurrence id is refused by name rather than quietly applied to the whole series, and deleting a recurring event takes every occurrence with it.
+
 ### Batch limits
 
-The organizing and contact-writing tools act on ids a search returned, never on a filter they run themselves. The same two limits govern both.
+The organizing, contact-writing and calendar-writing tools act on ids a search returned, never on a filter they run themselves. The same two limits govern them.
 
 | Limit | Value | Configurable |
 | --- | --- | --- |
 | Ids per call | 50 | No |
 | Asks above | 20 | `bulkConfirmAbove`, `JMAP_BULK_CONFIRM_ABOVE` |
 
-Past the threshold, a reversible bulk write asks before it runs even though its class is `allow` — moving two hundred messages is still a move, but its size is worth a look. `mail_flag` never asks whatever the volume: marking a thousand messages read is undone by marking them unread. `contacts_write` does ask past the threshold: correcting thirty cards at once stays a `draft`, but nothing on the server records what the fields held before.
+Past the threshold, a reversible bulk write asks before it runs even though its class is `allow` — moving two hundred messages is still a move, but its size is worth a look. `mail_flag` never asks whatever the volume: marking a thousand messages read is undone by marking them unread. `contacts_write` does ask past the threshold: correcting thirty cards at once stays a `draft`, but nothing on the server records what the fields held before. `calendar_write` and `calendar_respond` ask on the same ground, and for one reason more: past a certain count, a write nobody looked at is a write mailed to people nobody counted.
 
 ## Why
 
