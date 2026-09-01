@@ -94,6 +94,33 @@ describe("resolveWithinRoot", () => {
 
     expect(result.ok).toBe(true);
   });
+
+  // Root traverses a directory whatever its mode, so the case cannot be staged.
+  it.skipIf(process.getuid?.() === 0)(
+    "refuses a path it could not resolve rather than treating it as not there yet",
+    async () => {
+      const locked = join(root, "locked-resolve");
+      await mkdir(locked);
+      await symlink(outside, join(locked, "escape"));
+      await chmod(locked, 0o000);
+
+      try {
+        // The link leaves the root, and the mode hides it. Walking up to the
+        // last readable ancestor would hand back a name that is lexically
+        // inside the root and really points at `outside`.
+        const result = await resolveWithinRoot("locked-resolve/escape/secret.txt", root);
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+          expect(result.refusal).toMatch(/could not be resolved/);
+          expect(result.refusal).toContain("EACCES");
+        }
+      } finally {
+        await chmod(locked, 0o700);
+        await rm(locked, { recursive: true, force: true });
+      }
+    },
+  );
 });
 
 describe("statLocalFile", () => {

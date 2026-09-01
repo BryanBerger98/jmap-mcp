@@ -78,18 +78,38 @@ export function refuseMissingRoot(files: Config["files"]): string | undefined {
  */
 export async function resolveWithinRoot(target: string, root: string): Promise<LocalPath> {
   const realRoot = await resolveDeepest(resolve(root));
-  const lexical = isAbsolute(target) ? resolve(target) : resolve(realRoot, target);
-  const path = await resolveDeepest(lexical);
+  if (!realRoot.ok)
+    return { ok: false, refusal: unresolvable(`${LOCAL_ROOT_KEY} ${root}`, realRoot.reason) };
 
-  if (path !== realRoot && !path.startsWith(realRoot + sep)) {
+  const lexical = isAbsolute(target) ? resolve(target) : resolve(realRoot.path, target);
+  const resolved = await resolveDeepest(lexical);
+  if (!resolved.ok) return { ok: false, refusal: unresolvable(target, resolved.reason) };
+
+  const path = resolved.path;
+  if (path !== realRoot.path && !path.startsWith(realRoot.path + sep)) {
     return {
       ok: false,
       refusal:
-        `Refused: ${target} resolves to ${path}, which is outside ${realRoot}. This server reads and ` +
+        `Refused: ${target} resolves to ${path}, which is outside ${realRoot.path}. This server reads and ` +
         `writes local files only under the directory named by ${LOCAL_ROOT_KEY}.`,
     };
   }
   return { ok: true, path };
+}
+
+/**
+ * The refusal for a path whose real target this process could not learn.
+ *
+ * Refusing is the only honest answer left: the containment check compares real
+ * paths, and a name whose symlinks were never followed says nothing about where
+ * the bytes would land. Passing it through would be a check in name only.
+ */
+function unresolvable(what: string, reason: string): string {
+  return (
+    `Refused: ${what} could not be resolved — ${reason}. This server follows every symlink before ` +
+    `it decides whether a path is inside ${LOCAL_ROOT_KEY}, and it does not let through a path it ` +
+    "could not check."
+  );
 }
 
 /**
@@ -167,6 +187,9 @@ export function maxUploadSize(session: JmapSession): number | undefined {
   return stated !== undefined && stated > 0 ? stated : undefined;
 }
 
+/** A real path, or the reason this process could not work one out. */
+type DeepestPath = { ok: true; path: string } | { ok: false; reason: string };
+
 /**
  * The real path of the deepest ancestor that exists, with the missing tail
  * appended.
@@ -175,19 +198,27 @@ export function maxUploadSize(session: JmapSession): number | undefined {
  * a file that is not there by definition. Walking up until something resolves
  * gives the same protection: every symlink on the existing part is followed, and
  * what is left cannot hide one because it does not exist.
+ *
+ * Only an absence justifies that walk. Any other errno means the symlinks at
+ * that level were never followed, so climbing past it and gluing the tail back
+ * on would produce a path that looks resolved and is not — the one output this
+ * boundary must never produce.
  */
-async function resolveDeepest(path: string): Promise<string> {
+async function resolveDeepest(path: string): Promise<DeepestPath> {
   const missing: string[] = [];
   let existing = path;
 
   for (;;) {
     try {
       const real = await realpath(existing);
-      return missing.length === 0 ? real : join(real, ...missing.reverse());
-    } catch {
+      return { ok: true, path: missing.length === 0 ? real : join(real, ...missing.reverse()) };
+    } catch (error) {
+      if (!isAbsence(error)) return { ok: false, reason: describeErrno(error) };
+
       const parent = dirname(existing);
-      // The filesystem root itself did not resolve: nothing above to try.
-      if (parent === existing) return path;
+      // The filesystem root itself did not resolve: nothing above to try, and
+      // no answer to give but the failure.
+      if (parent === existing) return { ok: false, reason: describeErrno(error) };
       missing.push(basename(existing));
       existing = parent;
     }
