@@ -126,6 +126,26 @@ Le second est obligatoire dans le type des arguments : une branche qui l'oublier
 Le périmètre des destinataires ne s'élargit pas en cours de session.
 Créer une fiche avec `contacts_write` n'ouvre rien : le périmètre est résolu une fois au démarrage, et l'adresse n'y entre qu'au redémarrage suivant.
 
+## 📅 Ce qu'une disponibilité traverse
+
+`Principal/getAvailability` est le seul chemin propre vers une disponibilité, et Stalwart le referme par défaut : sans `allowDirectoryQueries`, la permission est retirée du jeton et la méthode répond `forbidden`.
+La capacité est pourtant annoncée sans condition, donc le gating par capacité ne protège de rien ici : seul un repli tient la promesse de l'outil.
+
+```txt
+Principal/getAvailability
+  → réponse           → plages fusionnées
+  → forbidden         → repli : Calendar/get + CalendarEvent/query déplié
+  → toute autre erreur → remontée telle quelle
+```
+
+Seul `forbidden` ouvre le repli. Une panne de transport ou une autre erreur de méthode voyage jusqu'à l'appelant : répondre depuis les agendas à la place d'une requête qui n'a jamais tourné rendrait une réponse sûre d'elle et sans fondement.
+
+Le repli dit toujours ce qu'il ne voit pas : les agendas partagés par un tiers, et la nuance `includeInAvailability: "attending"` traitée comme `all` faute de pouvoir juger l'assistance sans lire la liste des participants.
+Les deux écarts sous-déclarent le temps occupé, soit la direction qui trompe : un créneau annoncé libre peut ne pas l'être.
+
+La fenêtre est refusée avant qu'aucune méthode ne parte, sur les bornes en heure locale et avant même que le fuseau soit résolu.
+Ce contrôle n'existe que pour devancer un refus que le serveur prononcerait de toute façon, et une heure de décalage ne change aucun verdict qu'il rend.
+
 ## ⚠️ Pièges
 
 - Le niveau `confirm` s'appuie sur MRTR. Quand le client ne l'expose pas, l'outil refuse : jamais d'exécution silencieuse.
@@ -139,4 +159,9 @@ Créer une fiche avec `contacts_write` n'ouvre rien : le périmètre est résolu
 - Les fiches de contact ne se trient pas par nom. Stalwart rend `UnsupportedSort` sur `name`, seuls `created` et `updated` étant indexés pour l'ordre : une pagination stable n'a d'autre choix que la date de création.
 - Les clés de `members` sont des `uid` de fiche, jamais des identifiants JMAP. Un outil qui reçoit des identifiants doit les traduire par une lecture, sans quoi le groupe pointe sur des membres inexistants et le serveur l'accepte sans broncher.
 - Supprimer un carnet ne supprime jamais ses fiches, et rien ne les rattrape : les contacts n'ont pas de corbeille. Un carnet encore peuplé, le carnet par défaut et le dernier carnet restant sont refusés avant la requête.
+- `expandRecurrences` exige les deux bornes. Sans fenêtre complète, Stalwart refuse le dépliage : une recherche sans dates rend des événements de base, et l'en-tête doit le dire plutôt que laisser croire à des occurrences.
+- Le tri des événements ne connaît qu'un ordre stable. `created` et `updated` sont refusés hors dépliage, donc `start` ascendant est le seul tri que les deux modes acceptent.
+- `recurrenceOverrides` ne se demande jamais avec `utcStart` ou `utcEnd`. Le draft interdit la combinaison, et le dépliage rend la question sans objet.
+- `until` d'une règle de récurrence est une heure locale, pas un instant. La lire dans le fuseau de la réponse déplacerait une borne qui n'a pas de décalage à subir : seule sa date est affichée.
+- `Temporal` est absent de Node 24. Toute conversion local vers UTC passe par `Intl.DateTimeFormat` et `formatToParts`, en deux passes pour tenir un changement d'heure.
 - Les trois champs de nom retombent sur le même index. Filtrer sur `name`, `name/given` ou `name/surname` rend le même résultat, donc chercher un prénom seul est hors de portée du serveur et la description de l'outil doit le dire.
