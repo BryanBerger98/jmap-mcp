@@ -445,9 +445,51 @@ describe("calendar_write — what the user is asked", () => {
       context,
     );
 
-    expect(summary).toContain("2 invitee");
+    expect(summary).toContain("2 participants");
     expect(summary).toContain("noor@example.org");
     expect(summary).toContain("paul@example.org");
+  });
+
+  it("names the guests already on the event, which a correction mails too", async () => {
+    const { context } = fakeTransport([only("ev-invited")]);
+
+    // Nothing is added here: what leaves is aimed at the three people the event
+    // already carries, and a bare "the participants" names none of them.
+    const summary = await calendarWrite.summarize(
+      { eventIds: ["ev-invited"], status: "cancelled", notify: true },
+      context,
+    );
+
+    expect(summary).toContain("3 participants");
+    for (const guest of ["claire@example.org", "bryan@example.com", "paul@example.org"]) {
+      expect(summary).toContain(guest);
+    }
+  });
+
+  it("counts the union rather than the additions, since the server mails both", async () => {
+    const { context } = fakeTransport([only("ev-invited")]);
+
+    const summary = await calendarWrite.summarize(
+      { eventIds: ["ev-invited"], participantsAdd: ["noor@example.org"], notify: true },
+      context,
+    );
+
+    expect(summary).toContain("4 participants");
+    expect(summary).toContain("noor@example.org");
+  });
+
+  it("gives no number at all rather than a number smaller than what leaves", async () => {
+    // The transport answers `{}`, so the read throws and only the additions are
+    // left — one address where four would be mailed.
+    const { context } = fakeTransport([]);
+
+    const summary = await calendarWrite.summarize(
+      { eventIds: ["ev-invited"], participantsAdd: ["noor@example.org"], notify: true },
+      context,
+    );
+
+    expect(summary).toContain("could not be read");
+    expect(summary).not.toContain("1 participant");
   });
 
   it("says a correction reaches the whole series before it is confirmed", async () => {

@@ -378,16 +378,12 @@ async function correctEvents(input: WriteInput, context: ToolContext) {
  */
 async function summarize(input: WriteInput, context: ToolContext): Promise<string> {
   const ids = input.eventIds ?? [];
-  const invited = input.participantsAdd ?? [];
-
-  const mailing =
-    input.notify !== true
-      ? "Nothing is mailed to anyone."
-      : `The server is asked to mail ${invited.length === 0 ? "the participants" : `${invited.length} invitee(s) (${invited.join(", ")})`} about it.`;
 
   if (ids.length === 0) {
     const when = input.start === undefined ? "" : ` on ${input.start}${zoneSuffix(input)}`;
-    return `Create the event "${input.title ?? "(untitled)"}"${when}. ${mailing}`;
+    // Nothing to read on a creation: the event does not exist yet, so everybody
+    // it would mail is already named in the arguments.
+    return `Create the event "${input.title ?? "(untitled)"}"${when}. ${mailingNote(input, [])}`;
   }
 
   const counted = `${ids.length} event${ids.length === 1 ? "" : "s"}`;
@@ -410,13 +406,58 @@ async function summarize(input: WriteInput, context: ToolContext): Promise<strin
       named === "" ? `Correct ${counted}.` : `Correct ${counted}: ${named}${more}.`,
       input.start === undefined ? undefined : `New start: ${input.start}${zoneSuffix(input)}.`,
       seriesNote(events),
-      mailing,
+      mailingNote(input, events),
     ]
       .filter((line): line is string => line !== undefined)
       .join(" ");
   } catch {
-    return `Correct ${counted}. ${mailing}`;
+    return `Correct ${counted}. ${blindMailingNote(input)}`;
   }
+}
+
+/**
+ * Who a scheduling mail would reach, and how many, before it is confirmed.
+ *
+ * The union of the guests this call adds and the ones the events already carry:
+ * `sendSchedulingMessages` reaches both, and a sentence counting only the
+ * additions would understate what leaves, which is the direction that misleads.
+ */
+function mailingNote(input: WriteInput, events: readonly CalendarEvent[]): string {
+  if (input.notify !== true) return "Nothing is mailed to anyone.";
+
+  const addressed = everyoneMailed(input, events);
+  return addressed.length === 0
+    ? "The server is asked to mail the participants about it, but there is none to reach."
+    : `The server is asked to mail ${addressed.length} participant` +
+        `${addressed.length === 1 ? "" : "s"} (${addressed.join(", ")}) about it.`;
+}
+
+/**
+ * The same sentence when the recipients could not be established.
+ *
+ * A read the summary only needed for its wording never fails the call, and the
+ * count left over — the additions alone — would be smaller than what leaves. No
+ * number at all is the honest answer.
+ */
+function blindMailingNote(input: WriteInput): string {
+  return input.notify !== true
+    ? "Nothing is mailed to anyone."
+    : "The server is asked to mail the participants about it, and who they are could not be read.";
+}
+
+/** The addresses this call would mail, once each, whichever side they come from. */
+function everyoneMailed(input: WriteInput, events: readonly CalendarEvent[]): string[] {
+  const seen = new Map<string, string>();
+
+  for (const address of [...(input.participantsAdd ?? []), ...participantsOf(events)]) {
+    const trimmed = address.trim();
+    if (trimmed === "") continue;
+
+    const folded = trimmed.toLowerCase();
+    if (!seen.has(folded)) seen.set(folded, trimmed);
+  }
+
+  return [...seen.values()];
 }
 
 /** One event's start as the event itself states it, zone included. */
