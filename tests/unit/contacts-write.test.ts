@@ -221,6 +221,18 @@ describe("contacts_write — refusals", () => {
     expect(named(requests, "ContactCard/set")).toHaveLength(0);
   });
 
+  it("refuses set combined with add, in a sentence rather than a thrown error", async () => {
+    const { context, requests } = fakeTransport([]);
+
+    const result = await contactsWrite.run(
+      { cardIds: ["card-e1"], addressBooks: { set: ["bk-1"], add: ["bk-2"] } },
+      context,
+    );
+
+    expect(result.text).toContain("addressBooks.set");
+    expect(requests).toHaveLength(0);
+  });
+
   it("refuses a creation asked to be taken out of a book, rather than dropping it", async () => {
     const { context, requests } = fakeTransport([undecidedBooks]);
 

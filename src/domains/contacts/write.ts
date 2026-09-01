@@ -197,6 +197,21 @@ async function refuse(input: WriteInput, context: ToolContext): Promise<string |
     }
   }
 
+  // Stated as a sentence here rather than left to `buildPatch`, which throws on
+  // it, and to `createCard`, which silently keeps `set` and drops `add`: the
+  // constraint is the schema's prose, so a call breaking it deserves the reason.
+  const membership = input.addressBooks;
+  if (
+    membership?.set !== undefined &&
+    ((membership.add ?? []).length > 0 || (membership.remove ?? []).length > 0)
+  ) {
+    return (
+      "Refused: addressBooks.set replaces the whole membership while add and remove amend it, " +
+      "and RFC 8620 §5.3 forbids one patch being the prefix of another. Pass set alone, with " +
+      "the full list of books the cards are to sit in, or pass add and remove alone."
+    );
+  }
+
   if (ids.length === 0) {
     const named = input.name?.trim();
     const addressed = input.emails?.add ?? [];
