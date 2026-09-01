@@ -88,7 +88,35 @@ export async function uploadBlob(
   if (!response.ok) {
     throw new JmapError("about:blank", `Blob upload failed: ${response.status}`, response.status);
   }
-  return (await response.json()) as BlobUploadResult;
+  return readUploadResult(response);
+}
+
+/**
+ * The upload answer, checked rather than assumed.
+ *
+ * `blobId` is the whole point of the round trip: it travels straight into a
+ * `FileNode/set`, which drops it when it is undefined and creates a node holding
+ * nothing, while the tool reports the size it read off the local disk. A blind
+ * cast lets exactly that through — the same silent success `UNWIRED_BLOBS`
+ * refuses to report — so a body that is not JSON and a body without a usable
+ * `blobId` both raise here.
+ *
+ * Only that one field is checked: nothing downstream reads the other three.
+ */
+async function readUploadResult(response: Response): Promise<BlobUploadResult> {
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    throw new JmapError("about:blank", "Blob upload returned a body that is not JSON");
+  }
+
+  const blobId = (body as Partial<BlobUploadResult> | null | undefined)?.blobId;
+  if (typeof blobId !== "string" || blobId === "") {
+    throw new JmapError("about:blank", "Blob upload returned no blobId");
+  }
+
+  return body as BlobUploadResult;
 }
 
 export async function downloadBlob(
