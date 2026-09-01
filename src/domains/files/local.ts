@@ -25,19 +25,25 @@ export type LocalStat =
   | { kind: "missing" };
 
 /**
+ * The refusal, spelled as a constant rather than built inside the check.
+ *
+ * A `run` that reaches the option again cannot narrow it from the `precheck`
+ * that already refused, and it needs the same sentence without asking a function
+ * that may hand back `undefined`.
+ */
+export const MISSING_ROOT_REFUSAL =
+  `Refused: this server moves file bytes only inside a directory you have named, and ${LOCAL_ROOT_KEY} ` +
+  "is not set. Set it to an absolute path in your configuration, then retry. Browsing, creating a " +
+  "folder, organizing and deleting need no such directory and work as they are.";
+
+/**
  * The refusal to raise from a `precheck` when no root was configured.
  *
  * It names the key rather than inventing a temporary directory: a working path
  * the user did not name is a path they do not watch.
  */
 export function refuseMissingRoot(files: Config["files"]): string | undefined {
-  if (files.localRoot !== undefined) return undefined;
-
-  return (
-    `Refused: this server moves file bytes only inside a directory you have named, and ${LOCAL_ROOT_KEY} ` +
-    "is not set. Set it to an absolute path in your configuration, then retry. Browsing, creating a " +
-    "folder, organizing and deleting need no such directory and work as they are."
-  );
+  return files.localRoot === undefined ? MISSING_ROOT_REFUSAL : undefined;
 }
 
 /**
