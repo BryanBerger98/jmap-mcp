@@ -19,9 +19,10 @@ export const filesDomain = defineDomain({
  * two make it provable, and a contract test holds the line without a reviewer.
  */
 export const filesWritingDomain = defineDomain({
-  // Named apart from the reading manifest, as the other splits are: the
-  // composition report lists a skipped domain by name, and two entries reading
-  // "files" would say nothing about which surface went quiet.
+  // Named apart from the reading manifest, as the contacts and calendar
+  // splits are: the composition report lists a skipped domain by name, and
+  // two entries reading "files" would say nothing about which surface went
+  // quiet.
   name: "files-writing",
   requires: [CAPABILITY_FILENODE],
   tools: [filesWrite, filesDelete],
