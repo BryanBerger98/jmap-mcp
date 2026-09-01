@@ -172,13 +172,16 @@ async function runUpload(input: Input, context: ToolContext): Promise<ToolResult
   const unusableRoot = await refuseUnusableRoot(localRoot);
   if (unusableRoot !== undefined) return { text: unusableRoot };
 
-  const source = await resolveWithinRoot(demand(input.path, "path"), localRoot);
+  const path = demand(input.path, "path");
+  const source = await resolveWithinRoot(path, localRoot);
   if (!source.ok) return { text: source.refusal };
 
   const unusable = await refuseUnreadableSource(source, context);
   if (unusable !== undefined) return { text: unusable };
 
-  const name = uploadName(input) ?? basename(source.path);
+  // Taken from the path as given, never from `source.path`: that one is the
+  // realpath, so a symlink would be deposited under the name of its target.
+  const name = input.name ?? basename(path);
   const invalid = refuseInvalidName(name);
   if (invalid !== undefined) return { text: invalid };
 
