@@ -396,6 +396,37 @@ export function participantsOf(events: readonly CalendarEvent[]): string[] {
   return [...seen.values()];
 }
 
+/** How many events a confirmation names before it stops and counts instead. */
+export const NAMED_IN_SUMMARY = 5;
+
+/** One event's start as the event itself states it, zone included. */
+export function describeWhen(event: CalendarEvent): string {
+  if (event.start === undefined) return "no start";
+  return event.timeZone === undefined ? event.start : `${event.start} ${event.timeZone}`;
+}
+
+/**
+ * Says out loud that a rule-bearing event is a series, not the date being read.
+ *
+ * `consequence` is the caller's own verb — what its write does to the series —
+ * because that is the whole of the difference between a correction and a
+ * deletion here. The clause that follows it never varies: whichever tool asks,
+ * the fact being stated is that the rule covers dates nobody named.
+ */
+export function seriesNote(
+  events: readonly CalendarEvent[],
+  consequence: string,
+): string | undefined {
+  const recurring = events.filter((event) => (event.recurrenceRules?.length ?? 0) > 0);
+  if (recurring.length === 0) return undefined;
+
+  const named = recurring.map((event) => event.id).join(", ");
+  return (
+    `${named} ${recurring.length === 1 ? "is a recurring event" : "are recurring events"}: ` +
+    `${consequence}, every occurrence included, not one date of it.`
+  );
+}
+
 /**
  * Accounts for a `CalendarEvent/set`, id by id.
  *
@@ -579,7 +610,15 @@ function mailto(address: string): string {
   return `mailto:${bareAddress(address)}`;
 }
 
-function bareAddress(address: string): string {
+/**
+ * The address a `mailto:` URI names, with the spelling it was written in.
+ *
+ * Stripping the scheme is not folding: the case survives here, and every caller
+ * that compares two addresses folds afterwards — `fold` below, or the callers'
+ * own `toLowerCase`. Anything that writes an address back out wants this
+ * spelling, since the local part is case-sensitive per RFC 5321 §2.4.
+ */
+export function bareAddress(address: string): string {
   const trimmed = address.trim();
   return trimmed.toLowerCase().startsWith("mailto:") ? trimmed.slice("mailto:".length) : trimmed;
 }

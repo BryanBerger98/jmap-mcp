@@ -25,17 +25,16 @@ import { CAPABILITY_CALENDARS, CAPABILITY_CORE } from "../../jmap/types/core.js"
 import { defineTool, type ToolContext } from "../../registry/define-tool.js";
 import { refuseOversizedBatch } from "../../shared/batch.js";
 import {
+  bareAddress,
   CALENDAR_EVENTS,
   describeEventOutcome,
   EVENT_WRITE_PROPERTIES,
   matchingParticipantKey,
+  NAMED_IN_SUMMARY,
   refuseIsolatedOccurrence,
   resolveParticipantIdentities,
 } from "./edit.js";
 import { eventTitle } from "./event.js";
-
-/** How many events an answer names before it stops and counts instead. */
-const NAMED_IN_SUMMARY = 5;
 
 const inputSchema = z.object({
   eventIds: z
@@ -306,18 +305,6 @@ function participantAddress(event: CalendarEvent, key: string): string {
   const participant = event.participants?.[key];
   const address = participant?.email ?? participant?.calendarAddress;
   return address === undefined ? key : bareAddress(address);
-}
-
-/**
- * `mailto:` is how iTIP addresses a person; a perimeter is a list of addresses.
- *
- * Written here rather than shared: the comparison this feeds folds case anyway,
- * and a scheme-stripping helper exported across modules invites somebody to use
- * it on the write path, where the spelling somebody typed has to survive.
- */
-function bareAddress(address: string): string {
-  const trimmed = address.trim();
-  return trimmed.toLowerCase().startsWith("mailto:") ? trimmed.slice("mailto:".length) : trimmed;
 }
 
 /**

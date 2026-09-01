@@ -23,14 +23,17 @@ import { refuseOversizedBatch } from "../../shared/batch.js";
 import {
   CALENDAR_EVENTS,
   describeEventOutcome,
+  describeWhen,
   EVENT_WRITE_PROPERTIES,
+  NAMED_IN_SUMMARY,
   participantsOf,
   refuseIsolatedOccurrence,
+  seriesNote,
 } from "./edit.js";
 import { eventTitle } from "./event.js";
 
-/** How many events a confirmation spells out before it counts the rest. */
-const NAMED_IN_SUMMARY = 5;
+/** What a deletion does to a rule-bearing event, for the note that says so. */
+const DELETION_TAKES_SERIES = "the whole series disappears";
 
 const inputSchema = z.object({
   ids: z
@@ -157,7 +160,7 @@ async function summarize(input: DeleteInput, context: ToolContext): Promise<stri
       named === ""
         ? `Permanently delete ${counted}.`
         : `Permanently delete ${counted}: ${named}${more}.`,
-      seriesNote(events),
+      seriesNote(events, DELETION_TAKES_SERIES),
       mailingNote(input, events),
       "Nothing recovers them afterwards.",
     ]
@@ -200,24 +203,6 @@ function schedulingNote(input: DeleteInput): string {
         "lacks the scheduling permission, or when the event is entirely in the past."
     : "No cancellation was mailed: the events were removed from this account and the participants " +
         "were not told. Call again with notify to have the server cancel them properly.";
-}
-
-/** Says out loud that deleting a rule-bearing event takes every occurrence with it. */
-function seriesNote(events: readonly CalendarEvent[]): string | undefined {
-  const recurring = events.filter((event) => (event.recurrenceRules?.length ?? 0) > 0);
-  if (recurring.length === 0) return undefined;
-
-  const named = recurring.map((event) => event.id).join(", ");
-  return (
-    `${named} ${recurring.length === 1 ? "is a recurring event" : "are recurring events"}: the ` +
-    "whole series disappears, every occurrence included, not one date of it."
-  );
-}
-
-/** One event's start as the event itself states it, zone included. */
-function describeWhen(event: CalendarEvent): string {
-  if (event.start === undefined) return "no start";
-  return event.timeZone === undefined ? event.start : `${event.start} ${event.timeZone}`;
 }
 
 /**

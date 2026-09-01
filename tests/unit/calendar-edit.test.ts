@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  bareAddress,
   buildEventCreation,
   buildEventPatch,
   buildParticipants,
   defaultCalendar,
   describeEventOutcome,
+  describeWhen,
   type EventEdit,
   matchingParticipantKey,
   refuseIsolatedOccurrence,
   refusePrefixCollision,
   resolveParticipantIdentities,
+  seriesNote,
 } from "../../src/domains/calendar/edit.js";
 import type {
   Calendar,
@@ -293,6 +296,62 @@ describe("describeEventOutcome", () => {
 
     expect(rendered).toContain("1 of 2 events destroyed");
     expect(rendered).toContain("notFound");
+  });
+});
+
+describe("seriesNote — one sentence, each tool's own verb", () => {
+  // The three writing tools rendered this themselves until the copies drifted
+  // apart in wording. Both sentences are pinned whole here: the shared helper is
+  // the only thing standing between them and a third wording nobody chose.
+  it("spells a correction reaching the series exactly as calendar_write says it", () => {
+    expect(seriesNote([series], "this write reaches the whole series")).toBe(
+      "ev-series is a recurring event: this write reaches the whole series, every occurrence " +
+        "included, not one date of it.",
+    );
+  });
+
+  it("spells a deletion taking the series exactly as calendar_delete says it", () => {
+    expect(seriesNote([series], "the whole series disappears")).toBe(
+      "ev-series is a recurring event: the whole series disappears, every occurrence included, " +
+        "not one date of it.",
+    );
+  });
+
+  it("names every rule-bearing event and agrees the verb with them", () => {
+    const note = seriesNote([simple, series, { ...series, id: "ev-other" }], "it goes");
+
+    expect(note).toContain("ev-series, ev-other are recurring events");
+    expect(note).not.toContain("ev-simple");
+  });
+
+  it("says nothing at all when no event carries a rule", () => {
+    expect(seriesNote([simple, invited], "it goes")).toBeUndefined();
+  });
+});
+
+describe("describeWhen", () => {
+  it("states the hour in the event's own zone, never converted", () => {
+    expect(describeWhen(simple)).toBe(`${simple.start} ${simple.timeZone}`);
+  });
+
+  it("says so rather than inventing an hour for an event without one", () => {
+    expect(describeWhen({ id: "ev-void" })).toBe("no start");
+  });
+
+  it("leaves the hour bare when the event names no zone", () => {
+    expect(describeWhen({ id: "ev-floating", start: "2026-09-10T16:00:00" })).toBe(
+      "2026-09-10T16:00:00",
+    );
+  });
+});
+
+describe("bareAddress", () => {
+  it("strips the scheme whichever case it was written in", () => {
+    expect(bareAddress("MAILTO:Paul@Example.ORG")).toBe("Paul@Example.ORG");
+  });
+
+  it("never folds the address it hands back, the local part being case-sensitive", () => {
+    expect(bareAddress("  Bryan@Example.COM  ")).toBe("Bryan@Example.COM");
   });
 });
 

@@ -19,13 +19,16 @@ import {
   describeCalendars,
   describeEventOutcome,
   describeEventSetError,
+  describeWhen,
   EVENT_WRITE_PROPERTIES,
   type EventEdit,
   type EventOrganizer,
+  NAMED_IN_SUMMARY,
   participantsOf,
   refuseIsolatedOccurrence,
   resolveCalendars,
   resolveParticipantIdentities,
+  seriesNote,
 } from "./edit.js";
 import { eventTitle, resolveTimeZone, unknownZoneRefusal } from "./event.js";
 import { BOUND_SCHEMA_PATTERN, normalizeBound, parseIsoDuration } from "./time.js";
@@ -36,8 +39,8 @@ const CREATION_KEY = "new";
 /** What an all-day event lasts when the caller states no duration. */
 const ALL_DAY_DURATION = "P1D";
 
-/** How many events a summary names before it stops and counts instead. */
-const NAMED_IN_SUMMARY = 5;
+/** What a correction does to a rule-bearing event, for the note that says so. */
+const WRITE_REACHES_SERIES = "this write reaches the whole series";
 
 /**
  * The fields that describe one event and cannot be spread over a batch.
@@ -365,7 +368,7 @@ async function correctEvents(input: WriteInput, context: ToolContext) {
     patched.length === 0 ? undefined : describeEventOutcome(response, patched, "updated"),
     missing.length === 0 ? undefined : `Not found: ${missing.join(", ")}`,
     `Times written in ${zone} (${origin}).`,
-    seriesNote(written),
+    seriesNote(written, WRITE_REACHES_SERIES),
     schedulingNote(input, (input.participantsAdd ?? []).length, noOrganiserNote(written)),
   ];
 
@@ -407,7 +410,7 @@ async function summarize(input: WriteInput, context: ToolContext): Promise<strin
     return [
       named === "" ? `Correct ${counted}.` : `Correct ${counted}: ${named}${more}.`,
       input.start === undefined ? undefined : `New start: ${input.start}${zoneSuffix(input)}.`,
-      seriesNote(events),
+      seriesNote(events, WRITE_REACHES_SERIES),
       mailingNote(input, events),
     ]
       .filter((line): line is string => line !== undefined)
@@ -460,12 +463,6 @@ function everyoneMailed(input: WriteInput, events: readonly CalendarEvent[]): st
   }
 
   return [...seen.values()];
-}
-
-/** One event's start as the event itself states it, zone included. */
-function describeWhen(event: CalendarEvent): string {
-  if (event.start === undefined) return "no start";
-  return event.timeZone === undefined ? event.start : `${event.start} ${event.timeZone}`;
 }
 
 /**
@@ -558,18 +555,6 @@ function noOrganiserNote(events: readonly CalendarEvent[]): string | undefined {
   return (
     `${named} ${orphaned.length === 1 ? "names" : "name"} no organiser, so the server has nobody ` +
     `to send as for ${orphaned.length === 1 ? "it" : "them"}.`
-  );
-}
-
-/** Says out loud that a correction to a rule-bearing event reaches every occurrence. */
-function seriesNote(events: readonly CalendarEvent[]): string | undefined {
-  const recurring = events.filter((event) => (event.recurrenceRules?.length ?? 0) > 0);
-  if (recurring.length === 0) return undefined;
-
-  const named = recurring.map((event) => event.id).join(", ");
-  return (
-    `${named} ${recurring.length === 1 ? "is a recurring event" : "are recurring events"}: this ` +
-    "write reaches the whole series, every occurrence included, not one date of it."
   );
 }
 

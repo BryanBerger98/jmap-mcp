@@ -549,7 +549,13 @@ describe("calendar_write — what the user is asked", () => {
       context,
     );
 
-    expect(summary).toContain("whole series");
+    // Pinned whole: the sentence is built by a helper `calendar_delete` shares,
+    // and only the verb tells the two apart. A correction reaching the series is
+    // not the series disappearing.
+    expect(summary).toContain(
+      "ev-series is a recurring event: this write reaches the whole series, every occurrence " +
+        "included, not one date of it.",
+    );
   });
 
   it("degrades to a count rather than failing on a read it only needed for words", async () => {
