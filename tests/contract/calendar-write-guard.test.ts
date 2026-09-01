@@ -92,7 +92,12 @@ function writingSurface(
       : { bulkConfirmAbove: options.bulkConfirmAbove }),
   });
 
-  return { handlers, requests, write: handlers.get("calendar_write") as Handler };
+  return {
+    handlers,
+    requests,
+    write: handlers.get("calendar_write") as Handler,
+    respond: handlers.get("calendar_respond") as Handler,
+  };
 }
 
 /**
@@ -331,6 +336,103 @@ describe("an emitted write", () => {
     for (const args of eventSets(requests)) {
       expect(args.destroy).toBeUndefined();
     }
+  });
+});
+
+describe("an answer to an invitation", () => {
+  /**
+   * The invitation fixture holds three participants: the organiser under `org`,
+   * this account under `att-9f`, and a third guest under `att-c3`. The key is
+   * asserted literally, and that is the point — matching on the first key of the
+   * map instead of on the account's identities would answer as the organiser and
+   * turn every assertion below red.
+   */
+  const ACCOUNT_KEY = "att-9f";
+  const ANSWER = { eventIds: ["ev-invited"], status: "accepted" };
+
+  /** Every patch object this surface sent, whichever event it was aimed at. */
+  function patches(requests: JmapRequest[]): Record<string, unknown>[] {
+    return eventSets(requests).flatMap((args) =>
+      Object.values((args.update ?? {}) as Record<string, Record<string, unknown>>),
+    );
+  }
+
+  it("writes under the account's own participant key and nowhere else", async () => {
+    const { respond, requests } = writingSurface([only("ev-invited"), identities, eventSet], {
+      elicitation: {},
+    });
+
+    await respond({ ...ANSWER, comment: "Je serai là." }, CONFIRMED);
+
+    const emitted = patches(requests);
+    // Vacuously true if nothing was written, so the count is asserted first.
+    expect(emitted).toHaveLength(1);
+    for (const path of Object.keys(emitted[0] as object)) {
+      expect(path.startsWith(`participants/${ACCOUNT_KEY}/`)).toBe(true);
+    }
+  });
+
+  it("never carries the participants map whole, which would erase the other guests", async () => {
+    const { respond, requests } = writingSurface([only("ev-invited"), identities, eventSet], {
+      elicitation: {},
+    });
+
+    await respond(ANSWER, CONFIRMED);
+
+    for (const patch of patches(requests)) {
+      expect(Object.hasOwn(patch, "participants")).toBe(false);
+      // Nor any pointer at another participant: `att-c3` answers for themselves.
+      expect(Object.keys(patch).some((path) => path.startsWith("participants/att-c3"))).toBe(false);
+    }
+  });
+
+  it("carries sendSchedulingMessages explicitly, as every write of this surface does", async () => {
+    const { respond, requests } = writingSurface([only("ev-invited"), identities, eventSet], {
+      elicitation: {},
+    });
+
+    await respond(ANSWER, CONFIRMED);
+
+    const emitted = eventSets(requests);
+    expect(emitted).toHaveLength(1);
+    expect(Object.hasOwn(emitted[0] as object, "sendSchedulingMessages")).toBe(true);
+    expect(emitted[0]?.sendSchedulingMessages).toBe(true);
+  });
+
+  it("is refused outright on a client that cannot be asked", async () => {
+    const { respond, requests } = writingSurface([only("ev-invited"), identities], { roots: {} });
+
+    const result = await respond(ANSWER, UNANSWERED);
+
+    expect((result as { isError?: boolean }).isError).toBe(true);
+    expect(textOf(result)).toContain("elicitation");
+    expect(writesIn(requests)).toEqual([]);
+  });
+
+  it("stays a draft, and asks nothing, when the answer is held back", async () => {
+    const { respond, requests } = writingSurface([only("ev-invited"), identities, eventSet], {
+      elicitation: {},
+    });
+
+    const result = await respond({ ...ANSWER, notify: false }, UNANSWERED);
+
+    expect(isInputRequiredResult(result)).toBe(false);
+    expect(eventSets(requests)[0]?.sendSchedulingMessages).toBe(false);
+  });
+
+  it("refuses an organiser outside the perimeter before the question is asked", async () => {
+    const { respond, requests } = writingSurface(
+      [only("ev-invited"), identities, eventSet],
+      { elicitation: {} },
+      { recipients: restrictTo({ fromContacts: ["paul@example.org"], allow: [] }) },
+    );
+
+    const result = await respond(ANSWER, UNANSWERED);
+
+    expect(isInputRequiredResult(result)).toBe(false);
+    expect((result as { isError?: boolean }).isError).toBe(true);
+    expect(textOf(result)).toContain("outside the recipient perimeter");
+    expect(writesIn(requests)).toEqual([]);
   });
 });
 

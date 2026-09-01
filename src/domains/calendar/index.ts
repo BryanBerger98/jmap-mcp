@@ -2,6 +2,7 @@ import { CAPABILITY_CALENDARS, CAPABILITY_PRINCIPALS_AVAILABILITY } from "../../
 import { defineDomain } from "../../registry/manifest.js";
 import { calendarAvailability } from "./availability.js";
 import { calendarRead } from "./read.js";
+import { calendarRespond } from "./respond.js";
 import { calendarSearch } from "./search.js";
 import { calendarWrite } from "./write.js";
 
@@ -50,5 +51,5 @@ export const calendarAvailabilityDomain = defineDomain({
 export const calendarWritingDomain = defineDomain({
   name: "calendar-writing",
   requires: [CAPABILITY_CALENDARS],
-  tools: [calendarWrite],
+  tools: [calendarWrite, calendarRespond],
 });

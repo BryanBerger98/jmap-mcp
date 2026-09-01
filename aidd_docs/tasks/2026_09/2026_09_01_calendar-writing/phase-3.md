@@ -1,6 +1,6 @@
 ---
 title: Instruction — calendar_respond
-status: pending
+status: done
 updated: 2026-09-01
 owner: bryan
 ---
