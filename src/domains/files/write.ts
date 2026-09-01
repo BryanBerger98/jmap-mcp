@@ -212,16 +212,27 @@ async function runUpload(input: Input, context: ToolContext): Promise<ToolResult
     },
   });
 
+  const text = describeCreation(response, {
+    what: `File ${name}`,
+    extra: {
+      size: `${read.bytes.byteLength} bytes (${formatSize(read.bytes.byteLength)})`,
+      mime: type,
+      from: source.path,
+    },
+    folder: await parentName(input.parentId, context),
+  });
+
+  // Said here and not in `explainSetError`, which also serves create-folder and
+  // organize: those move no bytes. The two steps cannot be reordered — a node
+  // naming a blob that was never uploaded references nothing — so a refused
+  // creation always leaves the transfer behind it, and the caller should hear it
+  // from the answer rather than from their quota.
+  if (response.notCreated?.[CREATION_KEY] === undefined) return { text };
+
   return {
-    text: describeCreation(response, {
-      what: `File ${name}`,
-      extra: {
-        size: `${read.bytes.byteLength} bytes (${formatSize(read.bytes.byteLength)})`,
-        mime: type,
-        from: source.path,
-      },
-      folder: await parentName(input.parentId, context),
-    }),
+    text:
+      `${text}\n\nThe bytes were already transferred before this refusal: the server holds them ` +
+      "unreferenced, and no tool here can remove them.",
   };
 }
 

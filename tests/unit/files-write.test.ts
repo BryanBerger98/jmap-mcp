@@ -194,6 +194,26 @@ describe("files_write, depositing a file", () => {
     expect(await readFile(join(root, "report.pdf"), "utf8")).toBe(DEPOSITED);
   });
 
+  it("says the bytes went up when the node they belong to is refused", async () => {
+    const sent = transport([refusedCreation("alreadyExists")]);
+
+    const result = await filesWrite.run({ action: "upload", path: "report.pdf" }, sent.context);
+
+    // The upload cannot be undone from here, so the answer names it rather than
+    // leaving an unreferenced blob to be discovered from a quota.
+    expect(sent.blobs.uploads).toHaveLength(1);
+    expect(result.text).toContain("The bytes were already transferred before this refusal");
+  });
+
+  it("says nothing about stray bytes when no upload happened", async () => {
+    const sent = transport([refusedCreation("alreadyExists")]);
+
+    const result = await filesWrite.run({ action: "create-folder", name: "reports" }, sent.context);
+
+    expect(sent.blobs.uploads).toHaveLength(0);
+    expect(result.text).not.toContain("already transferred");
+  });
+
   it("refuses an unknown parent folder by reading it first", async () => {
     const sent = transport([{ accountId: "acc-1", state: "file-state-1", list: [], notFound: [] }]);
 
