@@ -72,10 +72,7 @@ const CONFIGURED_ROOT = join(tmpdir(), "jmap-mcp-read-only-contract");
 function reading() {
   return fakeTransport(
     Array.from({ length: 8 }, () => ANY_RESPONSE),
-    undefined,
-    undefined,
-    undefined,
-    { localRoot: CONFIGURED_ROOT },
+    { files: { localRoot: CONFIGURED_ROOT } },
   );
 }
 

@@ -121,13 +121,10 @@ function writingSurface(
   options: { bulkConfirmAbove?: number; files?: Config["files"] } = {},
 ) {
   const files = options.files ?? { localRoot: root };
-  const { context, requests, blobs } = fakeTransport(
-    responses,
-    undefined,
-    options.bulkConfirmAbove,
-    undefined,
+  const { context, requests, blobs } = fakeTransport(responses, {
+    bulkConfirmAbove: options.bulkConfirmAbove,
     files,
-  );
+  });
   const handlers = new Map<string, Handler>();
 
   compose({

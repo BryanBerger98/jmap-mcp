@@ -71,7 +71,7 @@ describe("mail_delete, the reversible way", () => {
   });
 
   it("asks past the threshold, naming the trash and not destruction", async () => {
-    const { context } = fakeTransport([mailboxGet], undefined, 2);
+    const { context } = fakeTransport([mailboxGet], { bulkConfirmAbove: 2 });
 
     const reason = await mailDelete.confirmWhen?.({ ids: ["m-1", "m-2", "m-3"] }, context);
 
@@ -111,7 +111,7 @@ describe("mail_delete, the permanent way", () => {
   });
 
   it("never escalates on volume: its class already asks", async () => {
-    const { context } = fakeTransport([mailboxGet], undefined, 2);
+    const { context } = fakeTransport([mailboxGet], { bulkConfirmAbove: 2 });
 
     expect(
       await mailDelete.confirmWhen?.({ ids: ids(10), permanent: true }, context),

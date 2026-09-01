@@ -93,7 +93,7 @@ describe("mail_move", () => {
   });
 
   it("asks past the configured threshold, citing the count and the folder", async () => {
-    const { context } = fakeTransport([mailboxGet], undefined, 2);
+    const { context } = fakeTransport([mailboxGet], { bulkConfirmAbove: 2 });
 
     const reason = await mailMove.confirmWhen?.(
       { ids: ["m-1", "m-2", "m-3"], mailboxId: "mb-archive" },
@@ -105,7 +105,7 @@ describe("mail_move", () => {
   });
 
   it("says nothing at the threshold, so an everyday move runs straight away", async () => {
-    const { context, requests } = fakeTransport([mailboxGet], undefined, 2);
+    const { context, requests } = fakeTransport([mailboxGet], { bulkConfirmAbove: 2 });
 
     const reason = await mailMove.confirmWhen?.(
       { ids: ["m-1", "m-2"], mailboxId: "mb-archive" },

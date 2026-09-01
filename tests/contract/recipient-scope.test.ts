@@ -81,7 +81,7 @@ const CONFIRMED = {
 };
 
 function sendingSurface(responses: unknown[], recipients: RecipientScope) {
-  const { context, requests } = fakeTransport(responses, recipients);
+  const { context, requests } = fakeTransport(responses, { recipients });
   const handlers = new Map<string, Handler>();
 
   compose({

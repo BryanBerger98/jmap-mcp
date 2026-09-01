@@ -423,7 +423,7 @@ describe("calendar_write — the refusals", () => {
     const outside = { ...CREATE, participantsAdd: ["stranger@example.net"] };
 
     for (const notify of [false, true]) {
-      const { context, requests } = fakeTransport([calendars], scope);
+      const { context, requests } = fakeTransport([calendars], { recipients: scope });
 
       const refusal = await calendarWrite.precheck?.({ ...outside, notify }, context);
 
@@ -436,7 +436,7 @@ describe("calendar_write — the refusals", () => {
 
   it("refuses a guest already on the event when a correction is about to mail them", async () => {
     const scope = restrictTo({ fromContacts: ["paul@example.org"], allow: [] });
-    const { context } = fakeTransport([only("ev-invited")], scope);
+    const { context } = fakeTransport([only("ev-invited")], { recipients: scope });
 
     // Nothing here names a recipient: `sendSchedulingMessages` mails the
     // participant list the event already carries, and claire@example.org is on
@@ -452,7 +452,7 @@ describe("calendar_write — the refusals", () => {
 
   it("leaves the guests already on the event alone when nothing is mailed", async () => {
     const scope = restrictTo({ fromContacts: ["paul@example.org"], allow: [] });
-    const { context } = fakeTransport([only("ev-invited")], scope);
+    const { context } = fakeTransport([only("ev-invited")], { recipients: scope });
 
     const refusal = await calendarWrite.precheck?.(
       { eventIds: ["ev-invited"], status: "cancelled" },
@@ -568,7 +568,7 @@ describe("calendar_write — what the user is asked", () => {
   });
 
   it("asks about volume past the threshold, and stays quiet under it", async () => {
-    const { context } = fakeTransport([], undefined, 3);
+    const { context } = fakeTransport([], { bulkConfirmAbove: 3 });
     const ids = (count: number) => Array.from({ length: count }, (_, index) => `ev-${index}`);
 
     const under = await calendarWrite.confirmWhen?.({ eventIds: ids(3) }, context);

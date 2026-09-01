@@ -65,7 +65,7 @@ describe("mail_flag", () => {
   });
 
   it("never asks, however many messages the marking covers", async () => {
-    const { context } = fakeTransport([CLEAN], undefined, 2);
+    const { context } = fakeTransport([CLEAN], { bulkConfirmAbove: 2 });
 
     expect(mailFlag.confirmWhen).toBeUndefined();
     expect(await mailFlag.precheck?.({ ids: ids(100), add: ["seen"] }, context)).toContain(

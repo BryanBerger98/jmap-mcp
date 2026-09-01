@@ -40,7 +40,7 @@ const CONFIRMED = {
 };
 
 function organizingSurface(responses: unknown[]) {
-  const { context, requests } = fakeTransport(responses, undefined, THRESHOLD);
+  const { context, requests } = fakeTransport(responses, { bulkConfirmAbove: THRESHOLD });
   const handlers = new Map<string, Handler>();
 
   compose({

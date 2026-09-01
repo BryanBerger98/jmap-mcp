@@ -83,15 +83,30 @@ export function fakeBlobs(traffic: BlobTraffic): BlobChannel {
  * reads before it writes spends several round trips, and its later calls need
  * answers of their own.
  */
+/**
+ * What a test may say about the context beyond the responses it queues.
+ *
+ * Every key admits `undefined` so a caller forwarding its own optional field
+ * lands on the default instead of failing under `exactOptionalPropertyTypes`.
+ */
+export interface FakeTransportOptions {
+  recipients?: RecipientScope | undefined;
+  bulkConfirmAbove?: number | undefined;
+  policy?: WritePolicy | undefined;
+  files?: Config["files"] | undefined;
+}
+
 export function fakeTransport(
   results: unknown[],
-  recipients: RecipientScope = OPEN_SCOPE,
-  bulkConfirmAbove: number = DEFAULT_BULK_CONFIRM_ABOVE,
-  // The default the server ships with, so a test that says nothing about the
-  // policy is testing the configuration almost everybody runs.
-  policy: WritePolicy = DEFAULT_POLICY,
-  // No local directory unless the test names one, as in a fresh configuration.
-  files: Config["files"] = {},
+  {
+    recipients = OPEN_SCOPE,
+    bulkConfirmAbove = DEFAULT_BULK_CONFIRM_ABOVE,
+    // The default the server ships with, so a test that says nothing about the
+    // policy is testing the configuration almost everybody runs.
+    policy = DEFAULT_POLICY,
+    // No local directory unless the test names one, as in a fresh configuration.
+    files = {},
+  }: FakeTransportOptions = {},
 ): FakeTransport {
   const requests: JmapRequest[] = [];
   let served = 0;

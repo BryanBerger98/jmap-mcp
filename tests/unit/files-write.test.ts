@@ -30,7 +30,7 @@ afterEach(async () => {
 });
 
 function transport(results: unknown[] = [], localRoot: string | undefined = root): FakeTransport {
-  return fakeTransport(results, undefined, undefined, undefined, { localRoot });
+  return fakeTransport(results, { files: { localRoot } });
 }
 
 function created(id: string, name: string) {

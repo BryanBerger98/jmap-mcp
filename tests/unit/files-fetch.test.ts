@@ -31,7 +31,7 @@ function only(id: string): GetResponse<FileNode> {
 }
 
 function transport(id: string, localRoot: string | undefined = root) {
-  return fakeTransport([only(id)], undefined, undefined, undefined, { localRoot });
+  return fakeTransport([only(id)], { files: { localRoot } });
 }
 
 describe("files_fetch guards", () => {
@@ -109,10 +109,7 @@ describe("files_fetch", () => {
           notFound: [],
         },
       ],
-      undefined,
-      undefined,
-      undefined,
-      { localRoot: root },
+      { files: { localRoot: root } },
     );
 
     const result = await filesFetch.run({ id: "fn-9" }, context);
@@ -125,10 +122,7 @@ describe("files_fetch", () => {
   it("refuses an unknown id", async () => {
     const { context } = fakeTransport(
       [{ accountId: "acc-1", state: "file-state-1", list: [], notFound: ["fn-404"] }],
-      undefined,
-      undefined,
-      undefined,
-      { localRoot: root },
+      { files: { localRoot: root } },
     );
 
     expect((await filesFetch.run({ id: "fn-404" }, context)).text).toContain(
