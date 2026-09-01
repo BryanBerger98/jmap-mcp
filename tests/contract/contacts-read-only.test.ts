@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, it } from "vitest";
 import type { ZodType } from "zod";
 import { DEFAULT_POLICY } from "../../src/config/policy.js";
-import { contactsDomain } from "../../src/domains/contacts/index.js";
+import { contactsDomain, contactsWritingDomain } from "../../src/domains/contacts/index.js";
 import type { JmapClient } from "../../src/jmap/client.js";
 import type { JmapSession } from "../../src/jmap/session.js";
 import { CAPABILITY_CONTACTS, CAPABILITY_MAIL } from "../../src/jmap/types/core.js";
@@ -100,6 +100,17 @@ describe("contacts surface", () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
+  it("shares no tool with the writing manifest, which is what makes it provable", () => {
+    // The split is the whole proof: a writing tool listed here too would inherit
+    // the read-only claims above while writing, and every assertion in this file
+    // would be about a surface that is not the one exposed.
+    const reading = new Set(contactsDomain.tools.map((tool) => tool.name));
+    const writing = contactsWritingDomain.tools.map((tool) => tool.name);
+
+    expect(writing.length).toBeGreaterThan(0);
+    expect(writing.filter((name) => reading.has(name))).toEqual([]);
+  });
+
   it("sends nothing but get and query on the wire, for every tool of the manifest", async () => {
     for (const tool of contactsDomain.tools) {
       const { context, requests } = fakeTransport(Array.from({ length: 8 }, () => ANY_RESPONSE));
@@ -143,15 +154,20 @@ describe("contacts surface", () => {
 
     const report = compose({
       server: fakeServer(registered),
-      domains: [contactsDomain],
+      domains: [contactsDomain, contactsWritingDomain],
       session: sessionWith([CAPABILITY_MAIL]),
       client: {} as JmapClient,
       policy: DEFAULT_POLICY,
     });
 
+    // Neither manifest, not just the reading one: an account with no address
+    // book must not be offered a tool that writes to one either.
     expect(registered).toEqual([]);
     // The report names the capability, so an operator learns why the tools are
     // missing without reading the manifest.
-    expect(report.skipped).toEqual([{ domain: "contacts", missing: [CAPABILITY_CONTACTS] }]);
+    expect(report.skipped).toEqual([
+      { domain: "contacts", missing: [CAPABILITY_CONTACTS] },
+      { domain: "contacts-writing", missing: [CAPABILITY_CONTACTS] },
+    ]);
   });
 });

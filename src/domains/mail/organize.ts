@@ -2,6 +2,11 @@ import type { GetResponse, Id, SetError, SetResponse } from "../../jmap/types/co
 import { CAPABILITY_CORE, CAPABILITY_MAIL } from "../../jmap/types/core.js";
 import type { Mailbox, MailboxGetArguments } from "../../jmap/types/mail.js";
 import type { ToolContext } from "../../registry/define-tool.js";
+import {
+  type BatchSubject,
+  MAX_IDS_PER_CALL,
+  refuseOversizedBatch as refuseBatch,
+} from "../../shared/batch.js";
 import { renderTable } from "../../shared/render.js";
 
 /*
@@ -13,14 +18,15 @@ import { renderTable } from "../../shared/render.js";
  */
 
 /**
- * How many message ids one call may carry.
+ * The shared ceiling, re-exported under the name the mail tools already call it.
  *
- * Not a configuration key, unlike the confirmation threshold: that one is a
- * personal caution and this one protects the server, which accepts 500 objects
- * per `/set` and would answer a batch of that size with one wall of text. It is
- * also the ceiling on how wrong a single mistaken call can go.
+ * It lives in `shared/` now that contacts write too, and is named here so no
+ * mail module has to know that a second domain exists.
  */
-export const MAX_IDS_PER_CALL = 50;
+export { MAX_IDS_PER_CALL };
+
+/** What a mail batch is made of, for the refusals below. */
+const MESSAGES: BatchSubject = { noun: "message", discoveredBy: "mail_search" };
 
 /** Only what a refusal, a confirmation and a rendered outcome name. */
 export const ORGANIZE_MAILBOX_PROPERTIES = [
@@ -35,29 +41,13 @@ export const ORGANIZE_MAILBOX_PROPERTIES = [
 const MAILBOXES_KEY = "mail:mailboxes";
 
 /**
- * The refusal an unusable batch raises, or `undefined` to go ahead.
+ * The refusal an unusable batch of messages raises, or `undefined` to go ahead.
  *
- * Raised from `precheck` rather than from the schema: a contract test calls the
- * handler directly, and a ceiling the schema alone enforced would never be
- * crossed by the very test written to prove it holds.
+ * A thin naming of the shared check, so the three filing tools keep calling it
+ * without repeating what a mail batch is made of at each call site.
  */
 export function refuseOversizedBatch(ids: readonly Id[]): string | undefined {
-  if (ids.length === 0) {
-    return (
-      "Refused: no message id was given, so there is nothing to act on. " +
-      "Run mail_search first and pass the ids it returns."
-    );
-  }
-
-  if (ids.length > MAX_IDS_PER_CALL) {
-    return (
-      `Refused: ${ids.length} message ids were given, and this server acts on at most ` +
-      `${MAX_IDS_PER_CALL} per call. Split the list into batches of ${MAX_IDS_PER_CALL} or fewer ` +
-      "and call once per batch, so each batch is accounted for on its own."
-    );
-  }
-
-  return undefined;
+  return refuseBatch(ids, MESSAGES);
 }
 
 /**

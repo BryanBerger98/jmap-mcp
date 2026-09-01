@@ -1,0 +1,65 @@
+{
+  "created": {
+    "accountId": "acc-1",
+    "oldState": "book-state-1",
+    "newState": "book-state-2",
+    "created": {
+      "new": {
+        "id": "bk-9",
+        "sortOrder": 0,
+        "isDefault": false,
+        "isSubscribed": true
+      }
+    }
+  },
+  "notCreated": {
+    "accountId": "acc-1",
+    "oldState": "book-state-1",
+    "newState": "book-state-1",
+    "notCreated": {
+      "new": {
+        "type": "forbidden",
+        "description": "The account cannot hold another address book."
+      }
+    }
+  },
+  "updated": {
+    "accountId": "acc-1",
+    "oldState": "book-state-1",
+    "newState": "book-state-2",
+    "updated": { "bk-2": null }
+  },
+  "destroyed": {
+    "accountId": "acc-1",
+    "oldState": "book-state-1",
+    "newState": "book-state-2",
+    "destroyed": ["bk-2"]
+  },
+  "notDestroyed": {
+    "accountId": "acc-1",
+    "oldState": "book-state-1",
+    "newState": "book-state-1",
+    "notDestroyed": {
+      "bk-2": {
+        "type": "addressBookHasContents",
+        "description": "The address book is not empty."
+      }
+    }
+  },
+  "empty": {
+    "accountId": "acc-1",
+    "queryState": "contact-query-1",
+    "canCalculateChanges": false,
+    "position": 0,
+    "ids": [],
+    "total": 0
+  },
+  "populated": {
+    "accountId": "acc-1",
+    "queryState": "contact-query-1",
+    "canCalculateChanges": false,
+    "position": 0,
+    "ids": [],
+    "total": 12
+  }
+}

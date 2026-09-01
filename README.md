@@ -4,11 +4,11 @@ Local MCP server that exposes a [Stalwart](https://stalw.art) mail server's JMAP
 
 No data leaves your machine except the exchange with your own server.
 
-> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable, and read-only by contract. The four other domains register nothing yet.
+> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable and writable: cards and the address books that hold them. The four other domains register nothing yet.
 
 ## Tools
 
-Twelve tools across two domains, mail and contacts. The class is what the write policy below gates.
+Fifteen tools across two domains, mail and contacts. The class is what the write policy below gates.
 
 | Tool | Class | Does |
 | --- | --- | --- |
@@ -24,19 +24,24 @@ Twelve tools across two domains, mail and contacts. The class is what the write 
 | `mail_folder_manage` | `draft` or `destroy` | Creates, renames, moves a folder; `delete` removes one |
 | `contacts_search` | `read` | Searches contact cards, paginated, address books named |
 | `contacts_read` | `read` | Reads up to 20 cards by id, every field included |
+| `contacts_write` | `draft` | Creates a card, or corrects the named fields of existing ones |
+| `contacts_delete` | `destroy` | Erases cards for good; contacts have no trash |
+| `contacts_book_manage` | `draft` or `destroy` | Creates, renames a book; `delete` removes an empty one |
+
+A contact write only ever touches the fields the call names: it patches the paths given and leaves every other field of the card untouched. `contacts_delete` has no reversible form, which is why it carries a single class — no folder holds a destroyed card and no later call brings it back. Deleting an address book never destroys the cards inside it: a book still holding cards is refused, as are the default book and the last remaining one.
 
 `mail_delete` moves messages to the folder carrying the `trash` role, where they stay readable and can be moved back out. Only `permanent: true` erases them, and that call classifies as `destroy`, so it is confirmed. Deleting a folder never takes its messages with it: a folder holding messages, or holding another folder, is refused outright, and every folder write states on the wire that no message is to be removed.
 
 ### Batch limits
 
-The organizing tools act on ids a search returned, never on a filter they run themselves.
+The organizing and contact-writing tools act on ids a search returned, never on a filter they run themselves. The same two limits govern both.
 
 | Limit | Value | Configurable |
 | --- | --- | --- |
 | Ids per call | 50 | No |
 | Asks above | 20 | `bulkConfirmAbove`, `JMAP_BULK_CONFIRM_ABOVE` |
 
-Past the threshold, a reversible bulk write asks before it runs even though its class is `allow` — moving two hundred messages is still a move, but its size is worth a look. `mail_flag` never asks whatever the volume: marking a thousand messages read is undone by marking them unread.
+Past the threshold, a reversible bulk write asks before it runs even though its class is `allow` — moving two hundred messages is still a move, but its size is worth a look. `mail_flag` never asks whatever the volume: marking a thousand messages read is undone by marking them unread. `contacts_write` does ask past the threshold: correcting thirty cards at once stays a `draft`, but nothing on the server records what the fields held before.
 
 ## Why
 

@@ -1,14 +1,14 @@
 ---
 title: Carte du code
 status: draft
-updated: 2026-08-31
+updated: 2026-09-01
 owner: bryan
 ---
 
 # Carte du code
 
 > [!NOTE]
-> Le mail expose dix outils : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` ; les contacts en exposent deux, en lecture seule : `contacts_search`, `contacts_read`.
+> Le mail expose dix outils : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` ; les contacts en exposent cinq, deux en lecture et trois en écriture : `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage`.
 > Les quatre autres domaines restent des manifestes à `tools: []`.
 
 ## 🗺️ Découpe
@@ -41,12 +41,12 @@ flowchart TD
 | `src/jmap/` | Session, client, erreurs, blobs, types |
 | `src/registry/` | Définition d'outil, manifeste, composition |
 | `src/domains/` | Les six domaines métier |
-| `src/shared/` | Pagination et rendu compact |
+| `src/shared/` | Pagination, plafond de lot, rendu compact |
 | `tests/` | Unitaires, contrat, fixtures |
 
 Les types JMAP vivent sous `src/jmap/types/`, un fichier par spécification.
 Chaque domaine sous `src/domains/` regroupe ses outils par verbe métier, jamais par méthode JMAP.
-Un domaine peut se scinder en plusieurs manifestes : le mail en a trois.
+Un domaine peut se scinder en plusieurs manifestes : le mail en a trois, les contacts deux.
 
 | Manifeste | Capacités | Outils |
 | --- | --- | --- |
@@ -54,14 +54,19 @@ Un domaine peut se scinder en plusieurs manifestes : le mail en a trois.
 | `mailOrganizingDomain` | `mail` | `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` |
 | `mailSendingDomain` | `mail`, `submission` | `mail_identities`, `mail_compose`, `mail_send` |
 | `contactsDomain` | `contacts` | `contacts_search`, `contacts_read` |
+| `contactsWritingDomain` | `contacts` | `contacts_write`, `contacts_delete`, `contacts_book_manage` |
 
 Sans ce découpage, un serveur qui n'expédie pas ferait taire aussi les outils de lecture.
 Le rangement est séparé de la lecture sur la même capacité, pour une autre raison : `mailDomain` reste ainsi prouvablement en lecture seule, et le contrat qui l'affirme vaut mieux qu'un fichier de moins.
 `src/domains/mail/organize.ts` porte ce que les quatre outils de rangement partagent : plafond de lot, résolution des dossiers mise en cache, rendu des refus par identifiant.
 
-Les contacts tiennent en un seul manifeste : rien n'y écrit, donc aucune seconde capacité ne justifie une scission.
-`src/domains/contacts/card.ts` porte ce que les deux outils partagent : nom d'affichage, adresse principale, propriétés et noms de carnets, marque de périmètre et rendu d'une fiche complète.
-Il est leur seul point commun : la remise en ordre des identifiants demandés vit sous `src/shared/pagination.ts`, où le mail la lit aussi, plutôt que dans l'outil de recherche dont l'outil de lecture dépendrait alors.
+Les contacts se scindent en deux manifestes sur la même capacité, pour la raison qui vaut déjà pour le mail : la lecture reste prouvablement sans écriture, et un test de contrat le tient.
+`src/domains/contacts/card.ts` porte ce que les outils de lecture partagent : nom d'affichage, adresse principale, propriétés et noms de carnets, marque de périmètre et rendu d'une fiche complète.
+`src/domains/contacts/edit.ts` en est le pendant en écriture : construction du patch et de la création, résolution des carnets mise en cache, appartenances par uid, rendu des refus par identifiant.
+
+Deux choses vivent hors du domaine parce qu'un second domaine les lit déjà.
+`src/shared/pagination.ts` remet les identifiants demandés dans leur ordre, pour le mail comme pour les contacts.
+`src/shared/batch.ts` porte le plafond dur de cinquante identifiants par appel, que le rangement du mail et l'écriture des contacts partagent : deux plafonds auraient divergé au premier ajustement.
 
 ## 🚪 Points d'entrée
 

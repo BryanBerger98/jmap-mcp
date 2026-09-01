@@ -1,7 +1,7 @@
 ---
 title: ROADMAP — jmap-mcp
 status: draft
-updated: 2026-08-31
+updated: 2026-09-01
 owner: bryan
 ---
 
@@ -130,16 +130,25 @@ Deux questions ouvertes tranchées à la livraison :
 
 Écart au périmètre initial : le périmètre des destinataires devient observable. Sous un scope autre que `anyone`, les deux outils marquent chaque adresse rendue comme dedans ou dehors, et rappellent que le périmètre est figé au démarrage.
 
-## ✍️ Module 6 — Écriture des contacts
+## ✍️ Module 6 — Écriture des contacts ✅
 
 | Aspect | Contenu |
 | --- | --- |
-| Outils | `contacts_write`, `contacts_delete` |
+| Outils | `contacts_write`, `contacts_delete`, `contacts_book_manage` |
 | Classes | `draft`, `destroy` |
-| Méthodes | `ContactCard/set`, `ContactCard/copy`, `AddressBook/set` |
+| Méthodes | `ContactCard/set`, `AddressBook/set`, `ContactCard/query`, `AddressBook/get` |
 
 Aucune corbeille n'existe pour les contacts : toute destruction est définitive.
 `onDestroyRemoveContents` vide le carnet entier, donc même traitement qu'au module 4.
+
+Une écriture de fiche part en `PatchObject` sur les seuls chemins nommés par l'appel.
+Envoyer l'objet complet effacerait ce que la lecture ne rend pas, un champ absent d'une réponse partielle valant suppression.
+
+`ContactCard/copy` n'a pas été utilisée : elle ne sert qu'à franchir une frontière de compte, et le multi-compte reste hors périmètre, comme `Email/copy` au module 4.
+
+**Trois outils plutôt que deux.** Un carnet et une fiche ne partagent aucun schéma : le premier a un nom et un drapeau de défaut, la seconde une trentaine de champs et des appartenances.
+Les fondre aurait donné un outil dont la moitié des arguments est refusée selon la valeur d'un autre, ce que le module 5 avait justement évité en n'ouvrant pas de troisième outil de lecture.
+L'entrée coûtée au budget est assumée ici, pas rattrapée plus loin.
 
 ## 📅 Module 7 — Lecture des agendas
 
@@ -201,6 +210,7 @@ L'absence passe uniquement par `VacationResponse/set` : `SieveScript/set` sur le
 | Méthodes | `Principal/get`, `Principal/query`, `ShareNotification/*`, propriété `shareWith` |
 
 Aucune méthode de partage n'existe : accorder ou révoquer, c'est patcher la map `shareWith` portée par `Mailbox`, `Calendar`, `AddressBook` et `FileNode`.
+Deux des quatre types sont désormais gérables par le serveur : le module 4 a livré `Mailbox/set`, le module 6 `AddressBook/set`, et la lecture-modification-réécriture de `shareWith` s'y branchera sans nouveau client.
 L'outil lit la map, la modifie, la réécrit entière, sans quoi il révoque silencieusement tous les autres partages.
 
 Octroyer un accès à un tiers est classé `send` : c'est irréversible du point de vue de la donnée déjà consultée.
@@ -215,13 +225,14 @@ Octroyer un accès à un tiers est classé `send` : c'est irréversible du point
 | --- | --- | --- | --- |
 | Fondation | 1 | 0 | ✅ |
 | Mail | 2 à 4 | 10 | ✅ |
-| Contacts | 5 et 6 | 14 | ⏳ 12 exposés |
-| Agendas | 7 et 8 | 20 | ⏳ |
-| Reste | 9 à 11 | 30 | ⏳ |
+| Contacts | 5 et 6 | 15 | ✅ |
+| Agendas | 7 et 8 | 21 | ⏳ |
+| Reste | 9 à 11 | 31 | ⏳ |
 
-Douze outils sont exposés à ce jour sur les vingt-six visés : dix sur le mail, `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage`, et deux sur les contacts, `contacts_search` et `contacts_read`.
-La tranche contacts en prévoyait quatre : le module 5 n'en a consommé que deux, les deux restants revenant au module 6.
+Quinze outils sont exposés à ce jour sur les vingt-six visés : dix sur le mail, `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage`, et cinq sur les contacts, `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage`.
+La tranche contacts en prévoyait quatre et en consomme cinq : le module 5 s'était tenu à deux, le module 6 en a pris trois pour ne pas mêler le schéma d'un carnet à celui d'une fiche.
+Les cumuls des tranches suivantes portent ce décalage d'une unité, sans qu'aucune ne le rattrape.
 Le module 1 n'a livré aucun outil, `jmap_session_info` ayant été remplacé par les instructions d'initialisation, qui portent la même information sans coûter une entrée au budget.
 
 La cible est vingt-six, la dégradation étant observée dès trente.
-Le dépassement se traite par fusion d'outils voisins ou par gating de capacité, décidé au module 9 sur une surface réelle.
+Le dépassement se traite par fusion d'outils voisins ou par gating de capacité, décidé au module 9 sur une surface réelle : aucun module d'ici là n'a à rogner sa surface pour rentrer dans le budget, et le module 6 ne l'a pas fait.
