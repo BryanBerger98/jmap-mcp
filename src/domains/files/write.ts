@@ -116,7 +116,7 @@ export const filesWrite = defineTool({
       default: {
         const ids = input.ids ?? [];
         const named = describeNodes(await resolveNodes(ids, context), ids.length);
-        return `${organizeVerb(input)} ${named}${input.parentId === undefined ? "" : ` into ${where}`}.`;
+        return `${organizeAction(input).imperative} ${named}${input.parentId === undefined ? "" : ` into ${where}`}.`;
       }
     }
   },
@@ -146,7 +146,7 @@ export const filesWrite = defineTool({
 
     return Promise.resolve(
       count > context.bulkConfirmAbove
-        ? `This ${organizeVerb(input).toLowerCase()} ${count} file nodes at once, past the ` +
+        ? `This ${organizeAction(input).present} ${count} file nodes at once, past the ` +
             `${context.bulkConfirmAbove} this server writes without asking.`
         : undefined,
     );
@@ -435,7 +435,26 @@ function uploadName(input: Input): string | undefined {
   return input.name ?? (input.path === undefined ? undefined : basename(input.path));
 }
 
-/** What an organize call does, in one word, for a summary or an outcome line. */
+/**
+ * What an organize call is about to do, said before it has done it.
+ *
+ * Kept apart from `organizeVerb` rather than derived from it: a summary and a
+ * confirmation are read while nothing has happened yet, and a past participle
+ * there tells the user the thing is done at the exact moment they are deciding
+ * whether it should be. The two forms are the two grammars that reading needs —
+ * `Rename and move 30 file nodes.` above, `This renames and moves 30 file nodes`
+ * inside the sentence.
+ */
+function organizeAction(input: Input): { imperative: string; present: string } {
+  if (input.name !== undefined && input.parentId !== undefined) {
+    return { imperative: "Rename and move", present: "renames and moves" };
+  }
+  return input.name === undefined
+    ? { imperative: "Move", present: "moves" }
+    : { imperative: "Rename", present: "renames" };
+}
+
+/** What an organize call did, in one word, for an outcome line written after it. */
 function organizeVerb(input: Input): string {
   if (input.name !== undefined && input.parentId !== undefined) return "Renamed and moved";
   return input.name === undefined ? "Moved" : "Renamed";
