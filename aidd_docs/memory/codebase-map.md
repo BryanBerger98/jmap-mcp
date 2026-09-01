@@ -79,7 +79,8 @@ L'écriture des agendas forme un troisième manifeste, sur la capacité des lect
 Seules deux de ses fonctions touchent le réseau, tout le reste se teste sans serveur.
 
 Les fichiers se scindent pour la même raison que les trois autres, et le manifeste d'écriture s'appelle `files-writing` et non `files` : le rapport de composition nomme un domaine écarté, et deux entrées portant le même nom ne diraient pas laquelle des deux surfaces s'est tue.
-Cinq modules se partagent le domaine, dont un seul touche le disque local.
+Les quatre outils vivent dans `browse.ts`, `fetch.ts`, `write.ts` et `delete.ts`, le manifeste dans `index.ts`.
+Quatre modules portent ce qu'ils se partagent, dont un seul touche le disque local ; `delete.ts` figure ci-dessous pour un comptage qui ne sert que son propre outil.
 
 | Module | Ce qu'il porte |
 | --- | --- |
