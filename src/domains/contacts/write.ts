@@ -24,6 +24,7 @@ import {
   buildPatch,
   type CardEdit,
   defaultBook,
+  describeBooks,
   describeCardOutcome,
   EDITABLE_PROPERTIES,
   outsidePerimeterNote,
@@ -543,12 +544,6 @@ async function nameCards(ids: readonly Id[], context: ToolContext): Promise<stri
   } catch {
     return counted;
   }
-}
-
-function describeBooks(books: readonly { id: Id; name: string }[]): string {
-  return books.length === 0
-    ? "no address book at all"
-    : books.map((book) => `${book.name} (${book.id})`).join(", ");
 }
 
 function describeReason(error: { type: string; description?: string }): string {

@@ -221,6 +221,18 @@ export function defaultBook(books: readonly AddressBook[]): AddressBook | undefi
 }
 
 /**
+ * The books of the account, named and identified, for a refusal to point at.
+ *
+ * Structurally typed rather than over `AddressBook`: the wording is the same
+ * whichever tool refuses, and two copies of one sentence drift at the first edit.
+ */
+export function describeBooks(books: readonly { id: Id; name: string }[]): string {
+  return books.length === 0
+    ? "no address book at all"
+    : books.map((book) => `${book.name} (${book.id})`).join(", ");
+}
+
+/**
  * The uid of each card id, which is what `members` is keyed by.
  *
  * RFC 9553 §2.1.9 keys a group's members by uid, and `contacts_search` hands out

@@ -7,7 +7,7 @@ import type {
 import type { Id, QueryResponse, SetError, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CONTACTS, CAPABILITY_CORE } from "../../jmap/types/core.js";
 import { defineTool, type ToolContext } from "../../registry/define-tool.js";
-import { resolveBooks } from "./edit.js";
+import { describeBooks, resolveBooks } from "./edit.js";
 
 /** The key a creation is filed under: JMAP hands back the real id in `created`. */
 const CREATION_KEY = "new";
@@ -269,10 +269,4 @@ async function find(
 ): Promise<AddressBook | undefined> {
   if (bookId === undefined) return undefined;
   return byId(await resolveBooks(context), bookId);
-}
-
-function describeBooks(books: readonly AddressBook[]): string {
-  return books.length === 0
-    ? "no address book at all"
-    : books.map((book) => `${book.name} (${book.id})`).join(", ");
 }
