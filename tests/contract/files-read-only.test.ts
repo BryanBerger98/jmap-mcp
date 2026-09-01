@@ -1,18 +1,20 @@
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { McpServer } from "@modelcontextprotocol/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ZodType } from "zod";
 import { DEFAULT_POLICY } from "../../src/config/policy.js";
 import { filesDomain } from "../../src/domains/files/index.js";
 import { LOCAL_ROOT_KEY } from "../../src/domains/files/local.js";
 import type { JmapClient } from "../../src/jmap/client.js";
 import type { JmapSession } from "../../src/jmap/session.js";
+import type { GetResponse } from "../../src/jmap/types/core.js";
 import { CAPABILITY_FILENODE, CAPABILITY_MAIL } from "../../src/jmap/types/core.js";
-import type { FileNodeFilterCondition } from "../../src/jmap/types/filenode.js";
+import type { FileNode, FileNodeFilterCondition } from "../../src/jmap/types/filenode.js";
 import { compose } from "../../src/registry/compose.js";
 import type { ToolDefinition } from "../../src/registry/define-tool.js";
-import { fakeTransport } from "../fixtures/client.js";
+import { FIXTURE_BYTES, fakeTransport, loadFixture } from "../fixtures/client.js";
 
 /**
  * The invariant this file exists for: the file surface reads, and only reads.
@@ -44,6 +46,16 @@ const HONOURED: (keyof FileNodeFilterCondition)[] = [
   "maxSize",
 ];
 
+/**
+ * The one node every run resolves: a real file, with a blobId.
+ *
+ * A surface that never reaches its download proves nothing about the bytes, so
+ * the response names a fetchable node rather than an empty list.
+ */
+const FETCHABLE = loadFixture<GetResponse<FileNode>>("file-node-get.json").list.filter(
+  (node) => node.id === "fn-3",
+);
+
 /** A response shaped to satisfy a get and a query alike. */
 const ANY_RESPONSE = {
   accountId: "acc-1",
@@ -53,7 +65,7 @@ const ANY_RESPONSE = {
   position: 0,
   ids: [],
   total: 0,
-  list: [],
+  list: FETCHABLE,
   notFound: [],
 };
 
@@ -61,18 +73,27 @@ const TOOLS = filesDomain.tools;
 const tools = TOOLS.map((tool) => [tool.name, tool] as const);
 
 /**
- * A configured local directory, so a fetch reaches the wire instead of stopping
- * at its own precheck. Nothing is ever written under it: `ANY_RESPONSE` names no
- * node, so every run refuses on the missing id, after its read and before its
- * download.
+ * A real directory, fresh for each test, so a fetch runs all the way through.
+ *
+ * A frozen constant would do neither: it names no directory on disk, so the
+ * write would fail on ENOENT, and two tests sharing it would collide on the
+ * second `report.pdf`, a local file never being overwritten.
  */
-const CONFIGURED_ROOT = join(tmpdir(), "jmap-mcp-read-only-contract");
+let root: string;
+
+beforeEach(async () => {
+  root = await mkdtemp(join(tmpdir(), "jmap-mcp-read-only-contract-"));
+});
+
+afterEach(async () => {
+  await rm(root, { recursive: true, force: true });
+});
 
 /** A transport every tool of the surface can run against, wired for reading. */
 function reading() {
   return fakeTransport(
     Array.from({ length: 8 }, () => ANY_RESPONSE),
-    { files: { localRoot: CONFIGURED_ROOT } },
+    { files: { localRoot: root } },
   );
 }
 
@@ -168,8 +189,10 @@ describe("files surface", () => {
   });
 
   it("moves no byte through the JMAP endpoint", async () => {
+    const transferred: string[] = [];
+
     for (const tool of TOOLS) {
-      const { context, requests } = reading();
+      const { context, requests, blobs } = reading();
 
       await tool.run(minimalArguments(tool), context);
 
@@ -177,7 +200,17 @@ describe("files surface", () => {
       expect(body, `${tool.name} put a blob argument on the JMAP endpoint`).not.toMatch(
         /"data:|"blobIds"/,
       );
+      expect(body, `${tool.name} put file bytes on the JMAP endpoint`).not.toContain(
+        Buffer.from(FIXTURE_BYTES).toString("base64"),
+      );
+      if (blobs.downloads.length > 0) transferred.push(tool.name);
     }
+
+    // The negative above only means something on a run that moved bytes. The
+    // blob channel is the sole path they may take, and files_fetch the sole tool
+    // of the surface that takes it: a fetch reading its content off a JMAP call
+    // would empty this list and break the assertion instead of passing quietly.
+    expect(transferred).toEqual(["files_fetch"]);
   });
 
   it("emits no condition the server would parse and drop", async () => {
