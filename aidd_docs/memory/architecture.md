@@ -1,7 +1,7 @@
 ---
 title: Architecture
 status: draft
-updated: 2026-08-31
+updated: 2026-09-01
 owner: bryan
 ---
 
@@ -110,6 +110,22 @@ Il suit `precheck` pour la raison qui vaut déjà pour le périmètre des destin
 Le seuil est `bulkConfirmAbove`, porté par le contexte et non lu par le registre, car seul l'outil sait ce que ses arguments comptent.
 Un plafond dur de cinquante identifiants par appel s'y ajoute, non réglable, et refuse avant toute question.
 
+## ✍️ Ce qu'une correction touche
+
+Une écriture de fiche part en `PatchObject` sur les seuls chemins que l'appel a nommés.
+Envoyer l'objet complet effacerait ce que la lecture ne rend pas : `ContactCard/get` peut répondre partiellement, et une propriété absente d'un objet complet vaut suppression.
+La création est le seul cas qui envoie un objet entier, puisqu'il n'y a rien à préserver.
+
+Deux règles du patch se tiennent avant la requête, pas sur le fil.
+Un patch préfixe d'un autre est invalide (RFC 8620 §5.3) : remplacer une famille de champs et l'amender dans le même appel est refusé ici plutôt que renvoyé en `invalidPatch`.
+Les clés d'une entry-map sont opaques, donc une adresse se retire par sa valeur et jamais par sa clé, que le serveur choisit.
+
+La non-cascade porte désormais deux drapeaux, `onDestroyRemoveEmails` sur un dossier et `onDestroyRemoveContents` sur un carnet.
+Le second est obligatoire dans le type des arguments : une branche qui l'oublierait ne compile pas, et le contrat le vérifie quand même, pour le jour où le type serait assoupli.
+
+Le périmètre des destinataires ne s'élargit pas en cours de session.
+Créer une fiche avec `contacts_write` n'ouvre rien : le périmètre est résolu une fois au démarrage, et l'adresse n'y entre qu'au redémarrage suivant.
+
 ## ⚠️ Pièges
 
 - Le niveau `confirm` s'appuie sur MRTR. Quand le client ne l'expose pas, l'outil refuse : jamais d'exécution silencieuse.
@@ -121,4 +137,6 @@ Un plafond dur de cinquante identifiants par appel s'y ajoute, non réglable, et
 - Supprimer un dossier ne supprime jamais son contenu. `onDestroyRemoveEmails` est écrit à faux sur chaque `Mailbox/set` émis, y compris ceux qui ne détruisent rien : un défaut serveur n'est pas une garantie, et l'absence de l'argument ne se voit sur aucun test unitaire.
 - Le README de Stalwart n'est pas fiable sur les révisions de draft : Filenode y est resté à `-03` alors que le code est à `-14`. Le CHANGELOG et le code arbitrent.
 - Les fiches de contact ne se trient pas par nom. Stalwart rend `UnsupportedSort` sur `name`, seuls `created` et `updated` étant indexés pour l'ordre : une pagination stable n'a d'autre choix que la date de création.
+- Les clés de `members` sont des `uid` de fiche, jamais des identifiants JMAP. Un outil qui reçoit des identifiants doit les traduire par une lecture, sans quoi le groupe pointe sur des membres inexistants et le serveur l'accepte sans broncher.
+- Supprimer un carnet ne supprime jamais ses fiches, et rien ne les rattrape : les contacts n'ont pas de corbeille. Un carnet encore peuplé, le carnet par défaut et le dernier carnet restant sont refusés avant la requête.
 - Les trois champs de nom retombent sur le même index. Filtrer sur `name`, `name/given` ou `name/surname` rend le même résultat, donc chercher un prénom seul est hors de portée du serveur et la description de l'outil doit le dire.

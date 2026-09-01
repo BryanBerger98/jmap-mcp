@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Documentation et mémoire projet
@@ -90,6 +90,27 @@ journey
 2. Relever le compte de tests depuis la sortie de `pnpm test`, pas depuis l'ancien chiffre incrémenté.
 3. Passer le vérificateur Markdown sur les cinq fichiers touchés.
 4. Passer le PRD source en statut livré, sa question ouverte sur le nombre d'outils étant tranchée.
+
+## Compte-rendu de phase
+
+### 📊 Comptes relevés, non reconduits
+
+| Grandeur | Source du relevé | Valeur |
+| --- | --- | --- |
+| Outils enregistrés | Les neuf manifestes, énumérés | 15 |
+| Tests | Sortie de `pnpm test` | 442 sur 37 fichiers |
+| Fichiers de contrat | `ls tests/contract/` | 11 |
+
+Les quinze noms relevés sur les manifestes sont exactement ceux du README et du ROADMAP.
+
+### ⚠️ Le README reste hors du contrat Markdown
+
+Le vérificateur sort à zéro erreur sur les quatre fichiers de `aidd_docs/`.
+`README.md` en porte huit, toutes antérieures à cette phase : front-matter absent et sept H2 sans emoji.
+
+Elles n'ont pas été corrigées, et le compte n'a pas bougé.
+Le contrat impose un contenu français, des H2 emoji et un bloc de front-matter, ce qui n'est pas ce qu'on publie sur GitHub et sur npm pour un projet anglophone.
+Repeindre le fichier dépassait la phase, dont l'objet est de réaligner des comptes, pas de changer la langue de la vitrine.
 
 ## Test acceptance criteria
 

@@ -1,6 +1,6 @@
 ---
 title: PRD — Écrire dans ses carnets d'adresses
-status: draft
+status: stable
 updated: 2026-09-01
 owner: bryan
 ---
@@ -175,3 +175,26 @@ obligerait à sortir de l'assistant pour le contourner.
 Un fait reste à constater sans bloquer la construction : Stalwart accepte-t-il une
 `ContactCard/set` update en patch partiel sur un chemin JSContact imbriqué, ou
 exige-t-il l'objet complet ?
+
+## ✅ Ce que la livraison a tranché
+
+| Question | Arbitrage rendu |
+| --- | --- |
+| Deux outils, ou trois ? | Trois, la tranche passant à cinq |
+| Création : geste de sécurité ? | Non, classe `draft` |
+| Import d'un vCard ? | Reporté au module 9 |
+| Doublon : bloquer ou informer ? | Informer, sans requête supplémentaire |
+
+Trois outils plutôt que deux : `contacts_book_manage` est resté séparé, un carnet et une
+fiche ne partageant aucun schéma.
+Le cumul passe donc à quinze sur vingt-six, et le dépassement se traite au module 9 comme
+prévu, sans rejouer l'arbitrage à chaque module.
+
+La création reste `draft`, et la réponse dit ce qu'elle change au périmètre : une adresse
+écrite sous un scope restreint n'y entre qu'au redémarrage suivant.
+Le doublon voyage avec l'écriture, une requête portant la recherche et le `set` ensemble,
+donc il n'a coûté aucun aller-retour supplémentaire.
+
+Le fait à constater reste non constaté : le patch partiel a été implémenté d'après la
+RFC 8620 §5.3 et couvert par des fixtures, aucun Stalwart réel n'ayant été interrogé.
+C'est la première chose à vérifier sur un serveur vivant.
