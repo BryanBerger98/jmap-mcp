@@ -320,7 +320,7 @@ async function createEvent(input: WriteInput, context: ToolContext) {
   const calendarName = calendars.find((one) => one.id === calendarId)?.name ?? calendarId;
   const lines = [
     `Created event ${created.id} in ${calendarName}. Times written in ${zone} (${origin}).`,
-    schedulingNote(input, invited.length, organizer),
+    schedulingNote(input, invited.length, noIdentityNote(invited.length, organizer)),
   ];
 
   return { text: lines.filter((line): line is string => line !== undefined).join("\n\n") };
@@ -359,12 +359,14 @@ async function correctEvents(input: WriteInput, context: ToolContext) {
     ["CalendarEvent/set", args, "0"],
   );
 
+  const written = events.filter((event) => patched.includes(event.id));
+
   const lines = [
     patched.length === 0 ? undefined : describeEventOutcome(response, patched, "updated"),
     missing.length === 0 ? undefined : `Not found: ${missing.join(", ")}`,
     `Times written in ${zone} (${origin}).`,
-    seriesNote(events.filter((event) => patched.includes(event.id))),
-    schedulingNote(input, (input.participantsAdd ?? []).length, undefined),
+    seriesNote(written),
+    schedulingNote(input, (input.participantsAdd ?? []).length, noOrganiserNote(written)),
   ];
 
   return { text: lines.filter((line): line is string => line !== undefined).join("\n\n") };
@@ -493,11 +495,16 @@ async function pickOrganizer(context: ToolContext): Promise<EventOrganizer | und
  * Three conditions swallow an invitation without an error — iTIP turned off, the
  * scheduling permission withheld, an event entirely in the past — so a successful
  * `CalendarEvent/set` proves that the event was written and nothing more.
+ *
+ * `unsendable` is the reason, if there is one, why the mail has nobody to leave
+ * as. Each caller establishes it from what it actually holds — a creation from
+ * the identity it settled, a correction from the organiser the events carry —
+ * because neither can answer for the path the other took.
  */
 function schedulingNote(
   input: WriteInput,
   invited: number,
-  organizer: EventOrganizer | undefined,
+  unsendable: string | undefined,
 ): string | undefined {
   if (input.notify !== true) {
     if (invited === 0) return undefined;
@@ -507,12 +514,10 @@ function schedulingNote(
       "and nobody was mailed.";
 
     // Pointing at `notify` would send the caller back for an invitation that
-    // cannot leave: without an identity the event carries no organiser, and the
-    // server has nobody to send as however the call is repeated.
-    return organizer === undefined
-      ? `${written} No scheduling identity of this account could be settled either, so the event ` +
-          "carries no organiser and calling again with notify would have nobody to send as."
-      : `${written} Call again with notify to have the server mail them.`;
+    // cannot leave, so the reason takes its place when there is one.
+    return unsendable === undefined
+      ? `${written} Call again with notify to have the server mail them.`
+      : `${written} ${unsendable}`;
   }
 
   const asked =
@@ -520,14 +525,40 @@ function schedulingNote(
     "its answer: it skips scheduling silently when iTIP is off, when the account lacks the " +
     "scheduling permission, or when the event is entirely in the past.";
 
-  if (invited > 0 && organizer === undefined) {
-    return (
-      `${asked}\n\nNote: no scheduling identity of this account could be settled, so the event ` +
-      "carries no organiser and the server has nobody to send the invitation as."
-    );
-  }
+  return unsendable === undefined ? asked : `${asked}\n\nNote: ${unsendable}`;
+}
 
-  return asked;
+/** Why a creation has nobody to send as: no identity of the account was settled. */
+function noIdentityNote(
+  invited: number,
+  organizer: EventOrganizer | undefined,
+): string | undefined {
+  if (invited === 0 || organizer !== undefined) return undefined;
+
+  return (
+    "No scheduling identity of this account could be settled, so the event carries no organiser " +
+    "and the server has nobody to send the invitation as."
+  );
+}
+
+/**
+ * Which corrected events name no organiser, read off the events themselves.
+ *
+ * `organizerCalendarAddress` is in `EVENT_WRITE_PROPERTIES`, so this costs no
+ * round trip and states something observed rather than assumed. It says nothing
+ * about the account's own identities on purpose: a patch never writes an
+ * organiser onto an event, so which identity the account holds could not change
+ * what the server has to send as here.
+ */
+function noOrganiserNote(events: readonly CalendarEvent[]): string | undefined {
+  const orphaned = events.filter((event) => (event.organizerCalendarAddress ?? "").trim() === "");
+  if (orphaned.length === 0) return undefined;
+
+  const named = orphaned.map((event) => event.id).join(", ");
+  return (
+    `${named} ${orphaned.length === 1 ? "names" : "name"} no organiser, so the server has nobody ` +
+    `to send as for ${orphaned.length === 1 ? "it" : "them"}.`
+  );
 }
 
 /** Says out loud that a correction to a rule-bearing event reaches every occurrence. */

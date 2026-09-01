@@ -157,7 +157,7 @@ describe("calendar_write — creating", () => {
       context,
     );
 
-    expect(result.text).toContain("no scheduling identity");
+    expect(result.text).toContain("No scheduling identity");
     // Asserted on the wire and not only in the text: an unsettled identity used
     // to take the guests out of the object with it, silently.
     const created = createdEvent(requests);
@@ -174,7 +174,10 @@ describe("calendar_write — creating", () => {
     );
 
     expect(result.text).toContain("No invitation was requested");
-    expect(result.text).toContain("nobody to send as");
+    expect(result.text).toContain("nobody to send the invitation as");
+    // Calling again with notify would not send anything either, so the answer
+    // stops offering it as the way out.
+    expect(result.text).not.toContain("Call again with notify");
   });
 
   it("writes the guests without mailing them when notify is left out", async () => {
@@ -272,6 +275,35 @@ describe("calendar_write — correcting", () => {
 
     expect(Object.keys(writeArgs(requests).update as object)).toEqual(["ev-simple"]);
     expect(result.text).toContain("Not found: ev-gone");
+  });
+
+  it("says nothing about the organiser when the corrected event already names one", async () => {
+    const { context } = fakeTransport([only("ev-invited"), calendars, eventSet]);
+
+    const result = await calendarWrite.run(
+      { eventIds: ["ev-invited"], participantsAdd: ["noor@example.org"], notify: true },
+      context,
+    );
+
+    // claire@example.org organises this one, and the read already carried it:
+    // the note used to be computed from a literal `undefined` instead.
+    expect(result.text).toContain("asked to mail");
+    expect(result.text).not.toContain("no organiser");
+    expect(result.text).not.toContain("scheduling identity");
+  });
+
+  it("names the corrected event that has no organiser to send as", async () => {
+    const { context } = fakeTransport([only("ev-simple"), calendars, eventSet]);
+
+    const result = await calendarWrite.run(
+      { eventIds: ["ev-simple"], participantsAdd: ["noor@example.org"], notify: true },
+      context,
+    );
+
+    expect(result.text).toContain("ev-simple names no organiser");
+    // A correction never writes an organiser, so the account's identities are
+    // beside the point and are never read on this path.
+    expect(result.text).not.toContain("scheduling identity");
   });
 
   it("renders the server's refusals by id, never a global success", async () => {
