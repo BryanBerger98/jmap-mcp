@@ -1,5 +1,6 @@
 import { CAPABILITY_CONTACTS } from "../../jmap/types/core.js";
 import { defineDomain } from "../../registry/manifest.js";
+import { contactsBookManage } from "./book-manage.js";
 import { contactsDelete } from "./delete.js";
 import { contactsRead } from "./read.js";
 import { contactsSearch } from "./search.js";
@@ -28,5 +29,5 @@ export const contactsDomain = defineDomain({
 export const contactsWritingDomain = defineDomain({
   name: "contacts-writing",
   requires: [CAPABILITY_CONTACTS],
-  tools: [contactsWrite, contactsDelete],
+  tools: [contactsWrite, contactsDelete, contactsBookManage],
 });
