@@ -1,0 +1,37 @@
+{
+  "accountId": "acc-1",
+  "state": "calendar-state-1",
+  "list": [
+    {
+      "id": "cal-1",
+      "name": "Personal",
+      "color": "#3b82f6",
+      "timeZone": "Europe/Paris",
+      "isDefault": true,
+      "isVisible": true,
+      "isSubscribed": true,
+      "includeInAvailability": "all"
+    },
+    {
+      "id": "cal-2",
+      "name": "Work",
+      "color": "#f59e0b",
+      "timeZone": "Europe/Paris",
+      "isDefault": false,
+      "isVisible": true,
+      "isSubscribed": true,
+      "includeInAvailability": "attending"
+    },
+    {
+      "id": "cal-3",
+      "name": "Holidays",
+      "color": null,
+      "timeZone": null,
+      "isDefault": false,
+      "isVisible": false,
+      "isSubscribed": true,
+      "includeInAvailability": "none"
+    }
+  ],
+  "notFound": []
+}

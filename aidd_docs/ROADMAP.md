@@ -150,16 +150,25 @@ Envoyer l'objet complet effacerait ce que la lecture ne rend pas, un champ absen
 Les fondre aurait donné un outil dont la moitié des arguments est refusée selon la valeur d'un autre, ce que le module 5 avait justement évité en n'ouvrant pas de troisième outil de lecture.
 L'entrée coûtée au budget est assumée ici, pas rattrapée plus loin.
 
-## 📅 Module 7 — Lecture des agendas
+## 📅 Module 7 — Lecture des agendas ✅
 
 | Aspect | Contenu |
 | --- | --- |
-| Outils | `calendar_list`, `events_search`, `availability_check` |
+| Outils | `calendar_search`, `calendar_read`, `calendar_availability` |
 | Classes | `read` |
-| Méthodes | `Calendar/get`, `Calendar/query`, `CalendarEvent/query`, `CalendarEvent/get`, `Principal/getAvailability` |
+| Méthodes | `Calendar/get`, `CalendarEvent/query`, `CalendarEvent/get`, `Principal/getAvailability` |
 
 Les bornes de `CalendarEvent/query` sont des `LocalDateTime` interprétées dans l'argument `timeZone` : l'outil impose ce fuseau plutôt que de le déduire.
-`Principal/getAvailability` est le seul chemin vers la disponibilité, aucun objet `FreeBusy` n'existant.
+Le fuseau retenu est toujours nommé dans la réponse, faute de quoi une heure ne veut rien dire.
+
+Trois écarts au périmètre initial, chacun imposé par le code de Stalwart :
+
+- **Aucun outil de listage des agendas.** La légende tient dans l'en-tête de `calendar_search`, comme les carnets au module 5. `Calendar/query` n'est donc jamais émise.
+- **Un repli sur la disponibilité.** `Principal/getAvailability` est refusée en `forbidden` tant que `allowDirectoryQueries` reste désactivé, alors que la capacité est annoncée sans condition : le gating ne protège de rien, seul un repli répond. Le repli lit les agendas du compte et dit ce qu'il ignore.
+- **Le tiers est absent du schéma.** Son identifiant de principal passerait par `Principal/query`, qui rend zéro. Exposer l'argument aurait promis une capacité que le serveur retient.
+
+Deux modes de recherche, et non un : `expandRecurrences` exige les deux bornes, donc sans fenêtre la recherche rend les événements de base et l'en-tête le dit.
+Le tri est `start` ascendant, seul ordre accepté des deux côtés, `created` et `updated` étant refusés hors dépliage.
 
 ## 🗓️ Module 8 — Écriture des agendas
 
@@ -229,7 +238,9 @@ Octroyer un accès à un tiers est classé `send` : c'est irréversible du point
 | Agendas | 7 et 8 | 21 | ⏳ |
 | Reste | 9 à 11 | 31 | ⏳ |
 
-Quinze outils sont exposés à ce jour sur les vingt-six visés : dix sur le mail, `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage`, et cinq sur les contacts, `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage`.
+Dix-huit outils sont exposés à ce jour sur les vingt-six visés : dix sur le mail, `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage`, cinq sur les contacts, `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage`, et trois sur les agendas, `calendar_search`, `calendar_read`, `calendar_availability`.
+Le module 7 s'est tenu aux trois entrées prévues, laissant les trois restantes de la tranche au module 8.
+
 La tranche contacts en prévoyait quatre et en consomme cinq : le module 5 s'était tenu à deux, le module 6 en a pris trois pour ne pas mêler le schéma d'un carnet à celui d'une fiche.
 Les cumuls des tranches suivantes portent ce décalage d'une unité, sans qu'aucune ne le rattrape.
 Le module 1 n'a livré aucun outil, `jmap_session_info` ayant été remplacé par les instructions d'initialisation, qui portent la même information sans coûter une entrée au budget.

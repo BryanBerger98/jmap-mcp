@@ -1,5 +1,11 @@
 import { JmapError } from "./errors.js";
-import { type Account, CAPABILITY_CORE, type Id, type Session } from "./types/core.js";
+import {
+  type Account,
+  CAPABILITY_CORE,
+  CAPABILITY_PRINCIPALS,
+  type Id,
+  type Session,
+} from "./types/core.js";
 
 /**
  * The discovered session. It answers two questions the registry needs before
@@ -34,6 +40,24 @@ export class JmapSession {
   /** The login the session was opened with, not the account name. */
   get username(): string {
     return this.raw.username;
+  }
+
+  /**
+   * The principal this account acts as, which availability is asked about.
+   *
+   * Stalwart sets `currentUserPrincipalId` to the account id itself, so asking
+   * about oneself needs no directory lookup — which matters, because
+   * `Principal/query` returns nothing on a default instance. The fallback keeps
+   * that true on a server that omits the property rather than sending a
+   * malformed request.
+   */
+  get principalId(): Id {
+    const account = this.raw.accounts[this.accountId];
+    const principals = account?.accountCapabilities[CAPABILITY_PRINCIPALS] as
+      | { currentUserPrincipalId?: Id }
+      | undefined;
+
+    return principals?.currentUserPrincipalId ?? this.accountId;
   }
 
   /** Session-level capability URIs, sorted so the rendering is stable. */

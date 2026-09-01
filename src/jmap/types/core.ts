@@ -10,6 +10,14 @@ export const CAPABILITY_SIEVE = "urn:ietf:params:jmap:sieve";
 export const CAPABILITY_CONTACTS = "urn:ietf:params:jmap:contacts";
 export const CAPABILITY_CALENDARS = "urn:ietf:params:jmap:calendars";
 export const CAPABILITY_PRINCIPALS = "urn:ietf:params:jmap:principals";
+/**
+ * Carries `Principal/getAvailability`, and is advertised unconditionally.
+ *
+ * Stalwart announces it whatever `allowDirectoryQueries` says, while the
+ * permission behind the method is withdrawn when that setting is off. Gating on
+ * this URI therefore proves the method exists, never that it will answer.
+ */
+export const CAPABILITY_PRINCIPALS_AVAILABILITY = "urn:ietf:params:jmap:principals:availability";
 export const CAPABILITY_FILENODE = "urn:ietf:params:jmap:filenode";
 
 export interface CoreCapability {

@@ -4,11 +4,11 @@ Local MCP server that exposes a [Stalwart](https://stalw.art) mail server's JMAP
 
 No data leaves your machine except the exchange with your own server.
 
-> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable and writable: cards and the address books that hold them. The four other domains register nothing yet.
+> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable and writable: cards and the address books that hold them. Calendars are readable: searching, reading and checking availability. The three other domains register nothing yet.
 
 ## Tools
 
-Fifteen tools across two domains, mail and contacts. The class is what the write policy below gates.
+Eighteen tools across three domains, mail, calendar and contacts. The class is what the write policy below gates.
 
 | Tool | Class | Does |
 | --- | --- | --- |
@@ -27,10 +27,15 @@ Fifteen tools across two domains, mail and contacts. The class is what the write
 | `contacts_write` | `draft` | Creates a card, or corrects the named fields of existing ones |
 | `contacts_delete` | `destroy` | Erases cards for good; contacts have no trash |
 | `contacts_book_manage` | `draft` or `destroy` | Creates, renames a book; `delete` removes an empty one |
+| `calendar_search` | `read` | Searches calendar events, paginated, every calendar named in the header |
+| `calendar_read` | `read` | Reads up to 20 events by id, participants included |
+| `calendar_availability` | `read` | Returns busy periods in a time window, no event detail |
 
 A contact write only ever touches the fields the call names: it patches the paths given and leaves every other field of the card untouched. `contacts_delete` has no reversible form, which is why it carries a single class — no folder holds a destroyed card and no later call brings it back. Deleting an address book never destroys the cards inside it: a book still holding cards is refused, as are the default book and the last remaining one.
 
 `mail_delete` moves messages to the folder carrying the `trash` role, where they stay readable and can be moved back out. Only `permanent: true` erases them, and that call classifies as `destroy`, so it is confirmed. Deleting a folder never takes its messages with it: a folder holding messages, or holding another folder, is refused outright, and every folder write states on the wire that no message is to be removed.
+
+`calendar_availability` answers through `Principal/getAvailability` first, and only falls back to reading the account's own calendars when the server refuses that method with `forbidden`. The fallback cannot see calendars shared with the account by someone else, and it counts every event on an attendance-limited calendar rather than checking who is actually invited — both gaps make it under-report busy time, never over-report it.
 
 ### Batch limits
 

@@ -8,8 +8,8 @@ owner: bryan
 # Tests
 
 > [!NOTE]
-> 445 tests passent sur 37 fichiers, dont 11 de contrat.
-> Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses et les fiches de contact, en lecture comme en écriture.
+> 571 tests passent sur 43 fichiers, dont 12 de contrat.
+> Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact et les agendas, en lecture comme en écriture.
 
 ## 🎯 Stratégie
 
@@ -18,7 +18,7 @@ Deux couches, séparées par leur objet.
 | Couche | Couvre |
 | --- | --- |
 | `tests/unit/` | Rendu, pagination, mapping d'erreurs |
-| `tests/contract/` | Garde sur `send` et `destroy`, pureté en lecture du mail et des contacts |
+| `tests/contract/` | Garde sur `send` et `destroy`, pureté des surfaces de lecture |
 
 Les tests de contrat sont la couche qui compte : ils vérifient qu'aucun outil de classe `send` ou `destroy` ne s'exécute sans passer par la garde de politique.
 Un module de domaine ne peut pas contourner le registre, et le test le prouve plutôt que la revue.
@@ -36,6 +36,7 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | `no-cascade-destroy.test.ts` | Tout `Mailbox/set` et tout `AddressBook/set` portent leur drapeau de cascade à faux |
 | `contacts-read-only.test.ts` | Contacts en lecture : rien hors `get` et `query` |
 | `contacts-write-guard.test.ts` | Écriture des contacts : confirmation, identifiants, lot, création sans destruction |
+| `calendar-read-only.test.ts` | Agendas : rien hors les lectures nommées |
 
 Le contrat sur la lecture des contacts sépare deux affirmations : la classe déclarée d'une part, ce qui part réellement sur le fil d'autre part.
 Il exécute chaque outil du manifeste sur des arguments minimaux tirés de son propre schéma, donc il tient un outil ajouté au domaine sans être réécrit.
@@ -44,6 +45,10 @@ Il tient aussi le gating : sans la capacité contacts, aucun des deux manifestes
 Le contrat sur l'écriture parcourt lui aussi le manifeste, avec une exception assumée : les arguments qui atteignent la branche destructrice de chaque outil sont écrits à la main, une dérivation générique ne pouvant pas produire un appel qui franchisse le `precheck`.
 Un test d'exhaustivité tient cette table honnête : un outil qui déclare `destroy` sans y figurer fait tomber le contrat.
 La non-cascade porte désormais deux drapeaux, `onDestroyRemoveEmails` sur un dossier et `onDestroyRemoveContents` sur un carnet, et le contrat vérifie pour chacun qu'un seul module l'émet.
+
+Le contrat sur les agendas reprend ce patron et durcit un point : sa liste blanche nomme des méthodes entières, jamais des suffixes.
+`Principal/getAvailability` ne finit pas par `/get`, et une règle assez lâche pour l'admettre admettrait aussi `CalendarEvent/set`.
+Il vérifie en outre qu'aucun des trois outils ne porte de `precheck` ni de `confirmWhen` : une lecture ne pose pas de question.
 
 Le contrat sur le périmètre va plus loin que le refus : il assert aussi qu'aucune méthode JMAP n'a été émise, et que la question de confirmation n'a jamais été posée.
 

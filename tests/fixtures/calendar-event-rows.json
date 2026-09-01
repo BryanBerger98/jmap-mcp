@@ -1,0 +1,720 @@
+{
+  "accountId": "acc-1",
+  "state": "event-state-1",
+  "list": [
+    {
+      "id": "ev-01",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Standup",
+      "utcStart": "2026-09-01T07:00:00Z",
+      "utcEnd": "2026-09-01T07:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Bleue"
+        }
+      },
+      "recurrenceRules": [
+        {
+          "frequency": "weekly",
+          "interval": 1
+        }
+      ],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-02",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Revue de sprint",
+      "utcStart": "2026-09-01T08:00:00Z",
+      "utcEnd": "2026-09-01T09:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Visio"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-03",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Point client Nephos",
+      "utcStart": "2026-09-01T09:00:00Z",
+      "utcEnd": "2026-09-01T10:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Verte"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-04",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Rétrospective",
+      "utcStart": "2026-09-01T10:00:00Z",
+      "utcEnd": "2026-09-01T10:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Bureau"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-05",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Déjeuner équipe",
+      "utcStart": "2026-09-01T11:00:00Z",
+      "utcEnd": "2026-09-01T12:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {},
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-06",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Entretien candidat",
+      "utcStart": "2026-09-01T12:00:00Z",
+      "utcEnd": "2026-09-01T13:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Bleue"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-07",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Atelier architecture",
+      "utcStart": "2026-09-01T13:00:00Z",
+      "utcEnd": "2026-09-01T13:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Visio"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-08",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Comité de pilotage",
+      "utcStart": "2026-09-01T14:00:00Z",
+      "utcEnd": "2026-09-01T15:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Verte"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-09",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Standup",
+      "utcStart": "2026-09-02T07:00:00Z",
+      "utcEnd": "2026-09-02T08:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Bureau"
+        }
+      },
+      "recurrenceRules": [
+        {
+          "frequency": "weekly",
+          "interval": 1
+        }
+      ],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-10",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Revue de sprint",
+      "utcStart": "2026-09-02T08:00:00Z",
+      "utcEnd": "2026-09-02T08:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {},
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-11",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Point client Nephos",
+      "utcStart": "2026-09-02T09:00:00Z",
+      "utcEnd": "2026-09-02T10:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Bleue"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-12",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Rétrospective",
+      "utcStart": "2026-09-02T10:00:00Z",
+      "utcEnd": "2026-09-02T11:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Visio"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-13",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Déjeuner équipe",
+      "utcStart": "2026-09-02T11:00:00Z",
+      "utcEnd": "2026-09-02T11:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Verte"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-14",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Entretien candidat",
+      "utcStart": "2026-09-02T12:00:00Z",
+      "utcEnd": "2026-09-02T13:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Bureau"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-15",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Atelier architecture",
+      "utcStart": "2026-09-02T13:00:00Z",
+      "utcEnd": "2026-09-02T14:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {},
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-16",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Comité de pilotage",
+      "utcStart": "2026-09-02T14:00:00Z",
+      "utcEnd": "2026-09-02T14:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Bleue"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-17",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Standup",
+      "utcStart": "2026-09-03T07:00:00Z",
+      "utcEnd": "2026-09-03T08:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Visio"
+        }
+      },
+      "recurrenceRules": [
+        {
+          "frequency": "weekly",
+          "interval": 1
+        }
+      ],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-18",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Revue de sprint",
+      "utcStart": "2026-09-03T08:00:00Z",
+      "utcEnd": "2026-09-03T09:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Verte"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-19",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Point client Nephos",
+      "utcStart": "2026-09-03T09:00:00Z",
+      "utcEnd": "2026-09-03T09:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Bureau"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-20",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Rétrospective",
+      "utcStart": "2026-09-03T10:00:00Z",
+      "utcEnd": "2026-09-03T11:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {},
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-21",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Déjeuner équipe",
+      "utcStart": "2026-09-03T11:00:00Z",
+      "utcEnd": "2026-09-03T12:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Bleue"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-22",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Entretien candidat",
+      "utcStart": "2026-09-03T12:00:00Z",
+      "utcEnd": "2026-09-03T12:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Visio"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-23",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Atelier architecture",
+      "utcStart": "2026-09-03T13:00:00Z",
+      "utcEnd": "2026-09-03T14:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Verte"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-24",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Comité de pilotage",
+      "utcStart": "2026-09-03T14:00:00Z",
+      "utcEnd": "2026-09-03T15:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Bureau"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-25",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Standup",
+      "utcStart": "2026-09-04T07:00:00Z",
+      "utcEnd": "2026-09-04T07:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {},
+      "recurrenceRules": [
+        {
+          "frequency": "weekly",
+          "interval": 1
+        }
+      ],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-26",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Revue de sprint",
+      "utcStart": "2026-09-04T08:00:00Z",
+      "utcEnd": "2026-09-04T09:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Bleue"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-27",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Point client Nephos",
+      "utcStart": "2026-09-04T09:00:00Z",
+      "utcEnd": "2026-09-04T10:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Visio"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-28",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Rétrospective",
+      "utcStart": "2026-09-04T10:00:00Z",
+      "utcEnd": "2026-09-04T10:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Verte"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-29",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Déjeuner équipe",
+      "utcStart": "2026-09-04T11:00:00Z",
+      "utcEnd": "2026-09-04T12:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Bureau"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-30",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Entretien candidat",
+      "utcStart": "2026-09-04T12:00:00Z",
+      "utcEnd": "2026-09-04T13:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {},
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-31",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Atelier architecture",
+      "utcStart": "2026-09-04T13:00:00Z",
+      "utcEnd": "2026-09-04T13:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Bleue"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-32",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Comité de pilotage",
+      "utcStart": "2026-09-04T14:00:00Z",
+      "utcEnd": "2026-09-04T15:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Visio"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-33",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Standup",
+      "utcStart": "2026-09-05T07:00:00Z",
+      "utcEnd": "2026-09-05T08:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Verte"
+        }
+      },
+      "recurrenceRules": [
+        {
+          "frequency": "weekly",
+          "interval": 1
+        }
+      ],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-34",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Revue de sprint",
+      "utcStart": "2026-09-05T08:00:00Z",
+      "utcEnd": "2026-09-05T08:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Bureau"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-35",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Point client Nephos",
+      "utcStart": "2026-09-05T09:00:00Z",
+      "utcEnd": "2026-09-05T10:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {},
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-36",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Rétrospective",
+      "utcStart": "2026-09-05T10:00:00Z",
+      "utcEnd": "2026-09-05T11:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Bleue"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-37",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Déjeuner équipe",
+      "utcStart": "2026-09-05T11:00:00Z",
+      "utcEnd": "2026-09-05T11:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Visio"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-38",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Entretien candidat",
+      "utcStart": "2026-09-05T12:00:00Z",
+      "utcEnd": "2026-09-05T13:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Salle Verte"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-39",
+      "calendarIds": {
+        "cal-1": true
+      },
+      "title": "Atelier architecture",
+      "utcStart": "2026-09-05T13:00:00Z",
+      "utcEnd": "2026-09-05T14:00:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {
+        "l1": {
+          "name": "Bureau"
+        }
+      },
+      "recurrenceRules": [],
+      "baseEventId": null
+    },
+    {
+      "id": "ev-40",
+      "calendarIds": {
+        "cal-2": true
+      },
+      "title": "Comité de pilotage",
+      "utcStart": "2026-09-05T14:00:00Z",
+      "utcEnd": "2026-09-05T14:30:00Z",
+      "showWithoutTime": false,
+      "status": "confirmed",
+      "locations": {},
+      "recurrenceRules": [],
+      "baseEventId": null
+    }
+  ],
+  "notFound": []
+}
