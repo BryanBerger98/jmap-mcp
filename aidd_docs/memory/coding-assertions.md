@@ -1,7 +1,7 @@
 ---
 title: Assertions de code
 status: draft
-updated: 2026-08-29
+updated: 2026-09-01
 owner: bryan
 ---
 
@@ -21,6 +21,20 @@ Node 24 est requis : `nvm use` depuis la racine avant toute commande, sinon pnpm
 
 Deux `tsconfig` : `tsconfig.json` couvre `src`, `tests` et `vitest.config.ts` en `noEmit`, `tsconfig.build.json` n'émet que `src`.
 Sans ce découpage, l'éditeur signale `vitest/config` introuvable dans les tests.
+
+## 📄 La vitrine hors contrat
+
+`README.md` est exempté du contrat Markdown : c'est la vitrine anglophone publiée sur GitHub et sur npm, pas un document de `aidd_docs/`.
+Le contrat y imposerait un contenu français, un bloc de front-matter et des H2 emoji, trois choses qui n'ont pas leur place sur une page de dépôt public.
+
+| Règle | Code | Sur `README.md` |
+| --- | --- | --- |
+| Front-matter obligatoire | `FM001` | Ne s'applique pas |
+| Emoji devant chaque H2 | `EMO001` | Ne s'applique pas |
+
+Le vérificateur s'y lance donc avec `--ignore=FM001,EMO001`.
+C'est le seul mécanisme disponible : il n'offre aucun profil README, seulement `repo` et `wiki`.
+Les huit erreurs qu'il signale sans ce drapeau sont attendues, jamais une régression à corriger.
 
 ## 🛠️ Comportement
 
