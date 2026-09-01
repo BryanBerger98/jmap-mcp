@@ -18,6 +18,22 @@ function only(...ids: string[]): GetResponse<FileNode> {
   };
 }
 
+/** As many folders as a test needs, to overrun what one request may carry. */
+function manyFolders(count: number): GetResponse<FileNode> {
+  const template = NODES.list.find((node) => node.id === "fn-1") as FileNode;
+
+  return {
+    accountId: "acc-1",
+    state: "file-state-1",
+    list: Array.from({ length: count }, (_, index) => ({
+      ...template,
+      id: `dir-${index}`,
+      name: `Folder ${index}`,
+    })),
+    notFound: [],
+  };
+}
+
 /** A `FileNode/query` answer whose only useful half is the total. */
 function total(count: number) {
   return {
@@ -118,6 +134,23 @@ describe("countSubtree", () => {
     // One `/get` and one request carrying both `/query` calls: a second count
     // could disagree with the one the refusal was decided on.
     expect(requests).toHaveLength(2);
+  });
+
+  it("splits the counting queries into requests the server will accept", async () => {
+    // Nine folders make eighteen calls, past the sixteen the fixture session
+    // states: one request would come back rejected whole, and the tool would
+    // read that transport refusal as a subtree it could not count.
+    const ids = Array.from({ length: 9 }, (_, index) => `dir-${index}`);
+    const totals = ids.flatMap((_, index) => [total(index), total(0)]);
+    const { context, requests } = fakeTransport([manyFolders(ids.length), ...totals]);
+
+    const tree = await countSubtree(ids, context);
+
+    expect(tree.unreadable).toBe(false);
+    expect(tree.counts.get("dir-0")).toEqual({ files: 0, directories: 0 });
+    expect(tree.counts.get("dir-8")).toEqual({ files: 8, directories: 0 });
+    // One `/get`, then the queries in requests of at most sixteen calls.
+    expect(requests.map((request) => request.methodCalls.length)).toEqual([1, 16, 2]);
   });
 
   it("queries nothing when no folder is named", async () => {

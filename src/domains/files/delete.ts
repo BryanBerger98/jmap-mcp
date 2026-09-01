@@ -1,5 +1,11 @@
 import { z } from "zod";
-import type { Id, Invocation, QueryResponse, SetResponse } from "../../jmap/types/core.js";
+import type {
+  CoreCapability,
+  Id,
+  Invocation,
+  QueryResponse,
+  SetResponse,
+} from "../../jmap/types/core.js";
 import { CAPABILITY_CORE, CAPABILITY_FILENODE } from "../../jmap/types/core.js";
 import type { FileNode, FileNodeQueryArguments } from "../../jmap/types/filenode.js";
 import { defineTool, type ToolContext } from "../../registry/define-tool.js";
@@ -25,6 +31,9 @@ export interface Subtrees {
   counts: Map<Id, SubtreeCount>;
   unreadable: boolean;
 }
+
+/** Assumed when the session states no `maxCallsInRequest`. Stalwart ships 16. */
+const CONSERVATIVE_MAX_CALLS = 8;
 
 const inputSchema = z.strictObject({
   ids: z
@@ -200,29 +209,43 @@ async function readNodes(
 /**
  * How many files and folders hang under each of these folders.
  *
- * One request, two calls per folder, `calculateTotal` on: the ids are not wanted
- * and `limit` is 1 so the server sends as few as it will. A `total` the server
- * declines to compute makes the whole count unreadable rather than zero — a
- * missing figure read as an empty folder is exactly the mistake that would open
- * a destruction.
+ * Two calls per folder, `calculateTotal` on: the ids are not wanted and `limit`
+ * is 1 so the server sends as few as it will. A `total` the server declines to
+ * compute makes the whole count unreadable rather than zero — a missing figure
+ * read as an empty folder is exactly the mistake that would open a destruction.
+ *
+ * They no longer travel in one request. The batch ceiling admits fifty ids, so a
+ * single request could carry a hundred calls where the server accepts sixteen,
+ * and it rejects the whole request rather than the surplus: the count would come
+ * back unreadable and the tool would refuse every deletion past eight folders,
+ * blaming a subtree it never read.
  */
 async function readTotals(
   directories: readonly FileNode[],
   context: ToolContext,
 ): Promise<Map<Id, SubtreeCount> | undefined> {
-  const calls: Invocation[] = directories.flatMap((directory, index) => [
-    ["FileNode/query", descendants(directory.id, "file", context), `f${index}`],
-    ["FileNode/query", descendants(directory.id, "directory", context), `d${index}`],
-  ]);
+  const responses: QueryResponse[] = [];
+  // Two calls per folder, so the request ceiling halves into a folder ceiling.
+  const perRequest = Math.max(1, Math.floor(maxCallsInRequest(context) / 2));
 
-  let responses: QueryResponse[];
-  try {
-    responses = await context.client.requestMany<QueryResponse[]>(
-      [CAPABILITY_CORE, CAPABILITY_FILENODE],
-      calls,
-    );
-  } catch {
-    return undefined;
+  for (let start = 0; start < directories.length; start += perRequest) {
+    const calls: Invocation[] = directories
+      .slice(start, start + perRequest)
+      .flatMap((directory, index) => [
+        ["FileNode/query", descendants(directory.id, "file", context), `f${start + index}`],
+        ["FileNode/query", descendants(directory.id, "directory", context), `d${start + index}`],
+      ]);
+
+    try {
+      responses.push(
+        ...(await context.client.requestMany<QueryResponse[]>(
+          [CAPABILITY_CORE, CAPABILITY_FILENODE],
+          calls,
+        )),
+      );
+    } catch {
+      return undefined;
+    }
   }
 
   const counts = new Map<Id, SubtreeCount>();
@@ -236,6 +259,21 @@ async function readTotals(
   }
 
   return counts;
+}
+
+/**
+ * What one request may carry, or a conservative default.
+ *
+ * Half of what Stalwart ships with, because a server that declines to state its
+ * own ceiling is not one to guess high about: too low costs a round trip, too
+ * high costs the whole request.
+ */
+function maxCallsInRequest(context: ToolContext): number {
+  const core = context.session.raw.capabilities[CAPABILITY_CORE] as
+    | Partial<CoreCapability>
+    | undefined;
+  const stated = core?.maxCallsInRequest;
+  return stated !== undefined && stated > 0 ? stated : CONSERVATIVE_MAX_CALLS;
 }
 
 function descendants(
