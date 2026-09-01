@@ -7,7 +7,8 @@ import type {
 import type { Id, QueryResponse, SetError, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CONTACTS, CAPABILITY_CORE } from "../../jmap/types/core.js";
 import { defineTool, type ToolContext } from "../../registry/define-tool.js";
-import { describeBooks, describeSetError, resolveBooks } from "./edit.js";
+import { describeSetError } from "../../shared/render.js";
+import { describeBooks, resolveBooks } from "./edit.js";
 
 /** The key a creation is filed under: JMAP hands back the real id in `created`. */
 const CREATION_KEY = "new";

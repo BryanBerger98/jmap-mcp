@@ -17,6 +17,7 @@ import type {
 import { CAPABILITY_CONTACTS, CAPABILITY_CORE } from "../../jmap/types/core.js";
 import { defineTool, type ToolContext } from "../../registry/define-tool.js";
 import { refuseOversizedBatch } from "../../shared/batch.js";
+import { describeSetError } from "../../shared/render.js";
 import { BOOK_PROPERTIES, KIND_GROUP } from "./card.js";
 import {
   BOOKS_KEY,
@@ -27,7 +28,6 @@ import {
   defaultBook,
   describeBooks,
   describeCardOutcome,
-  describeSetError,
   EDITABLE_PROPERTIES,
   outsidePerimeterNote,
   resolveBooks,

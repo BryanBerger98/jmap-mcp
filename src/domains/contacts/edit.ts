@@ -19,11 +19,11 @@ import type {
   ContactCardGetArguments,
   PatchObject,
 } from "../../jmap/types/contacts.js";
-import type { GetResponse, Id, SetError, SetResponse } from "../../jmap/types/core.js";
+import type { GetResponse, Id, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CONTACTS, CAPABILITY_CORE } from "../../jmap/types/core.js";
 import type { ToolContext } from "../../registry/define-tool.js";
 import type { BatchSubject } from "../../shared/batch.js";
-import { renderTable } from "../../shared/render.js";
+import { describeSetError, renderTable } from "../../shared/render.js";
 import { BOOK_PROPERTIES } from "./card.js";
 
 /**
@@ -494,11 +494,6 @@ function refusePrefixCollision(patch: PatchObject): void {
 
 function fold(value: string): string {
   return value.trim().toLowerCase();
-}
-
-/** A `SetError` in one line, wherever a refusal has to be read rather than parsed. */
-export function describeSetError(error: SetError): string {
-  return error.description === undefined ? error.type : `${error.type} — ${error.description}`;
 }
 
 function plural(count: number): string {

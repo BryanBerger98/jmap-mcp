@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   describeNodeOutcome,
-  describeNodeSetError,
   describeNodes,
   formatSize,
   isDirectory,
@@ -10,6 +9,7 @@ import {
 } from "../../src/domains/files/node.js";
 import type { GetResponse, SetResponse } from "../../src/jmap/types/core.js";
 import type { FileNode } from "../../src/jmap/types/filenode.js";
+import { describeSetError } from "../../src/shared/render.js";
 import { fakeTransport, loadFixture } from "../fixtures/client.js";
 
 const NODES = loadFixture<GetResponse<FileNode>>("file-node-get.json");
@@ -133,9 +133,9 @@ describe("describeNodeOutcome", () => {
   });
 });
 
-describe("describeNodeSetError", () => {
+describe("describeSetError", () => {
   it("falls back to the type alone when the server described nothing", () => {
-    expect(describeNodeSetError({ type: "alreadyExists" })).toBe("alreadyExists");
+    expect(describeSetError({ type: "alreadyExists" })).toBe("alreadyExists");
   });
 });
 

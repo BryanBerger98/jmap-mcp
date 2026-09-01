@@ -1,7 +1,7 @@
 ---
 title: Carte du code
 status: draft
-updated: 2026-09-01
+updated: 2026-09-02
 owner: bryan
 ---
 
@@ -92,9 +92,16 @@ Cinq modules se partagent le domaine, dont un seul touche le disque local.
 Le canal d'octets vit dans `src/jmap/blob.ts` et non dans le domaine, parce qu'il ferme sur le jeton et sur les deux gabarits d'URL du noyau.
 Un outil qui atteindrait les blobs lui-même aurait le jeton en main ; ce qui lui parvient est deux méthodes, `upload` et `download`, et rien qu'il puisse divulguer.
 
-Deux choses vivent hors du domaine parce qu'un second domaine les lit déjà.
-`src/shared/pagination.ts` remet les identifiants demandés dans leur ordre, pour le mail, les contacts, les agendas et les fichiers.
-`src/shared/batch.ts` porte le plafond dur de cinquante identifiants par appel, que le rangement du mail et l'écriture des contacts, des agendas et des fichiers partagent : quatre plafonds auraient divergé au premier ajustement.
+Trois choses vivent sous `src/shared/` parce qu'un second domaine les lit déjà.
+
+| Module | Ce qu'il porte | Lu par |
+| --- | --- | --- |
+| `pagination.ts` | Ordre des identifiants demandés | Mail, contacts, agendas, fichiers |
+| `batch.ts` | Plafond de cinquante identifiants par appel | Rangement du mail, trois écritures |
+| `render.ts` | Rendu compact, `SetError` en une ligne | Les quatre mêmes domaines |
+
+Quatre plafonds auraient divergé au premier ajustement, et le `SetError` avait déjà quatre copies identiques à l'octet près.
+Aucune ne mappait le moindre code : elles concaténaient le type et la description, donc les remonter n'a rien changé à ce qui s'affiche.
 
 ## 🚪 Points d'entrée
 

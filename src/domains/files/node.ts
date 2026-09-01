@@ -11,11 +11,11 @@
  * `application/octet-stream` would read as a fact about the folder.
  */
 
-import type { GetResponse, Id, SetError, SetResponse } from "../../jmap/types/core.js";
+import type { GetResponse, Id, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CORE, CAPABILITY_FILENODE } from "../../jmap/types/core.js";
 import type { FileNode, FileNodeGetArguments } from "../../jmap/types/filenode.js";
 import type { ToolContext } from "../../registry/define-tool.js";
-import { renderTable } from "../../shared/render.js";
+import { describeSetError, renderTable } from "../../shared/render.js";
 
 /**
  * What a `FileNode/get` is asked for when the whole node is wanted.
@@ -143,7 +143,7 @@ export function describeNodeOutcome(
 
   const rows = ids.map((id) => {
     const error = refused[id];
-    return { id, outcome: error === undefined ? done : `refused: ${describeNodeSetError(error)}` };
+    return { id, outcome: error === undefined ? done : `refused: ${describeSetError(error)}` };
   });
 
   // Counted off the server's answer, never off the cell rendered from it: a
@@ -159,9 +159,4 @@ export function describeNodeOutcome(
         : `${succeeded} of ${rows.length} file nodes ${done}, ${failed} refused by the server.`;
 
   return `${headline}\n\n${renderTable(rows, ["id", "outcome"])}`;
-}
-
-/** A `SetError` as one line. The description is the useful half when there is one. */
-export function describeNodeSetError(error: SetError): string {
-  return error.description === undefined ? error.type : `${error.type} — ${error.description}`;
 }
