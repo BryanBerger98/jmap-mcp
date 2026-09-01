@@ -1,6 +1,6 @@
 ---
 objective: "L'assistant crée, corrige, range et supprime une fiche de contact et gère les carnets qui les portent, sans jamais réécrire un champ qu'on ne lui a pas nommé ni vider un carnet en le supprimant."
-status: in-progress
+status: implemented
 ---
 
 # Plan: Écrire dans ses carnets d'adresses
