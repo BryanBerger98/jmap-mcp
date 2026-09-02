@@ -3,8 +3,8 @@
  *
  * Only what the domain reads and writes is declared: a property nobody requests
  * would be typed as present on a response that never carries it. `shareWith` and
- * `myRights` stay out for that reason — the sharing module will add them when it
- * reads them.
+ * `myRights` are here now that the sharing domain reads them, and they are
+ * optional for the same reason: the contacts tools never ask for them.
  *
  * Two rules of the specification are load-bearing here and are easy to lose:
  *
@@ -19,6 +19,20 @@
 import type { Id } from "./core.js";
 
 /**
+ * What a principal may do to one address book (RFC 9610 §2, RFC 9670 §3).
+ *
+ * The shortest of the four vocabularies: reading and writing cards are one
+ * right each, and no right distinguishes a card the principal created from one
+ * it did not.
+ */
+export interface AddressBookRights {
+  mayRead?: boolean;
+  mayWrite?: boolean;
+  mayShare?: boolean;
+  mayDelete?: boolean;
+}
+
+/**
  * A named collection of cards.
  *
  * `AddressBook` has no `query` in the RFC: an account holds a handful of books,
@@ -31,6 +45,10 @@ export interface AddressBook {
   sortOrder?: number;
   isDefault?: boolean;
   isSubscribed?: boolean;
+  /** Beneficiary principal id to the rights it holds. Only the sharing domain reads it. */
+  shareWith?: Record<Id, AddressBookRights>;
+  /** What this account may do to the book, as the server computes it. */
+  myRights?: AddressBookRights;
 }
 
 /**

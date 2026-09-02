@@ -39,6 +39,28 @@ import type { Id } from "./core.js";
  */
 export type AvailabilityInclusion = "all" | "attending" | "none";
 
+/**
+ * What a principal may do to one calendar (draft-ietf-jmap-calendars §4,
+ * RFC 9670 §3).
+ *
+ * Every right is optional: a `Calendar/get` that does not name `shareWith` or
+ * `myRights` carries neither, and a response is allowed to be partial.
+ *
+ * `mayWriteAll` aliases a set of internal ACLs that includes the one behind
+ * `mayDelete`, so revoking `mayDelete` makes `mayWriteAll` read back `false`
+ * with nothing said about it. `sharing/rights.ts` carries the note.
+ */
+export interface CalendarRights {
+  mayReadFreeBusy?: boolean;
+  mayReadItems?: boolean;
+  mayWriteAll?: boolean;
+  mayWriteOwn?: boolean;
+  mayUpdatePrivate?: boolean;
+  mayRSVP?: boolean;
+  mayShare?: boolean;
+  mayDelete?: boolean;
+}
+
 /** A named collection of events. `Calendar/get` with `ids: null` returns them all. */
 export interface Calendar {
   id: Id;
@@ -52,6 +74,10 @@ export interface Calendar {
   /** IANA name, nullable: an account may leave every calendar floating. */
   timeZone?: string | null;
   includeInAvailability?: AvailabilityInclusion;
+  /** Beneficiary principal id to the rights it holds. Only the sharing domain reads it. */
+  shareWith?: Record<Id, CalendarRights>;
+  /** What this account may do to the calendar, as the server computes it. */
+  myRights?: CalendarRights;
 }
 
 export interface CalendarLocation {
