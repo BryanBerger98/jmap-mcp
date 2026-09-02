@@ -119,8 +119,10 @@ export const sieveWrite = defineTool({
     "`deactivate` leaves the account with no filtering at all. " +
     "`delete` destroys scripts for good: Sieve has no trash and no later call brings one back. " +
     "It acts on ids only, as sieve_scripts returns them. " +
-    "The script named `vacation` belongs to the vacation response: it is written, activated and " +
-    "switched off through vacation_manage, never here.",
+    "The script named `vacation` belongs to the vacation response: it is written and activated " +
+    "through vacation_manage, never here. `deactivate` does reach it, because it switches off " +
+    "whatever script is active: when that is the vacation response, the automatic reply stops " +
+    "answering.",
   inputSchema,
   // `store` leaves the mail flow exactly as it was. The other three decide what
   // happens to every message that arrives afterwards, and one of them is
