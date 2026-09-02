@@ -17,8 +17,8 @@ Cette phase n'ajoute aucun outil : elle remet les chiffres au relevé, corrige u
 ```txt
 .
 ├── README.md                                      ✏️
-├── ROADMAP.md                                     ✏️
 └── aidd_docs
+    ├── ROADMAP.md                                 ✏️
     └── memory
         ├── architecture.md                        ✏️
         ├── codebase-map.md                        ✏️
@@ -132,7 +132,7 @@ journey
 > Rien n'est fini tant que les quatre ne sont pas au vert.
 
 1. `nvm use` depuis la racine, puis `pnpm typecheck`, `pnpm lint`, `pnpm test` et `pnpm build`.
-2. Le vérificateur Markdown passe sur les six fichiers touchés, `README.md` lancé avec `--ignore=FM001,EMO001`.
+2. Le vérificateur Markdown passe sur `aidd_docs/ROADMAP.md` et les cinq fichiers de `aidd_docs/memory/` touchés, puis sur `README.md` avec `--ignore=FM001,EMO001`.
 3. Les huit erreurs que le README signale sans ce drapeau sont attendues, jamais une régression à corriger.
 
 ## ✅ Test acceptance criteria
@@ -147,4 +147,4 @@ journey
 | 4.1 | Le nombre de tests écrit correspond à une exécution réelle |
 | 5.2 | La table du README compte vingt-neuf outils |
 | 6.1 | Les quatre portes câblées passent au vert |
-| 6.2 | Le vérificateur Markdown passe sur les six fichiers touchés |
+| 6.2 | Le vérificateur passe sur `aidd_docs/ROADMAP.md` et les cinq fichiers de `aidd_docs/memory/` touchés, puis sur `README.md` avec `--ignore=FM001,EMO001` |
