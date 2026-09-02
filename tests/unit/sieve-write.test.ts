@@ -309,6 +309,20 @@ describe("sieve_write activate", () => {
     expect(args.destroy).toBeUndefined();
   });
 
+  it("reports the switch as asked for, never as established", async () => {
+    const { context } = fakeTransport([sieveGet(), SET_OK], { blobs: scriptBlobs });
+
+    const { text } = await sieveWrite.run(ACTIVATE, context);
+
+    // The answer to an activation names no script at all, so what is read back
+    // is the state before the write. Saying "active: aggressive (sc-2)" would
+    // pass that off as the outcome.
+    expect(text).toContain("asked: make aggressive (sc-2) the script that filters incoming mail");
+    expect(text).toContain("invoices (sc-3) was filtering when this call read the account");
+    expect(text).toContain("confirmed: not by this answer");
+    expect(text).not.toContain("active: aggressive (sc-2)");
+  });
+
   it("names the script, what its source can do, and what stops filtering", async () => {
     const { context } = fakeTransport([sieveGet()], { blobs: scriptBlobs });
 
@@ -398,6 +412,17 @@ describe("sieve_write deactivate", () => {
     expect(args.create).toBeUndefined();
     expect(args.update).toBeUndefined();
     expect(args.destroy).toBeUndefined();
+  });
+
+  it("claims no account state it did not read, only the switch it asked for", async () => {
+    const { context } = fakeTransport([sieveGet(), SET_OK], { blobs: scriptBlobs });
+
+    const { text } = await sieveWrite.run(DEACTIVATE, context);
+
+    expect(text).toContain("asked: switch Sieve filtering off");
+    expect(text).toContain("invoices (sc-3) was filtering when this call read the account");
+    expect(text).toContain("confirmed: not by this answer");
+    expect(text).not.toContain("no Sieve script is active on this account any more");
   });
 
   it("names the script that stops filtering, and what that leaves behind", async () => {

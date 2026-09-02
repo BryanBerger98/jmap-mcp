@@ -351,16 +351,26 @@ async function runActivate(input: Input, context: ToolContext): Promise<ToolResu
     ["SieveScript/set", sieveActivationArguments(context.session.accountId, { activate: id }), "0"],
   );
 
+  // Two kinds of statement, kept apart because only one of them is established.
+  // `asked` and `before` come off the read above; the activation itself comes
+  // off an answer that carries no per-script result — `sieveActivationArguments`
+  // sends no create, no update and no destroy, so nothing in the response names
+  // a script — and this server drops an activation it cannot carry out without
+  // an error. Reporting "active: invoices (sc-3)" would state as fact something
+  // read before the write and never confirmed after it.
+  const named = target === undefined ? id : describeScript(target);
+
   return {
     text: renderFields({
-      active: target === undefined ? id : describeScript(target),
-      effect: "every message the account receives from now on goes through this script",
-      replaced:
+      asked: `make ${named} the script that filters incoming mail, from the next message on`,
+      before:
         previous === undefined
-          ? "nothing — no script was filtering before this call"
+          ? "no script was filtering when this call read the account"
           : previous.id === id
-            ? "nothing — it was already the active script"
-            : `${describeScript(previous)}, which no longer filters anything`,
+            ? `${named} was already the active script when this call read the account`
+            : `${describeScript(previous)} was filtering when this call read the account, and ` +
+              "only one script runs at a time, so this is what the activation stops",
+      confirmed: NOT_CONFIRMED,
     }),
   };
 }
@@ -429,14 +439,36 @@ async function runDeactivate(context: ToolContext): Promise<ToolResult> {
     ],
   );
 
+  // Same separation as the activation above, and for the same reason: the
+  // account had this script filtering when the read landed, and the answer to a
+  // switch-off names no script at all.
   return {
     text: renderFields({
-      filtering: "nothing — no Sieve script is active on this account any more",
-      stopped: previous === undefined ? "nothing was active" : describeScript(previous),
+      asked: "switch Sieve filtering off, so that no script filters incoming mail",
+      before:
+        previous === undefined
+          ? "nothing was active when this call read the account"
+          : `${describeScript(previous)} was filtering when this call read the account`,
+      confirmed: NOT_CONFIRMED,
       note: "the scripts themselves are untouched; sieve_write with action activate starts one again",
     }),
   };
 }
+
+/**
+ * Said on both switches, and said the same way on each.
+ *
+ * `sieveActivationArguments` sends no `create`, no `update` and no `destroy`, so
+ * the answer to either call carries no per-script result: the change lives in
+ * `newState` and nowhere else. A report that named the new active script would
+ * be quoting the read that ran before the write, which is exactly what this
+ * module refuses to do elsewhere — an answer says what was asked of the server,
+ * never what the server did with it.
+ */
+const NOT_CONFIRMED =
+  "not by this answer. A SieveScript/set that only switches the active script reports the change " +
+  "in newState and names no script, and this server drops an activation it cannot carry out " +
+  "without raising an error. Run sieve_scripts with action list to read back what is active.";
 
 /* ----------------------------------------------------------------- delete -- */
 
