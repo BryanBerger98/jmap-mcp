@@ -202,7 +202,30 @@ describe("files_write, depositing a file", () => {
     // The upload cannot be undone from here, so the answer names it rather than
     // leaving an unreferenced blob to be discovered from a quota.
     expect(sent.blobs.uploads).toHaveLength(1);
-    expect(result.text).toContain("The bytes were already transferred before this refusal");
+    expect(result.text).toContain("The bytes were already transferred before this answer");
+  });
+
+  it("claims no deposit when the server names neither a creation nor a refusal", async () => {
+    const sent = transport([{ accountId: "acc-1", oldState: "file-state-1", newState: "s2" }]);
+
+    const result = await filesWrite.run({ action: "upload", path: "report.pdf" }, sent.context);
+
+    // The bytes went up before the set, so silence is not a no-op: it is an
+    // unreferenced blob plus an answer that must not call it a deposit.
+    expect(sent.blobs.uploads).toHaveLength(1);
+    expect(result.text).toContain("the server said nothing");
+    expect(result.text).not.toContain("created in");
+    expect(result.text).toContain("The bytes were already transferred before this answer");
+  });
+
+  it("claims no folder when the server names neither a creation nor a refusal", async () => {
+    const sent = transport([{ accountId: "acc-1", oldState: "file-state-1", newState: "s2" }]);
+
+    const result = await filesWrite.run({ action: "create-folder", name: "reports" }, sent.context);
+
+    expect(result.text).toContain("the server said nothing");
+    expect(result.text).not.toContain("created in");
+    expect(result.text).not.toContain("already transferred");
   });
 
   it("says nothing about stray bytes when no upload happened", async () => {

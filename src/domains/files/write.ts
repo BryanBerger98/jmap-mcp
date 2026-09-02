@@ -224,14 +224,16 @@ async function runUpload(input: Input, context: ToolContext): Promise<ToolResult
 
   // Said here and not in `explainSetError`, which also serves create-folder and
   // organize: those move no bytes. The two steps cannot be reordered — a node
-  // naming a blob that was never uploaded references nothing — so a refused
-  // creation always leaves the transfer behind it, and the caller should hear it
-  // from the answer rather than from their quota.
-  if (response.notCreated?.[CREATION_KEY] === undefined) return { text };
+  // naming a blob that was never uploaded references nothing — so anything short
+  // of a confirmed creation leaves the transfer behind it, and the caller should
+  // hear it from the answer rather than from their quota. The condition is the
+  // creation and not the refusal: a server that names neither leaves the same
+  // stray bytes as one that refuses.
+  if (response.created?.[CREATION_KEY] !== undefined) return { text };
 
   return {
     text:
-      `${text}\n\nThe bytes were already transferred before this refusal: the server holds them ` +
+      `${text}\n\nThe bytes were already transferred before this answer: the server holds them ` +
       "unreferenced, and no tool here can remove them.",
   };
 }
@@ -306,19 +308,32 @@ function setNodes(
   );
 }
 
-/** What a creation came to, in the caller's terms rather than the server's. */
+/**
+ * What a creation came to, in the caller's terms rather than the server's.
+ *
+ * The success line is written from `created` and from nothing else. A response
+ * naming neither `created` nor `notCreated` is representable — both are optional
+ * on a `SetResponse` — and reading only the refusal would announce a deposit
+ * with its size, its type and its source path while nothing establishes that the
+ * node exists. `renderFields` drops the absent id, so the claim would not even
+ * look incomplete.
+ */
 function describeCreation(
   response: SetResponse<FileNode>,
   said: { what: string; extra: Record<string, unknown>; folder: string },
 ): string {
-  const refused = response.notCreated?.[CREATION_KEY];
-  if (refused !== undefined) return explainSetError(refused);
-
   const created = response.created?.[CREATION_KEY];
+
+  if (created === undefined) {
+    const refused = response.notCreated?.[CREATION_KEY];
+    return refused === undefined
+      ? `${said.what} was not created: the server said nothing, neither creating it nor refusing it.`
+      : explainSetError(refused);
+  }
 
   return renderFields({
     created: `${said.what} created in ${said.folder}`,
-    id: created?.id,
+    id: created.id,
     ...said.extra,
   });
 }
