@@ -1,6 +1,6 @@
 import type { BlobChannel } from "../../src/jmap/blob.js";
-import type { GetResponse, Id, QueryResponse } from "../../src/jmap/types/core.js";
-import type { SieveScript } from "../../src/jmap/types/sieve.js";
+import type { GetResponse, Id, QueryResponse, SetResponse } from "../../src/jmap/types/core.js";
+import type { SieveScript, SieveScriptValidateResponse } from "../../src/jmap/types/sieve.js";
 import { type BlobTraffic, UPLOADED_BLOB_ID } from "./client.js";
 
 /**
@@ -103,6 +103,43 @@ export function sieveQuery(scripts: readonly SieveScript[] = SIEVE_SCRIPTS): Que
     position: 0,
     ids,
     total: ids.length,
+  };
+}
+
+/** The compiler accepting the uploaded text: nothing is wrong with it. */
+export function sieveValid(): SieveScriptValidateResponse {
+  return { accountId: "acc-1", error: null };
+}
+
+/**
+ * The compiler refusing it, with the kind of message it really returns.
+ *
+ * The line number is part of the fixture on purpose: a refusal that drops it
+ * leaves the caller rereading a script the server already pointed at.
+ */
+export function sieveInvalid(
+  description = 'Syntax error at line 3: unknown command "fileintoo"',
+): SieveScriptValidateResponse {
+  return { accountId: "acc-1", error: { type: "invalidScript", description } };
+}
+
+/** A `SieveScript/set` answer creating one script under the creation key. */
+export function sieveCreated(id: Id = "sc-new"): SetResponse<SieveScript> {
+  return {
+    accountId: "acc-1",
+    oldState: "sieve-state-1",
+    newState: "sieve-state-2",
+    created: { new: { id } },
+  };
+}
+
+/** A `SieveScript/set` answer updating one script. A `null` value is a success. */
+export function sieveUpdated(id: Id): SetResponse<SieveScript> {
+  return {
+    accountId: "acc-1",
+    oldState: "sieve-state-1",
+    newState: "sieve-state-2",
+    updated: { [id]: null },
   };
 }
 

@@ -1,12 +1,29 @@
 import { CAPABILITY_SIEVE, CAPABILITY_VACATION } from "../../jmap/types/core.js";
 import { defineDomain } from "../../registry/manifest.js";
 import { sieveScripts } from "./scripts.js";
+import { sieveWrite } from "./write.js";
 
 /** Reading the Sieve filters of the account, and nothing else. */
 export const sieveDomain = defineDomain({
   name: "sieve",
   requires: [CAPABILITY_SIEVE],
   tools: [sieveScripts],
+});
+
+/**
+ * Writing them, split off the reading manifest on the same capability.
+ *
+ * The reason the mail, contacts, calendar and files domains split the same way:
+ * `sieveDomain` stays provably free of any write, and a contract asserting it is
+ * worth more than one file fewer.
+ */
+export const sieveWritingDomain = defineDomain({
+  // Suffixed apart from `sieve` for the reason the files split carries: the
+  // composition report names a skipped domain, and two entries reading "sieve"
+  // would not say which surface went quiet.
+  name: "sieve-writing",
+  requires: [CAPABILITY_SIEVE],
+  tools: [sieveWrite],
 });
 
 /**

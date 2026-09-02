@@ -8,7 +8,7 @@ import { contactsDomain, contactsWritingDomain } from "./contacts/index.js";
 import { filesDomain, filesWritingDomain } from "./files/index.js";
 import { mailDomain, mailOrganizingDomain, mailSendingDomain } from "./mail/index.js";
 import { sharingDomain } from "./sharing/index.js";
-import { sieveDomain, sieveVacationDomain } from "./sieve/index.js";
+import { sieveDomain, sieveVacationDomain, sieveWritingDomain } from "./sieve/index.js";
 
 export const ALL_DOMAINS: readonly DomainManifest[] = [
   mailDomain,
@@ -23,5 +23,6 @@ export const ALL_DOMAINS: readonly DomainManifest[] = [
   filesWritingDomain,
   sharingDomain,
   sieveDomain,
+  sieveWritingDomain,
   sieveVacationDomain,
 ];
