@@ -8,10 +8,8 @@ import {
   statLocalFile,
   writeWithoutOverwrite,
 } from "./local.js";
+import { FALLBACK_MIME } from "./name.js";
 import { describeNodes, formatSize, isDirectory, resolveNodes } from "./node.js";
-
-/** What a download is called when the node names neither a type nor a name. */
-const FALLBACK_TYPE = "application/octet-stream";
 
 const inputSchema = z.strictObject({
   id: z
@@ -107,10 +105,13 @@ export const filesFetch = defineTool({
       };
     }
 
+    // Borrowed from the upload side rather than declared again: the fallback is
+    // what the blob channel is told to call content whose type nobody states, and
+    // octet-stream is that default in both directions.
     const bytes = await context.blobs.download(
       blobId,
       node.name ?? node.id,
-      node.type ?? FALLBACK_TYPE,
+      node.type ?? FALLBACK_MIME,
     );
 
     const failed = await writeWithoutOverwrite(destination.path, bytes);
