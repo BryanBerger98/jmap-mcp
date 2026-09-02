@@ -248,13 +248,17 @@ async function runStore(input: Input, context: ToolContext): Promise<ToolResult>
     // `error` is required by the response type, so an absent one is a server
     // that answered something else entirely. Storing on the strength of a
     // verdict nobody gave is the one thing this ordering exists to prevent.
-    return {
-      text:
-        verdict.error === undefined
-          ? "Refused: the server returned no verdict on the script, so nothing was stored. " +
-            "Nothing here can tell whether the text compiles."
-          : explainValidation(verdict.error),
-    };
+    const said =
+      verdict.error === undefined
+        ? "Refused: the server returned no verdict on the script, so nothing was stored. " +
+          "Nothing here can tell whether the text compiles."
+        : explainValidation(verdict.error);
+
+    // The upload is the step above, so every refusal from here on leaves the
+    // text on the server — except the one refusal that already says the upload
+    // is gone. Appending the sentence to `blobNotFound` would contradict it word
+    // for word.
+    return { text: verdict.error?.type === "blobNotFound" ? said : withStrayText(said) };
   }
 
   const response = await context.client.request<SetResponse<SieveScript>>(
@@ -271,10 +275,30 @@ async function runStore(input: Input, context: ToolContext): Promise<ToolResult>
     ],
   );
 
-  return {
-    text:
-      input.id === undefined ? describeCreated(response, name) : describeUpdated(response, input),
-  };
+  const outcome =
+    input.id === undefined ? describeCreated(response, name) : describeUpdated(response, input);
+
+  // Said here and not in `explainSetError`, which also serves the destruction:
+  // that path uploads nothing. The two steps cannot be reordered — a script
+  // naming a blob that was never uploaded references nothing — so anything short
+  // of a confirmed store leaves the text behind it. The condition is the store
+  // and not the refusal: a server that names neither leaves the same stray text
+  // as one that refuses.
+  return { text: outcome.stored ? outcome.text : withStrayText(outcome.text) };
+}
+
+/**
+ * The sentence every refusal after the upload carries.
+ *
+ * The text travelled before the server ever judged it, and no tool in this
+ * module can take it back. Hearing it from the answer beats discovering it from
+ * a quota.
+ */
+function withStrayText(text: string): string {
+  return (
+    `${text}\n\nThe script text was already uploaded before this answer: the server holds it ` +
+    "unreferenced, and no tool here can remove it."
+  );
 }
 
 /* --------------------------------------------------------------- activate -- */
@@ -613,40 +637,63 @@ function explainValidation(error: SetError): string {
   return `Refused: the script does not compile, so nothing was stored. The server's compiler said:\n\n${said}`;
 }
 
+/**
+ * What a store came to, and whether it landed.
+ *
+ * The flag rides with the text rather than being recomputed at the call site:
+ * the caller has one more sentence to add when nothing was stored, and a second
+ * copy of "did this land" would be free to disagree with this one.
+ */
+type StoreOutcome = { text: string; stored: boolean };
+
 /** What a creation came to, read off `created` and nothing else. */
-function describeCreated(response: SetResponse<SieveScript>, name: string): string {
+function describeCreated(response: SetResponse<SieveScript>, name: string): StoreOutcome {
   const created = response.created?.[CREATION_KEY];
 
   if (created === undefined) {
     const refused = response.notCreated?.[CREATION_KEY];
-    return refused === undefined
-      ? `Script ${name} was not created: the server said nothing, neither creating it nor refusing it.`
-      : explainSetError(refused);
+    return {
+      stored: false,
+      text:
+        refused === undefined
+          ? `Script ${name} was not created: the server said nothing, neither creating it nor refusing it.`
+          : explainSetError(refused),
+    };
   }
 
-  return renderFields({
-    stored: `Script ${name} created`,
-    id: created.id,
-    active: NOT_ACTIVATED,
-  });
+  return {
+    stored: true,
+    text: renderFields({
+      stored: `Script ${name} created`,
+      id: created.id,
+      active: NOT_ACTIVATED,
+    }),
+  };
 }
 
 /** What a correction came to. `updated` may carry null, which is still a success. */
-function describeUpdated(response: SetResponse<SieveScript>, input: Input): string {
+function describeUpdated(response: SetResponse<SieveScript>, input: Input): StoreOutcome {
   const id = input.id ?? "";
 
   if (response.updated !== undefined && id in response.updated) {
-    return renderFields({
-      stored: `Script ${input.name} replaced`,
-      id,
-      active: NOT_ACTIVATED,
-    });
+    return {
+      stored: true,
+      text: renderFields({
+        stored: `Script ${input.name} replaced`,
+        id,
+        active: NOT_ACTIVATED,
+      }),
+    };
   }
 
   const refused = response.notUpdated?.[id];
-  return refused === undefined
-    ? `Script ${id} was not replaced: the server said nothing, neither updating it nor refusing it.`
-    : explainSetError(refused);
+  return {
+    stored: false,
+    text:
+      refused === undefined
+        ? `Script ${id} was not replaced: the server said nothing, neither updating it nor refusing it.`
+        : explainSetError(refused),
+  };
 }
 
 /**

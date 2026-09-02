@@ -195,6 +195,104 @@ describe("sieve_write, when the script does not compile", () => {
 
     expect(text).toContain("gone by the time the server tried to compile it");
     expect(text).not.toContain("does not compile");
+    // The one refusal the sentence is kept off: it already says the upload is
+    // gone, and adding "the server holds it" would contradict it word for word.
+    expect(text).not.toContain("already uploaded before this answer");
+  });
+
+  it("says the text went up, since the compiler only saw it after the upload", async () => {
+    const { context, blobs } = storing(sieveInvalid());
+
+    const { text } = await sieveWrite.run(
+      { action: "store", name: "invoices", script: "fileintoo;" },
+      context,
+    );
+
+    expect(blobs.uploads).toHaveLength(1);
+    expect(text).toContain("The script text was already uploaded before this answer");
+  });
+
+  it("says the same when the server hands back no verdict at all", async () => {
+    const { context } = storing({ accountId: "acc-1" });
+
+    const { text } = await sieveWrite.run(
+      { action: "store", name: "invoices", script: VALID },
+      context,
+    );
+
+    expect(text).toContain("no verdict on the script");
+    expect(text).toContain("The script text was already uploaded before this answer");
+  });
+});
+
+describe("sieve_write, when the text went up but nothing was stored", () => {
+  it("names the stray text on a creation the server refused", async () => {
+    const { context, blobs } = storing(sieveValid(), {
+      accountId: "acc-1",
+      oldState: "sieve-state-1",
+      newState: "sieve-state-2",
+      notCreated: { new: { type: "alreadyExists" } },
+    });
+
+    const { text } = await sieveWrite.run(
+      { action: "store", name: "invoices", script: VALID },
+      context,
+    );
+
+    expect(blobs.uploads).toHaveLength(1);
+    expect(text).toContain("already there");
+    expect(text).toContain("The script text was already uploaded before this answer");
+  });
+
+  it("names it too when the server names neither a creation nor a refusal", async () => {
+    // The condition is the store and not the refusal: silence leaves the same
+    // stray text behind as a refusal does.
+    const { context } = storing(sieveValid(), {
+      accountId: "acc-1",
+      oldState: "sieve-state-1",
+      newState: "sieve-state-2",
+    });
+
+    const { text } = await sieveWrite.run(
+      { action: "store", name: "invoices", script: VALID },
+      context,
+    );
+
+    expect(text).toContain("the server said nothing");
+    expect(text).toContain("The script text was already uploaded before this answer");
+  });
+
+  it("names it on a correction the server refused, and on one it answered nothing about", async () => {
+    const refused = storing(sieveValid(), {
+      accountId: "acc-1",
+      oldState: "sieve-state-1",
+      newState: "sieve-state-2",
+      notUpdated: { "sc-1": { type: "invalidProperties" } },
+    });
+    const silent = storing(sieveValid(), {
+      accountId: "acc-1",
+      oldState: "sieve-state-1",
+      newState: "sieve-state-2",
+    });
+    const input = { action: "store" as const, name: "newsletters", script: VALID, id: "sc-1" };
+
+    expect((await sieveWrite.run(input, refused.context)).text).toContain(
+      "The script text was already uploaded before this answer",
+    );
+    expect((await sieveWrite.run(input, silent.context)).text).toContain(
+      "The script text was already uploaded before this answer",
+    );
+  });
+
+  it("says nothing about stray text when the store landed", async () => {
+    const { context } = storing(sieveValid(), sieveCreated());
+
+    const { text } = await sieveWrite.run(
+      { action: "store", name: "invoices", script: VALID },
+      context,
+    );
+
+    expect(text).not.toContain("already uploaded before this answer");
   });
 });
 
