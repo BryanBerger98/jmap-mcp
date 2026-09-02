@@ -1,7 +1,7 @@
 ---
 objective: "L'assistant voit qui a accès à quoi, ouvre et coupe un accès sans jamais toucher un bénéficiaire que l'appel n'a pas nommé, et la surface repasse à vingt-neuf outils par la fusion de deux verbes de rangement."
 title: Plan — Partages
-status: in-progress
+status: implemented
 updated: 2026-09-02
 owner: bryan
 ---
