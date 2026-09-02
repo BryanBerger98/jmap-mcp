@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+# A second run must never publish while the first one is mid-flight: two
+# `changeset publish` racing on the same version make one of them fail loudly
+# and the other push a tag nobody reviewed.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  # Reads the pending changesets and says what this push is worth: opening a
+  # version pull request, publishing an already-merged one, or nothing at all.
+  # It also holds the four gates, so neither job below runs on a red tree.
+  prepare:
+    name: Decide what this push is worth
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.select.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Changesets reads the history to work out what is already released.
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # npm only unpublishes within 72 hours, so a red build has to stop the
+      # release rather than be discovered after it.
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+
+      - id: select
+        uses: changesets/action/select-mode@v2
+
+  # Changesets are pending: bump the version, write the CHANGELOG and put both
+  # in a pull request. Nothing reaches npm from here.
+  version:
+    name: Open the version pull request
+    needs: prepare
+    if: needs.prepare.outputs.mode == 'version'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # commit the version bump
+      pull-requests: write # open and update the "Version Packages" pull request
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - uses: changesets/action/version@v2
+        with:
+          # `pnpm version` is a pnpm builtin that shadows the script and fails
+          # on a missing semver argument. Only `pnpm run version` reaches it.
+          script: pnpm run version
+
+  # The version pull request is merged: no changeset is left, so publish.
+  # This is the only job that holds id-token, and it holds nothing else that
+  # npm would honour: the OIDC exchange is the whole of its credentials.
+  publish:
+    name: Publish to npm and cut the GitHub release
+    needs: prepare
+    if: needs.prepare.outputs.mode == 'publish'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the git tag and create the GitHub release
+      id-token: write # mint the OIDC token npm trades for a publish grant
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # No NODE_AUTH_TOKEN and no NPM_TOKEN: `pnpm publish` performs the OIDC
+      # exchange on GitHub Actions by itself, and npm attaches provenance to a
+      # tarball published that way. The trusted publisher registered on npmjs
+      # names this repository and this file, so renaming it breaks publishing.
+      - uses: changesets/action/publish@v2
+        with:
+          script: pnpm release
+          create-github-releases: true
