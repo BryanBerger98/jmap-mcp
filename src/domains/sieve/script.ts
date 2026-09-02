@@ -67,6 +67,18 @@ export function renderScriptRow(script: SieveScript): Record<string, unknown> {
 }
 
 /**
+ * "newsletters (sc-1)" — one script, in the terms a sentence can carry.
+ *
+ * Almost every refusal and every summary of this module is about a single
+ * script, and a count in front of it ("1 script: newsletters (sc-1) carries no
+ * blobId") reads as a broken sentence. The set renderer below builds on this one
+ * rather than repeating it, so the two can never name the same script two ways.
+ */
+export function describeScript(script: SieveScript): string {
+  return `${script.name ?? "(unnamed)"} (${script.id})`;
+}
+
+/**
  * "3 scripts: newsletters (sc-1), archive (sc-3) and 1 more".
  *
  * A count alone is not something anyone can arbitrate: confirming the erasure of
@@ -76,9 +88,7 @@ export function describeScripts(scripts: readonly SieveScript[], total = scripts
   const count = `${total} script${total === 1 ? "" : "s"}`;
   if (scripts.length === 0) return count;
 
-  const named = scripts
-    .slice(0, SCRIPTS_NAMED)
-    .map((script) => `${script.name ?? "(unnamed)"} (${script.id})`);
+  const named = scripts.slice(0, SCRIPTS_NAMED).map(describeScript);
   const rest = total - named.length;
 
   return `${count}: ${named.join(", ")}${rest > 0 ? ` and ${rest} more` : ""}`;

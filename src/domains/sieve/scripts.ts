@@ -16,7 +16,7 @@ import type {
 import { defineTool } from "../../registry/define-tool.js";
 import { renderFields, renderTable } from "../../shared/render.js";
 import {
-  describeScripts,
+  describeScript,
   isVacationScript,
   renderScriptRow,
   renderScriptText,
@@ -106,7 +106,7 @@ export const sieveScripts = defineTool({
       const { blobId } = script;
       if (blobId === undefined) {
         return {
-          text: `Refused: ${describeScripts([script])} carries no blobId, so the server has no source to hand back for it.`,
+          text: `Refused: ${describeScript(script)} carries no blobId, so the server has no source to hand back for it.`,
         };
       }
 
@@ -196,7 +196,7 @@ function describeActive(scripts: readonly SieveScript[], filtered: boolean): str
   const active = scripts.find((script) => script.isActive === true);
 
   if (active !== undefined) {
-    const which = `${active.name ?? "(unnamed)"} (${active.id})`;
+    const which = describeScript(active);
     return isVacationScript(active)
       ? `The vacation response is what is active — ${which} — so no filtering script is running.`
       : `${which} is active and filters incoming mail.`;

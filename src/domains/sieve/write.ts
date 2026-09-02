@@ -23,6 +23,7 @@ import { describeRadius, wideRadiusActions } from "./radius.js";
 import {
   activeScript,
   allScripts,
+  describeScript,
   describeScripts,
   isVacationName,
   isVacationScript,
@@ -166,7 +167,7 @@ export const sieveWrite = defineTool({
     if (active === undefined || active.id !== input.id) return undefined;
 
     return (
-      `${describeScripts([active])} is the script currently filtering incoming mail. Replacing ` +
+      `${describeScript(active)} is the script currently filtering incoming mail. Replacing ` +
       "its text changes how the next message is handled, as soon as this call lands."
     );
   },
@@ -191,7 +192,7 @@ function summarizeStore(input: Input, context: ToolContext): Promise<string> | s
 
   const id = input.id;
   return scriptById(id, context).then((target) => {
-    const named = target === undefined ? id : describeScripts([target]);
+    const named = target === undefined ? id : describeScript(target);
     return `Replace the text of ${named} and name it ${input.name}.`;
   });
 }
@@ -214,7 +215,7 @@ async function precheckStore(input: Input, context: ToolContext): Promise<string
   if (target === undefined) return unknownId(input.id);
 
   return isVacationScript(target)
-    ? `Refused: ${describeScripts([target])} is the script the vacation response generates, and ` +
+    ? `Refused: ${describeScript(target)} is the script the vacation response generates, and ` +
         "rewriting it by hand is refused by the server. Change the automatic reply with " +
         "vacation_manage instead."
     : undefined;
@@ -290,7 +291,7 @@ async function runStore(input: Input, context: ToolContext): Promise<ToolResult>
 async function summarizeActivate(input: Input, context: ToolContext): Promise<string> {
   const id = input.id ?? "";
   const target = await scriptById(id, context);
-  const named = target === undefined ? id : describeScripts([target]);
+  const named = target === undefined ? id : describeScript(target);
 
   const source = target === undefined ? undefined : await scriptSource(target, context);
   const radius =
@@ -315,7 +316,7 @@ async function precheckActivate(input: Input, context: ToolContext): Promise<str
 
   if (isVacationScript(target)) {
     return (
-      `Refused: ${describeScripts([target])} is the script the vacation response generates. ` +
+      `Refused: ${describeScript(target)} is the script the vacation response generates. ` +
       "Turning the automatic reply on is what activates it, and vacation_manage is where that " +
       "happens — activating it by hand here would leave the response on with nothing having " +
       "asked for it."
@@ -327,7 +328,7 @@ async function precheckActivate(input: Input, context: ToolContext): Promise<str
     // The confirmation would have to say "this script does something, we could
     // not read what". Nobody can arbitrate that, so it is not put to them.
     return (
-      `Refused: the source of ${describeScripts([target])} could not be read, so this call cannot ` +
+      `Refused: the source of ${describeScript(target)} could not be read, so this call cannot ` +
       "say what activating it would do to incoming mail. Nothing was activated; try " +
       "sieve_scripts with action show to see whether the text is reachable at all."
     );
@@ -352,14 +353,14 @@ async function runActivate(input: Input, context: ToolContext): Promise<ToolResu
 
   return {
     text: renderFields({
-      active: target === undefined ? id : describeScripts([target]),
+      active: target === undefined ? id : describeScript(target),
       effect: "every message the account receives from now on goes through this script",
       replaced:
         previous === undefined
           ? "nothing — no script was filtering before this call"
           : previous.id === id
             ? "nothing — it was already the active script"
-            : `${describeScripts([previous])}, which no longer filters anything`,
+            : `${describeScript(previous)}, which no longer filters anything`,
     }),
   };
 }
@@ -379,7 +380,7 @@ function describeReplaced(active: SieveScript | undefined, id: Id): string {
   return isVacationScript(active)
     ? `The vacation response is what is active today (${active.id}), and this switches that ` +
         "automatic reply off: nobody writing to the account will be answered any more."
-    : `${describeScripts([active])} stops filtering the moment this lands.`;
+    : `${describeScript(active)} stops filtering the moment this lands.`;
 }
 
 /* ------------------------------------------------------------- deactivate -- */
@@ -394,7 +395,7 @@ async function summarizeDeactivate(context: ToolContext): Promise<string> {
   return isVacationScript(active)
     ? "Switch off the vacation response, which is what is active: nobody writing to the account " +
         "will be answered automatically any more."
-    : `Switch off ${describeScripts([active])}, so no script filters incoming mail afterwards: ` +
+    : `Switch off ${describeScript(active)}, so no script filters incoming mail afterwards: ` +
         "every message lands where the server would put it untouched, including the ones this " +
         "script was filing away or refusing.";
 }
@@ -431,7 +432,7 @@ async function runDeactivate(context: ToolContext): Promise<ToolResult> {
   return {
     text: renderFields({
       filtering: "nothing — no Sieve script is active on this account any more",
-      stopped: previous === undefined ? "nothing was active" : describeScripts([previous]),
+      stopped: previous === undefined ? "nothing was active" : describeScript(previous),
       note: "the scripts themselves are untouched; sieve_write with action activate starts one again",
     }),
   };
@@ -474,7 +475,7 @@ async function precheckDelete(input: Input, context: ToolContext): Promise<strin
     // The server refuses this one too, with `scriptIsActive`, but only after the
     // confirmation has been asked and answered.
     return (
-      `Refused: ${describeScripts([active])} is the script currently filtering incoming mail, and ` +
+      `Refused: ${describeScript(active)} is the script currently filtering incoming mail, and ` +
       "this server never removes the active script out from under the account. Nothing was " +
       "destroyed. Switch filtering off with action deactivate, or activate another script first."
     );
@@ -487,7 +488,7 @@ async function precheckDelete(input: Input, context: ToolContext): Promise<strin
     // (`sieve/set.rs:329-351`), so a `vacation` script handed to it is destroyed
     // and the account's automatic reply goes with it.
     return (
-      `Refused: ${describeScripts([vacation])} is the script the vacation response generates, and ` +
+      `Refused: ${describeScript(vacation)} is the script the vacation response generates, and ` +
       "destroying it would take the automatic reply with it — this server would carry that out " +
       "without a word. Nothing was destroyed. Turn the reply off with vacation_manage instead."
     );

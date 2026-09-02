@@ -3,6 +3,8 @@ import { DEFAULT_POLICY } from "../../src/config/policy.js";
 import { OPEN_SCOPE } from "../../src/config/recipients.js";
 import { DEFAULT_BULK_CONFIRM_ABOVE } from "../../src/config/schema.js";
 import {
+  describeScript,
+  describeScripts,
   isVacationName,
   MAX_SCRIPT_CHARS,
   renderScriptRow,
@@ -196,6 +198,22 @@ describe("script rendering", () => {
     expect(isVacationName(" Vacation ")).toBe(true);
     expect(isVacationName("vacations")).toBe(false);
     expect(isVacationName(undefined)).toBe(false);
+  });
+
+  it("names one script without counting it, and falls back on an absent name", () => {
+    expect(describeScript({ id: "sc-1", name: "newsletters" })).toBe("newsletters (sc-1)");
+    expect(describeScript({ id: "sc-1" })).toBe("(unnamed) (sc-1)");
+  });
+
+  it("names a set the same way it names one, so the two cannot drift apart", () => {
+    const scripts: SieveScript[] = [
+      { id: "sc-1", name: "newsletters" },
+      { id: "sc-3", name: "invoices" },
+    ];
+
+    expect(describeScripts(scripts)).toBe(
+      `2 scripts: ${describeScript(scripts[0] as SieveScript)}, ${describeScript(scripts[1] as SieveScript)}`,
+    );
   });
 
   it("leaves the active column blank on an inactive script", () => {
