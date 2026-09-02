@@ -94,6 +94,18 @@ function isFilesystemRoot(path: string): boolean {
   return dirname(absolute) === absolute;
 }
 
+/**
+ * How many bytes one fetch may pull down before it is refused.
+ *
+ * A number had to be invented: the session publishes `maxSizeUpload` and nothing
+ * at all in the other direction, so no capability states this. Reusing the upload
+ * ceiling was the tempting shortcut and the wrong one — a file legitimately
+ * stored above it would become unfetchable with no way out. A hundred megabytes
+ * is what a single blob may cost this process, which holds it whole in memory
+ * before it reaches the disk.
+ */
+export const DEFAULT_MAX_DOWNLOAD_SIZE = 100 * 1024 * 1024;
+
 const filesSchema = z
   .object({
     localRoot: z
@@ -105,6 +117,18 @@ const filesSchema = z
           "assistant. Name a dedicated directory instead.",
       })
       .optional(),
+    // Optional rather than `.default(DEFAULT_MAX_DOWNLOAD_SIZE)`, because the
+    // object around it carries `.default({})`: Zod hands that literal back
+    // without parsing it, so an inner default would be typed `number` and be
+    // `undefined` at runtime. The fallback is applied where the value is read.
+    maxDownloadSize: z
+      .int()
+      .min(1)
+      .optional()
+      .describe(
+        "Largest file files_fetch will download, in bytes. Defaults to 100 MB. A node the server " +
+          "declares larger is refused before any byte moves.",
+      ),
   })
   .default({});
 

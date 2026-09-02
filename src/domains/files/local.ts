@@ -10,12 +10,15 @@
 
 import { readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
-import type { Config } from "../../config/schema.js";
+import { type Config, DEFAULT_MAX_DOWNLOAD_SIZE } from "../../config/schema.js";
 import type { JmapSession } from "../../jmap/session.js";
 import { CAPABILITY_CORE, type CoreCapability } from "../../jmap/types/core.js";
 
 /** The configuration key a refusal names, spelled once. */
 export const LOCAL_ROOT_KEY = "files.localRoot";
+
+/** The other key a refusal names, so a caller knows which number to raise. */
+export const MAX_DOWNLOAD_SIZE_KEY = "files.maxDownloadSize";
 
 export type LocalPath = { ok: true; path: string } | { ok: false; refusal: string };
 
@@ -225,6 +228,17 @@ export function maxUploadSize(session: JmapSession): number | undefined {
   const core = session.raw.capabilities[CAPABILITY_CORE] as Partial<CoreCapability> | undefined;
   const stated = core?.maxSizeUpload;
   return stated !== undefined && stated > 0 ? stated : undefined;
+}
+
+/**
+ * The download ceiling, which no capability publishes and the configuration owns.
+ *
+ * The fallback lives here and not in the schema: `filesSchema` carries
+ * `.default({})`, which Zod returns without parsing, so a default declared on the
+ * key itself would never be applied.
+ */
+export function maxDownloadSize(files: Config["files"]): number {
+  return files.maxDownloadSize ?? DEFAULT_MAX_DOWNLOAD_SIZE;
 }
 
 /** A real path, or the reason this process could not work one out. */

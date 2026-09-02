@@ -99,10 +99,12 @@ Optional: `JMAP_ACCOUNT_ID` pins one account when the session exposes several, a
 **Local file directory.** `files.localRoot` is the only directory `files_fetch` and `files_write` may read or write, and it has no environment equivalent — set it in the config file, as an absolute path. It cannot be `/`: a boundary drawn around the whole disk is not a boundary, so the filesystem root is refused when the configuration loads.
 
 ```json
-{ "files": { "localRoot": "/Users/you/jmap-files" } }
+{ "files": { "localRoot": "/Users/you/jmap-files", "maxDownloadSize": 104857600 } }
 ```
 
 A relative path given to a tool is taken from that root; an absolute one is accepted only if it already lands inside it. Both are then resolved for real, symlinks included, because the string `root/link` is inside the root and the file it points at need not be.
+
+`files.maxDownloadSize` caps one fetch, in bytes, and defaults to 100 MB. A file the server declares larger is refused before any byte moves, naming the key to raise: a download is held whole in memory before it reaches the disk, and no JMAP capability publishes a ceiling for it — only uploads have one, which the session states and `files_write` quotes back. A node whose size the server does not state is fetched anyway.
 
 **Recipient perimeter.** `recipients.scope` bounds who the server may write to. It is resolved once at startup, before any tool is registered.
 

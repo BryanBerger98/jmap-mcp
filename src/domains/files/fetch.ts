@@ -2,7 +2,9 @@ import { z } from "zod";
 import { defineTool } from "../../registry/define-tool.js";
 import { renderFields } from "../../shared/render.js";
 import {
+  MAX_DOWNLOAD_SIZE_KEY,
   MISSING_ROOT_REFUSAL,
+  maxDownloadSize,
   refuseUnusableRoot,
   resolveWithinRoot,
   statLocalFile,
@@ -80,6 +82,17 @@ export const filesFetch = defineTool({
       };
     }
 
+    // Asked here, where `size` is already in hand from the node that was just
+    // read, so the ceiling costs no round trip. The deposit side refuses before
+    // it transfers rather than failing halfway; a download had no such ceiling,
+    // and `blobs.download` holds the whole blob in memory before the disk sees
+    // any of it. A node whose `size` the server declines to state — the property
+    // is nullable — is downloaded anyway: refusing on a number nobody gave would
+    // make an unmeasured file unreachable, which is worse than the memory this
+    // guards.
+    const oversized = refuseOversizedDownload(node.size, named, maxDownloadSize(context.files));
+    if (oversized !== undefined) return { text: oversized };
+
     const destination = await resolveWithinRoot(input.saveAs ?? node.name ?? node.id, localRoot);
     if (!destination.ok) return { text: destination.refusal };
 
@@ -127,3 +140,18 @@ export const filesFetch = defineTool({
     };
   },
 });
+
+/** A file this server will not pull into memory, refused with the number to raise. */
+function refuseOversizedDownload(
+  size: number | null | undefined,
+  named: string,
+  ceiling: number,
+): string | undefined {
+  if (size === null || size === undefined || size <= ceiling) return undefined;
+
+  return (
+    `Refused: ${named} is ${formatSize(size)} and this server fetches at most ${formatSize(ceiling)} ` +
+    `per file (${ceiling} bytes). Nothing was transferred. Raise ${MAX_DOWNLOAD_SIZE_KEY} in your ` +
+    "configuration to fetch it."
+  );
+}

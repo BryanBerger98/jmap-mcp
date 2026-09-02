@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { filesFetch } from "../../src/domains/files/fetch.js";
-import { LOCAL_ROOT_KEY } from "../../src/domains/files/local.js";
+import { LOCAL_ROOT_KEY, MAX_DOWNLOAD_SIZE_KEY } from "../../src/domains/files/local.js";
 import type { GetResponse } from "../../src/jmap/types/core.js";
 import type { FileNode } from "../../src/jmap/types/filenode.js";
 import { FIXTURE_BYTES, fakeTransport, loadFixture } from "../fixtures/client.js";
@@ -140,6 +140,43 @@ describe("files_fetch", () => {
     expect(await readFile(join(root, "report.pdf"), "utf8")).toBe("mine");
     // Refused before the transfer, not after it: the bytes never left the server.
     expect(blobs.downloads).toHaveLength(0);
+  });
+
+  it("refuses a file past the download ceiling, before a byte moves", async () => {
+    const { context, blobs } = fakeTransport([only("fn-3")], {
+      files: { localRoot: root, maxDownloadSize: 1024 },
+    });
+
+    const result = await filesFetch.run({ id: "fn-3" }, context);
+
+    // The whole blob would otherwise be held in memory before the disk sees it,
+    // and the node already carried its size: the refusal costs no round trip.
+    expect(result.text).toContain(MAX_DOWNLOAD_SIZE_KEY);
+    expect(result.text).toContain("1024 bytes");
+    expect(blobs.downloads).toHaveLength(0);
+    await expect(readFile(join(root, "report.pdf"))).rejects.toThrow();
+  });
+
+  it("fetches a node whose size the server declines to state", async () => {
+    const { context, blobs } = fakeTransport(
+      [
+        {
+          accountId: "acc-1",
+          state: "file-state-1",
+          list: [
+            { id: "fn-9", nodeType: "file", name: "unsized.bin", blobId: "blob-9", size: null },
+          ],
+          notFound: [],
+        },
+      ],
+      { files: { localRoot: root, maxDownloadSize: 1 } },
+    );
+
+    await filesFetch.run({ id: "fn-9" }, context);
+
+    // Chosen rather than defaulted into: refusing on a number nobody gave would
+    // make an unmeasured file unreachable, with no setting able to free it.
+    expect(blobs.downloads).toHaveLength(1);
   });
 
   it("refuses a saveAs climbing out of the configured directory", async () => {
