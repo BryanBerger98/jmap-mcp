@@ -142,7 +142,7 @@ journey
 | 1.2 | Le compte écrit vient du rapport de composition, et une relecture le retrouve |
 | 1.6 | Le dépassement est chiffré, jamais arrondi ni tu |
 | 2.1 | Aucun document de mémoire ne dit plus vingt-huit outils |
-| 2.2 | Aucune occurrence de `mail_move` ni de `mail_flag` ne subsiste dans le dépôt |
+| 2.2 | Aucune occurrence de `mail_move` ni de `mail_flag` ne subsiste dans `src/`, ni dans la carte du code hors de la phrase qui raconte la fusion — les mentions de `tool-budget.md`, de `ROADMAP.md` et des outils synthétiques de test restent, commandées par les tâches 1.4 et 5.1 d'ici et par la tâche 4.4 de la phase 4 |
 | 3.1 | L'affirmation corrigée cite le fichier et les lignes du code serveur |
 | 4.1 | Le nombre de tests écrit correspond à une exécution réelle |
 | 5.2 | La table du README compte vingt-neuf outils |
