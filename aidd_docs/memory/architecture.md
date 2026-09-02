@@ -156,6 +156,7 @@ La classe se lit sur `notify`, jamais sur le nom de l'outil.
 
 C'est ce dernier qui ouvre un trou que le registre ne peut pas voir : il classe l'appel une fois, donc une politique `send: deny` laisserait passer une annulation expédiée sous couvert de destruction.
 `calendar_delete` lit donc `context.policy.send` lui-même et refuse avant toute question — c'est la raison d'être de `policy` dans le contexte d'outil.
+Ils sont deux à le lire désormais : `vacation_manage` lit `context.policy.destroy` sur le même patron, allumer l'absence coupant le filtrage sous une classe `send`.
 
 Un `CalendarEvent/set` réussi ne prouve jamais qu'un mail est parti.
 Stalwart avale l'envoi sans erreur quand iTIP est éteint, quand le compte n'a pas la permission de planification, ou quand l'événement est entièrement passé : les réponses disent ce qui a été demandé au serveur, jamais ce qu'il en a fait.
@@ -197,12 +198,34 @@ Deux comptages pourraient diverger, et refuser sur un arbre en confirmant l'autr
 Un comptage que rien n'établit fait refuser, dans les deux sens du drapeau.
 Une lecture en échec, un `total` que le serveur décline, et la confirmation sous-déclarerait ce qui disparaît : il n'y a pas de corbeille pour rattraper la différence.
 
+## 🧹 Ce qu'une activation traverse
+
+Activer un script est la décision au rayon le plus large du projet : elle réécrit le traitement de tout le courrier à venir, et le nom du script n'en dit rien.
+Le `precheck` lit donc le texte avant toute question, et refuse quand la lecture échoue : une activation qu'on ne peut pas décrire ne se fait pas confirmer à l'aveugle.
+
+```txt
+id → refus si vacation → lecture du texte → détection du rayon → question nommant les actions
+                                          → et le script remplacé → onSuccessActivateScript
+```
+
+La détection est lexicale et sur-détecte volontairement.
+Annoncer un `discard` absent coûte une inquiétude ; taire celui qui est là coûte du courrier, sans copie nulle part.
+
+Un seul script est actif à la fois, donc activer remplace toujours, et la question nomme ce qui s'arrête.
+Quand c'est l'absence qui était active, la phrase le dit : `vacation/set.rs:144` fait du script actif l'état de l'absence, donc activer un filtre l'éteint.
+
+Dans l'autre sens, la question d'allumage de l'absence désigne le filtre qui s'arrête sans jamais le nommer.
+Lire son nom demanderait un `SieveScript/get`, hors de portée d'un manifeste gaté sur `urn:ietf:params:jmap:vacationresponse` seul, Stalwart accordant `JmapSieveScriptGet` par une permission distincte — `api/session.rs:113` et `:118`.
+
+Le texte d'un script traverse la conversation là où les octets d'un fichier ne le font jamais, et l'écart est voulu : un fichier est un contenu que l'utilisateur possède, un script est un texte qu'il rédige, relit et corrige.
+Le stockage porte un `confirmWhen` pour la même raison : écraser le corps du script actif change le courrier immédiatement, ce que la classe `draft` n'annonce pas.
+
 ## ⚠️ Pièges
 
 - Le niveau `confirm` s'appuie sur MRTR. Quand le client ne l'expose pas, l'outil refuse : jamais d'exécution silencieuse.
 - Claude Desktop ne supporte pas l'élicitation. Toute opération `send` ou `destroy` y échoue par conception.
 - Les annotations MCP, `destructiveHint` en tête, sont déclarées non fiables. Elles documentent, elles ne gardent rien.
-- La dégradation se voit dès trente outils exposés. Le gating par capacité vise vingt-six, la composition en enregistre vingt-cinq, et `internal/tool-budget.md` arbitre la place qui reste.
+- La dégradation se voit dès trente outils exposés. La cible est vingt-six, la composition en enregistre vingt-huit, et `internal/tool-budget.md` porte ce dépassement plutôt que de l'arrondir.
 - La classe d'opération ne se lit pas sur le nom de la méthode. Un argument suffit à faire basculer une écriture en destruction ou en envoi, dans les six domaines.
 - Une opération destructrice ne prend jamais un filtre en entrée. Stalwart abandonne silencieusement une condition `header` mal formée, et la requête rend alors plus de résultats que demandé.
 - Supprimer un dossier ne supprime jamais son contenu. `onDestroyRemoveEmails` est écrit à faux sur chaque `Mailbox/set` émis, y compris ceux qui ne détruisent rien : un défaut serveur n'est pas une garantie, et l'absence de l'argument ne se voit sur aucun test unitaire.
@@ -221,3 +244,8 @@ Une lecture en échec, un `total` que le serveur décline, et la confirmation so
 - `FileNode/query` parse vingt-deux conditions et n'en exécute que neuf. Les treize autres tombent dans une branche vide, sans erreur : une requête qui en porte une rend plus de résultats que demandé, donc aucune condition hors des neuf honorées ne part sur le fil, et un contrat le tient.
 - Un comparateur de fichiers non supporté ne rend pas `UnsupportedSort`, il disparaît. La liste vidée retombe en ordre de document, et une pagination qui croit trier par date pagine alors un ordre qu'elle n'a pas demandé.
 - Le stockage de fichiers n'a pas de corbeille et `onExists` a quatre valeurs, dont deux détruisent. Ce serveur écrit `null` sur chaque `FileNode/set` : remplacer un fichier est une destruction, et une destruction passe par `files_delete`, où elle se confirme.
+- Trois chemins activent un script, pas deux. La propriété `isActive` écrite dans une création ou une mise à jour est capturée puis retraduite en `onSuccessActivateScript` — `sieve/set.rs:482-484` et `:358-368` — donc un appel qui l'émet active en croyant nommer, et le type la rend irreprésentable.
+- Le filtrage et l'absence ne peuvent pas être actifs ensemble. Un seul script est actif — `sieve/set.rs:328` — et l'absence en est un : activer un filtre l'éteint, allumer l'absence coupe le filtrage, et les deux phrases de confirmation le disent.
+- Détruire le script `vacation` n'est gardé que par le client. Son écriture et sa création sont refusées par le serveur, mais `sieve/set.rs:329-351` ne teste que la condition du script actif : c'est le seul endroit du module où rien ne rattraperait l'oubli.
+- Les codes de refus de Sieve ne sont pas ceux de la RFC. Le fil rend `invalidScript` et `scriptIsActive` là où RFC 9661 nomme `invalidSieve` et `sieveIsActive`, donc un mapping écrit sur la RFC ne reconnaîtrait aucun des deux.
+- `isEnabled` ne retombe jamais seul. `vacation/set.rs:144` l'initialise depuis le script actif et seule une propriété explicite le change : l'écrire à chaque changement de texte confondrait reformuler l'absence et décider qu'elle répond.

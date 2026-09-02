@@ -1,7 +1,7 @@
 ---
 title: ROADMAP — jmap-mcp
 status: draft
-updated: 2026-09-01
+updated: 2026-09-02
 owner: bryan
 ---
 
@@ -170,45 +170,69 @@ Trois écarts au périmètre initial, chacun imposé par le code de Stalwart :
 Deux modes de recherche, et non un : `expandRecurrences` exige les deux bornes, donc sans fenêtre la recherche rend les événements de base et l'en-tête le dit.
 Le tri est `start` ascendant, seul ordre accepté des deux côtés, `created` et `updated` étant refusés hors dépliage.
 
-## 🗓️ Module 8 — Écriture des agendas
+## 🗓️ Module 8 — Écriture des agendas ✅
 
 | Aspect | Contenu |
 | --- | --- |
-| Outils | `event_write`, `event_rsvp`, `event_delete` |
+| Outils | `calendar_write`, `calendar_respond`, `calendar_delete` |
 | Classes | `draft`, `send`, `destroy` |
-| Méthodes | `CalendarEvent/set`, `CalendarEvent/copy`, `ParticipantIdentity/get` |
+| Méthodes | `CalendarEvent/set`, `CalendarEvent/get`, `Calendar/get`, `ParticipantIdentity/get` |
 
-Le module qui démontre la classification par argument : `sendSchedulingMessages` fait basculer un même `CalendarEvent/set` de `draft` à `send`, en émettant un iTIP réellement expédié par iMIP.
-Le RSVP est un `update` ordinaire sur `participants[id].participationStatus`.
+Le module qui démontre la classification par argument : `sendSchedulingMessages` fait basculer un même `CalendarEvent/set` de `draft` à `send`.
+L'argument est écrit sur chaque appel émis, y compris ceux où il vaut faux, un défaut serveur n'étant pas une garantie.
 
-## 📁 Module 9 — Fichiers
+La réponse à une invitation est un patch borné aux chemins du participant que le compte occupe, jamais la carte entière.
+La clé de ce participant ne se devine pas : zéro correspondance comme deux font refuser.
+
+Trois écarts au périmètre initial :
+
+- **Le préfixe est `calendar_`, pas `event_`.** C'est lui qui rassemble les trois manifestes du domaine, comme `mail_` au module 4.
+- **`CalendarEvent/copy` n'est pas utilisée**, la méthode ne servant qu'à franchir une frontière de compte, comme aux modules 4 et 6.
+- **Une occurrence isolée ne s'écrit pas.** Stalwart accepte un identifiant synthétique et transforme silencieusement l'écriture en plan d'instance, donc les trois outils le refusent côté client.
+
+**⚠️ Le trou que le registre ne voit pas**
+`calendar_delete` reste `destroy` même quand il prévient les participants : notifier élargit qui l'apprend sans adoucir ce que l'appel fait.
+Le registre ne classant l'appel qu'une fois, l'outil lit lui-même la politique `send` pour qu'une annulation expédiée ne passe pas sous couvert de destruction.
+
+## 📁 Module 9 — Fichiers ✅
 
 | Aspect | Contenu |
 | --- | --- |
-| Outils | `files_browse`, `files_download`, `files_upload`, `files_delete` |
-| Classes | les quatre |
-| Méthodes | `FileNode/query`, `FileNode/get`, `FileNode/set`, `FileNode/copy`, `Blob/upload` |
+| Outils | `files_browse`, `files_fetch`, `files_write`, `files_delete` |
+| Classes | `read`, `draft`, `destroy` |
+| Méthodes | `FileNode/query`, `FileNode/get`, `FileNode/set`, canal de blobs |
 
 Lister un répertoire se fait par `FileNode/query` filtré sur `parentId` : aucune méthode de listage n'existe.
-Deux plafonds coexistent, `maxUploadSize` à 50 Mo et `FileStorage.maxSize` à 25 Mo, et le refus tombe au `FileNode/set`, après un téléversement accepté.
+`onExists` est écrit à `null` sur chaque requête émise : remplacer un fichier est une destruction, et une destruction passe par `files_delete`, où elle se confirme.
 
-`onExists` valant `"replace"` ou `"newest"` détruit l'existant sous couvert de création : l'outil de téléversement le refuse et renvoie vers `files_delete`.
+Les octets ne traversent jamais la conversation : `files_fetch` écrit sur le disque et rend un chemin, `files_write` lit un chemin et téléverse.
+Le canal de blobs vit dans le noyau, parce qu'il ferme sur le jeton et sur les deux gabarits d'URL de la session.
 
-C'est ici que le budget d'outils se mesure. Arbitrage prévu à ce point, pas avant.
+Trois écarts au périmètre initial :
 
-## ⚙️ Module 10 — Sieve et absence
+- **`FileNode/copy` n'est pas utilisée**, pour la raison des modules 4, 6 et 8.
+- **La cascade est autorisée ici, seule des trois.** Un dossier ne se vide pas fichier par fichier, donc `onDestroyRemoveChildren` peut valoir vrai — après comptage du sous-arbre, et la confirmation nomme ce qui disparaît.
+- **Treize conditions de filtre sont bannies.** `FileNode/query` en parse vingt-deux et n'en exécute que neuf, les autres tombant dans une branche vide sans erreur.
+
+Le budget s'est mesuré ici, comme prévu : vingt-cinq outils exposés, quatre pris par le module.
+
+## ⚙️ Module 10 — Sieve et absence ✅
 
 | Aspect | Contenu |
 | --- | --- |
 | Outils | `sieve_scripts`, `sieve_write`, `vacation_manage` |
-| Classes | `read`, `draft`, `destroy` |
+| Classes | `read`, `draft`, `send`, `destroy` |
 | Méthodes | `SieveScript/get`, `set`, `query`, `validate`, `VacationResponse/get`, `set` |
 
 `validate` est gratuit et sans effet : l'outil d'écriture l'appelle systématiquement avant de stocker.
 `onSuccessActivateScript` a le rayon maximal du projet, il réécrit le traitement de tout le courrier entrant, et un `discard` perd le mail sans corbeille.
 
-L'absence passe uniquement par `VacationResponse/set` : `SieveScript/set` sur le script `vacation` renvoie `forbidden`.
-`isEnabled` retombe à `false` dès qu'une propriété change, donc l'outil réécrit toujours le drapeau en dernier.
+L'absence passe uniquement par `VacationResponse/set` : `SieveScript/set` sur le script `vacation` renvoie `forbidden` en écriture comme en création.
+`isEnabled` ne retombe pas seul — `vacation/set.rs:144` l'initialise depuis le script actif courant, et seule une propriété explicite le change, `vacation/set.rs:186-191`.
+L'outil ne l'écrit donc que si l'appel le nomme : le réécrire à chaque changement de texte fondrait les deux gestes que le module sépare, reformuler le message d'une part, décider qu'il répond d'autre part.
+
+Le compte d'outils est celui du plan `aidd_docs/tasks/2026_09/2026_09_02_sieve/plan.md`, qui a tranché à trois là où le PRD en recommandait deux.
+Fondre l'absence dans l'outil d'écriture aurait mis une lecture et une destruction sous un nom, et l'absence est de surcroît portée par une capacité distincte, que le gating doit pouvoir taire seule.
 
 ## 🔗 Module 11 — Partages
 
@@ -219,7 +243,8 @@ L'absence passe uniquement par `VacationResponse/set` : `SieveScript/set` sur le
 | Méthodes | `Principal/get`, `Principal/query`, `ShareNotification/*`, propriété `shareWith` |
 
 Aucune méthode de partage n'existe : accorder ou révoquer, c'est patcher la map `shareWith` portée par `Mailbox`, `Calendar`, `AddressBook` et `FileNode`.
-Deux des quatre types sont désormais gérables par le serveur : le module 4 a livré `Mailbox/set`, le module 6 `AddressBook/set`, et la lecture-modification-réécriture de `shareWith` s'y branchera sans nouveau client.
+Trois des quatre types sont désormais écrits par un module livré : `Mailbox/set` au module 4, `AddressBook/set` au module 6, `FileNode/set` au module 9, et la lecture-modification-réécriture de `shareWith` s'y branchera sans nouveau client.
+Le quatrième reste à ouvrir : aucun module n'émet `Calendar/set`, un test de contrat le tenant hors de portée du module 8.
 L'outil lit la map, la modifie, la réécrit entière, sans quoi il révoque silencieusement tous les autres partages.
 
 Octroyer un accès à un tiers est classé `send` : c'est irréversible du point de vue de la donnée déjà consultée.
@@ -235,15 +260,36 @@ Octroyer un accès à un tiers est classé `send` : c'est irréversible du point
 | Fondation | 1 | 0 | ✅ |
 | Mail | 2 à 4 | 10 | ✅ |
 | Contacts | 5 et 6 | 15 | ✅ |
-| Agendas | 7 et 8 | 21 | ⏳ |
-| Reste | 9 à 11 | 31 | ⏳ |
+| Agendas | 7 et 8 | 21 | ✅ |
+| Fichiers | 9 | 25 | ✅ |
+| Sieve et absence | 10 | 28 | ✅ |
+| Reste | 11 | à arbitrer | ⏳ |
 
-Dix-huit outils sont exposés à ce jour sur les vingt-six visés : dix sur le mail, `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage`, cinq sur les contacts, `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage`, et trois sur les agendas, `calendar_search`, `calendar_read`, `calendar_availability`.
-Le module 7 s'est tenu aux trois entrées prévues, laissant les trois restantes de la tranche au module 8.
+Vingt-huit outils sont exposés à ce jour pour vingt-six visés, chiffre relevé sur le rapport de composition et jamais par un décompte à la main.
+
+| Manifeste | Outils |
+| --- | --- |
+| Mail, lecture | `mail_search`, `mail_read`, `mail_folders` |
+| Mail, rangement | `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` |
+| Mail, envoi | `mail_identities`, `mail_compose`, `mail_send` |
+| Contacts, lecture | `contacts_search`, `contacts_read` |
+| Contacts, écriture | `contacts_write`, `contacts_delete`, `contacts_book_manage` |
+| Agendas, lecture | `calendar_search`, `calendar_read` |
+| Agendas, disponibilité | `calendar_availability` |
+| Agendas, écriture | `calendar_write`, `calendar_respond`, `calendar_delete` |
+| Fichiers, lecture | `files_browse`, `files_fetch` |
+| Fichiers, écriture | `files_write`, `files_delete` |
+| Sieve, lecture | `sieve_scripts` |
+| Sieve, écriture | `sieve_write` |
+| Absence | `vacation_manage` |
 
 La tranche contacts en prévoyait quatre et en consomme cinq : le module 5 s'était tenu à deux, le module 6 en a pris trois pour ne pas mêler le schéma d'un carnet à celui d'une fiche.
 Les cumuls des tranches suivantes portent ce décalage d'une unité, sans qu'aucune ne le rattrape.
 Le module 1 n'a livré aucun outil, `jmap_session_info` ayant été remplacé par les instructions d'initialisation, qui portent la même information sans coûter une entrée au budget.
 
 La cible est vingt-six, la dégradation étant observée dès trente.
-Le dépassement se traite par fusion d'outils voisins ou par gating de capacité, décidé au module 9 sur une surface réelle : aucun module d'ici là n'a à rogner sa surface pour rentrer dans le budget, et le module 6 ne l'a pas fait.
+Le module 10 l'a dépassée de deux, et le constat est écrit plutôt qu'arrondi : `aidd_docs/memory/internal/tool-budget.md` porte le compte, la règle d'arbitrage et les candidats à la fusion.
+Le module 11 hérite donc d'une règle et non d'une place.
+
+Les trois outils de Sieve sont derrière deux capacités qui peuvent manquer, ce que le premier critère d'arbitrage met devant un domaine que tout le monde voit : un serveur sans Sieve n'en expose aucun, et le compte qu'un client donné voit reste sous la cible.
+Retirer un outil déjà publié n'est pas une issue : le nom d'un outil est le contrat public du paquet.

@@ -1,15 +1,15 @@
 ---
 title: Tests
 status: draft
-updated: 2026-09-01
+updated: 2026-09-02
 owner: bryan
 ---
 
 # Tests
 
 > [!NOTE]
-> 940 tests passent sur 59 fichiers, dont 15 de contrat, chiffres relevés sur une exécution de `pnpm test`.
-> Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact, les agendas et les nœuds de fichier, en lecture comme en écriture.
+> 1166 tests passent sur 67 fichiers, dont 18 de contrat, chiffres relevés sur une exécution de `pnpm test`.
+> Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact, les agendas, les nœuds de fichier et les scripts Sieve, en lecture comme en écriture.
 
 ## 🎯 Stratégie
 
@@ -40,6 +40,9 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | `calendar-write-guard.test.ts` | Écriture des agendas : `sendSchedulingMessages` toujours écrit, patch borné au participant du compte, destruction confirmée |
 | `files-read-only.test.ts` | Fichiers en lecture : rien hors `get` et `query`, et aucune condition hors des neuf honorées |
 | `files-write-guard.test.ts` | Écriture des fichiers : `onExists` toujours `null`, cascade demandée seule, lot et frontière du disque |
+| `sieve-read-only.test.ts` | Sieve en lecture : rien hors `get` et `query`, aucun filtre ni tri que le serveur refuserait |
+| `sieve-write-guard.test.ts` | Écriture des scripts : `isActive` jamais écrite, les deux arguments d'activation toujours écrits, le script `vacation` hors d'atteinte |
+| `vacation-guard.test.ts` | Absence : `isEnabled` écrite seulement si l'appel l'a demandée, et aucun `SieveScript/` émis |
 
 Le contrat sur la lecture des contacts sépare deux affirmations : la classe déclarée d'une part, ce qui part réellement sur le fil d'autre part.
 Il exécute chaque outil du manifeste sur des arguments minimaux tirés de son propre schéma, donc il tient un outil ajouté au domaine sans être réécrit.
@@ -70,6 +73,18 @@ Un test lit les sources pour vérifier qu'un seul module écrit ce drapeau à vr
 Une nuance y est assumée plutôt que masquée : une destruction non confirmée n'émet aucune écriture, mais une lecture peut la précéder.
 `precheck` et `summarize` tournent avant l'élicitation par construction, l'un pour qu'un appel voué au refus ne soit pas posé en question, l'autre pour que la question nomme ce sur quoi elle porte.
 L'assertion tenue porte donc sur toutes les méthodes émises, et pas seulement sur le `/set` : rien hors des `/get`.
+
+Les trois contrats de Sieve tiennent ce qu'aucun nom d'argument ne trahit : l'activation.
+Aucune création ni mise à jour émise ne porte `isActive`, sur chacun des chemins d'écriture, parce que le serveur la retraduit en activation sans qu'un argument le dise.
+Les deux arguments qui l'annoncent, `onSuccessActivateScript` et `onSuccessDeactivateScript`, sont en revanche écrits sur chaque `SieveScript/set` émis, y compris les cinq où ils valent `null` : un défaut serveur n'est pas une garantie.
+
+Aucune écriture ne vise le script `vacation`, et le contrat l'éprouve depuis les trois actions qui pourraient le nommer.
+Le refus tombe avant qu'un texte de remplacement ne soit téléversé, ce que l'assertion vérifie sur le canal de blobs autant que sur le fil.
+C'est le seul refus du module que le serveur ne double pas : il garde le nom en écriture et en création, jamais en destruction.
+
+Le contrat de l'absence sépare deux gestes que la même méthode porte : reformuler la réponse et décider qu'elle répond.
+Un changement de sujet, de corps ou de fenêtre n'émet jamais `isEnabled`, un basculement écrit exactement ce que l'appel a demandé, et aucun des deux ne fait partir de `SieveScript/`.
+Ce dernier point tient le gating : le manifeste s'enregistre sur une session qui n'annonce que l'absence, donc il ne peut pas dépendre d'une méthode que cette permission-là ne couvre pas.
 
 Le contrat sur le périmètre va plus loin que le refus : il assert aussi qu'aucune méthode JMAP n'a été émise, et que la question de confirmation n'a jamais été posée.
 

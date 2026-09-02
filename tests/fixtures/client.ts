@@ -94,6 +94,16 @@ export interface FakeTransportOptions {
   bulkConfirmAbove?: number | undefined;
   policy?: WritePolicy | undefined;
   files?: Config["files"] | undefined;
+  /**
+   * A blob channel of the test's own, built over the same traffic log.
+   *
+   * The default one answers every download with the same bytes, which is exactly
+   * what a test about what a downloaded body says cannot use: two Sieve scripts
+   * would read alike, and a detection running over their text would prove
+   * nothing. Given here rather than swapped in afterwards, so the context a tool
+   * receives is the one the test meant.
+   */
+  blobs?: ((traffic: BlobTraffic) => BlobChannel) | undefined;
 }
 
 export function fakeTransport(
@@ -106,6 +116,7 @@ export function fakeTransport(
     policy = DEFAULT_POLICY,
     // No local directory unless the test names one, as in a fresh configuration.
     files = {},
+    blobs: buildBlobs = fakeBlobs,
   }: FakeTransportOptions = {},
 ): FakeTransport {
   const requests: JmapRequest[] = [];
@@ -140,7 +151,7 @@ export function fakeTransport(
     context: {
       client,
       session: fixtureSession(),
-      blobs: fakeBlobs(blobs),
+      blobs: buildBlobs(blobs),
       files,
       recipients,
       policy,
