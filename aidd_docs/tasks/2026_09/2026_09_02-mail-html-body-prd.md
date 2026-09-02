@@ -1,7 +1,7 @@
 ---
 title: PRD — Envoyer un message en HTML
-status: draft
-updated: 2026-09-02
+status: stable
+updated: 2026-09-03
 owner: bryan
 ---
 
@@ -98,14 +98,14 @@ La tranche part donc en version mineure, avec son changeset.
 
 ## ❓ Questions ouvertes
 
-| Question | Ce qu'elle déplace |
-| --- | --- |
-| Un message HTML sans partie texte | Ce que voient les clients qui n'affichent que du texte |
-| Ce que la confirmation montre du corps | Le seul garde-fou restant avant un envoi non filtré |
-| La signature HTML de l'identité | Une tranche ultérieure, ou jamais |
+| Question | Ce qu'elle déplace | État |
+| --- | --- | --- |
+| Un message HTML sans partie texte | Ce que voient les clients qui n'affichent que du texte | Contrepartie assumée |
+| Ce que la confirmation montre du corps | Le seul garde-fou restant avant un envoi non filtré | Tranchée au plan |
+| La signature HTML de l'identité | Une tranche ultérieure, ou jamais | Ouverte |
 
 La première question est une contrepartie assumée, pas un oubli : un destinataire en client texte reçoit un message dégradé par son propre client, ou rien de lisible selon celui-ci.
 L'appelant garde la main — il peut fournir les deux corps — mais rien ne l'y oblige, et c'est le choix qui a été fait.
 
-La deuxième est ouverte parce que le HTML ne passe par aucun filtre : la phrase de confirmation est ce qui reste entre un corps rédigé par un modèle et un message signé par l'utilisateur.
-Nommer le format est acquis ; montrer le corps, ou une part du corps, reste à trancher.
+La deuxième est close : le HTML ne passe par aucun filtre, donc la confirmation nomme le format, montre le corps dégradé par `htmlToText` et liste à part les cibles des liens, que cette dégradation efface.
+Les trois formulations distinguent le texte brut, le HTML doublé d'une partie texte et le HTML seul, ce dernier disant la contrepartie de la première question.

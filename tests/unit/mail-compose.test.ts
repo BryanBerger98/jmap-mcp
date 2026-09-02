@@ -149,6 +149,21 @@ describe("mail_compose", () => {
       }
     });
 
+    it("names no format when the call only writes a draft", async () => {
+      const { context } = fakeTransport([soleIdentity, mailboxGet, emailSetCreated]);
+
+      const { text } = await mailCompose.run(
+        { to: ["camille@example.org"], htmlBody: HTML_BODY },
+        context,
+      );
+
+      // `summarize` is reached on the elicitation path alone, and a draft asks
+      // nothing — so its format line has nowhere to appear.
+      expect(text).not.toContain("The body is HTML");
+      expect(text).not.toContain("As text, it reads");
+      expect(text).toContain("not sent");
+    });
+
     it("carries no bodyStructure and no attachments, which would void the bodies", async () => {
       const { context, requests } = fakeTransport([soleIdentity, mailboxGet, emailSetCreated]);
 
@@ -399,6 +414,51 @@ describe("mail_compose", () => {
       expect(await mailCompose.summarize({ ...input, send: false }, context)).toContain(
         "Save a draft",
       );
+    });
+
+    describe("the format the confirmation names", () => {
+      const input = { to: ["camille@example.org"], subject: "Hi", send: true };
+
+      it("says plain text when no HTML body is given", async () => {
+        const { context } = fakeTransport([]);
+
+        const summary = await mailCompose.summarize({ ...input, body: "Text" }, context);
+
+        expect(summary).toContain("The body is plain text.");
+        expect(summary).not.toContain("HTML");
+      });
+
+      it("says HTML with a text part beside it when both bodies are given", async () => {
+        const { context } = fakeTransport([]);
+
+        const summary = await mailCompose.summarize(
+          { ...input, body: "Text", htmlBody: HTML_BODY },
+          context,
+        );
+
+        expect(summary).toContain("The body is HTML, with a plain-text part beside it.");
+      });
+
+      it("says an HTML body alone will show as little or nothing to a text client", async () => {
+        const { context } = fakeTransport([]);
+
+        const summary = await mailCompose.summarize({ ...input, htmlBody: HTML_BODY }, context);
+
+        expect(summary).toContain("with no plain-text part beside it");
+        expect(summary).toContain("little or nothing");
+      });
+
+      it("shows the degraded text and the link targets the degradation erased", async () => {
+        const { context } = fakeTransport([]);
+
+        const summary = await mailCompose.summarize({ ...input, htmlBody: HTML_BODY }, context);
+
+        expect(summary).toContain("Bonjour Camille,");
+        expect(summary).not.toContain("<strong>");
+        // The attribute exactly as written, entity included: the module reads
+        // the source, it does not rewrite it.
+        expect(summary).toContain("https://example.org/r?a=1&amp;b=2");
+      });
     });
 
     it("names the address a reply leaves for, rather than the message it answers", async () => {

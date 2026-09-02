@@ -15,6 +15,7 @@ import type {
 } from "../../jmap/types/mail.js";
 import { defineTool, type ToolContext } from "../../registry/define-tool.js";
 import { renderFields } from "../../shared/render.js";
+import { describeHtmlBody } from "./html.js";
 import {
   buildSubmission,
   DRAFT_CREATION_ID,
@@ -451,6 +452,8 @@ export function summarizeCompose(
     cc?: string[] | undefined;
     bcc?: string[] | undefined;
     subject?: string | undefined;
+    body?: string | undefined;
+    htmlBody?: string | undefined;
     replyToEmailId?: string | undefined;
     send?: boolean | undefined;
   },
@@ -459,7 +462,31 @@ export function summarizeCompose(
   const who = recipients.length > 0 ? recipients.join(", ") : "the sender of the message answered";
   const what = input.subject === undefined ? "no subject yet" : `subject "${input.subject}"`;
 
-  return input.send === true
-    ? `Send a message to ${who}, ${what}. It leaves the account as soon as this is confirmed.`
-    : `Save a draft to ${who}, ${what}.`;
+  const opening =
+    input.send === true
+      ? `Send a message to ${who}, ${what}. It leaves the account as soon as this is confirmed.`
+      : `Save a draft to ${who}, ${what}.`;
+
+  return [opening, ...bodyLines(input.body, input.htmlBody)].join("\n\n");
+}
+
+/**
+ * What the body is made of, said before it leaves.
+ *
+ * Three statements rather than two, because "HTML" alone does not tell the one
+ * thing the user arbitrates on: whether a client that only shows text has
+ * anything left to show. Nothing filters the markup, so this and the excerpt
+ * below it are the whole of what stands between a generated body and a signed
+ * message.
+ */
+function bodyLines(body: string | undefined, htmlBody: string | undefined): string[] {
+  if (htmlBody === undefined) return ["The body is plain text."];
+
+  const format =
+    body === undefined
+      ? "The body is HTML, with no plain-text part beside it: a client that only displays text " +
+        "will show little or nothing of it."
+      : "The body is HTML, with a plain-text part beside it.";
+
+  return [format, describeHtmlBody(htmlBody)];
 }

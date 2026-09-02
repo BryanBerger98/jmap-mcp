@@ -1,7 +1,7 @@
 ---
 title: Architecture
 status: draft
-updated: 2026-09-02
+updated: 2026-09-03
 owner: bryan
 ---
 
@@ -282,4 +282,7 @@ Ne nommer aucun droit sur une révocation n'est pas une révocation vide : c'est
 - Deux droits d'une boîte ne se distinguent pas, ni deux droits d'un agenda. `api/acl.rs:196` fait retomber `maySetSeen` et `maySetKeywords` sur la même permission interne, et `mayWriteAll` d'un agenda emporte `mayDelete` : accorder l'un accorde l'autre, et la lecture les rend tous les deux.
 - Un nom de droit que le type ne connaît pas, écrit à `false`, disparaît sans erreur. `jmap-tools/src/json/value.rs:236-242` ne garde que les entrées valant `true`, donc une révocation mal orthographiée réussit sans rien révoquer : le vocabulaire est vérifié côté client, jamais laissé au serveur.
 - Le nombre de bénéficiaires par objet est plafonné à dix par défaut. `crates/registry/src/schema/structs_impl.rs:36076-36083` pose ce défaut, `crates/jmap/src/api/acl.rs:242-245` l'applique sous le nom `max_shares_per_item` : un octroi peut échouer sur un objet déjà partagé sans que rien dans l'appel l'annonce.
+- Un corps de message ne se lit qu'en l'absence de `bodyStructure`. `email/set.rs:128-129` envoie toute création qui en porte une, ou qui porte `attachments`, dans une branche où `textBody` et `htmlBody` ne sont jamais regardés : le message part vide, sans erreur. C'est pourquoi ni l'une ni l'autre n'entre dans le type de création.
+- Le garde-fou serveur contre le message vide ne garde rien ici. `email/set.rs:728-740` ne refuse que le message sans en-tête, sans corps et sans pièce jointe, or une création écrit toujours `from`, `to` et `subject` : le refus d'un appel sans corps tombe donc dans le schéma d'entrée, jamais sur le fil.
+- Un corps n'arrive intact qu'à une normalisation près. L'encodage de transfert est choisi par détection — `mime.rs:393-404` — et la branche `7bit` transforme un saut de ligne nu en `\r\n` — `mime.rs:405-410` ; `quoted-printable` et `base64` restituent l'entrée à l'identique.
 - `changedBy.name` d'une notification n'est pas un nom d'affichage garanti. `sn-get.rs:205-206` rend la description de l'annuaire et retombe sur l'identifiant de connexion, donc ce champ n'est jamais vide mais peut ne porter qu'une adresse : le rendu ne suppose ni l'un ni l'autre.

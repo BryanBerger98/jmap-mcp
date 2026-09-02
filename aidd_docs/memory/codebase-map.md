@@ -1,7 +1,7 @@
 ---
 title: Carte du code
 status: draft
-updated: 2026-09-02
+updated: 2026-09-03
 owner: bryan
 ---
 
@@ -71,6 +71,10 @@ Sans ce découpage, un serveur qui n'expédie pas ferait taire aussi les outils 
 Le rangement est séparé de la lecture sur la même capacité, pour une autre raison : `mailDomain` reste ainsi prouvablement en lecture seule, et le contrat qui l'affirme vaut mieux qu'un fichier de moins.
 `src/domains/mail/filing.ts` porte ce que les trois outils de rangement partagent : plafond de lot, résolution des dossiers mise en cache, rendu des refus par identifiant.
 Il s'appelait `organize.ts` jusqu'à la fusion de `mail_move` et de `mail_flag` : le nom est allé à l'outil fusionné, et ce qui est partagé a pris celui du verbe qu'il sert.
+
+`src/domains/mail/html.ts` est une fonction pure sur une chaîne, lue par le seul `mail_compose`, sur le patron de `sieve/radius.ts` : elle rend l'extrait dégradé d'un corps HTML et les cibles de ses liens.
+Elle vit dans le domaine et non sous `src/shared/` pour cette raison-là, un second lecteur seul l'y ferait monter.
+Sa raison d'être est que rien ne filtre le corps : la phrase de confirmation est tout ce qui reste entre un corps rédigé par un modèle et un message signé par l'utilisateur.
 
 Les contacts se scindent en deux manifestes sur la même capacité, pour la raison qui vaut déjà pour le mail : la lecture reste prouvablement sans écriture, et un test de contrat le tient.
 `src/domains/contacts/card.ts` porte ce que les outils de lecture partagent : nom d'affichage, adresse principale, propriétés et noms de carnets, marque de périmètre et rendu d'une fiche complète.

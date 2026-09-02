@@ -1,7 +1,7 @@
 ---
 title: Instruction — La confirmation le nomme, un contrat le tient intact
-status: pending
-updated: 2026-09-02
+status: done
+updated: 2026-09-03
 owner: bryan
 ---
 
