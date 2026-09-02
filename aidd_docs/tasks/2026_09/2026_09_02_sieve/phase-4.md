@@ -113,7 +113,7 @@ journey
 1. `classes: ["draft", "send"]`, `classify` rendant `send` dès que `isEnabled` figure dans les arguments, `draft` sinon.
 2. Le sens est celui du projet : régler l'absence ne perd rien mais fait partir des messages vers des tiers, là où l'activation d'un script peut perdre du courrier.
 3. La bascule est confirmée dans les deux sens : croire une absence posée alors qu'elle est éteinte est le même défaut que l'inverse.
-4. `summarize` : nomme l'état visé, rappelle les bornes, et nomme le script de filtrage qui cesse d'être actif — `vacation/set.rs:281-283` désactive les autres scripts quand l'absence s'allume.
+4. `summarize` : nomme l'état visé, rappelle les bornes, et désigne sans le nommer le script de filtrage qui cesse d'être actif — `vacation/set.rs:281-283` désactive les autres scripts quand l'absence s'allume, mais lire lequel exigerait un `SieveScript/get` hors de la capacité de ce manifeste.
 5. Le compte rendu d'un appel classé `draft` dit explicitement que l'état actif n'a pas bougé.
 
 ### `4)` Le manifeste de l'absence
@@ -140,7 +140,7 @@ journey
 
 1. `tests/unit/sieve-vacation.test.ts` : rendu d'une absence active dans sa fenêtre, active hors fenêtre, éteinte, sans borne.
 2. Construction du patch pour chacun des trois cas : propriété nommée, propriété nulle, propriété absente.
-3. Phrase de confirmation nommant le script de filtrage remplacé, et phrase d'extinction.
+3. Phrase de confirmation désignant sans le nommer le script de filtrage remplacé, et phrase d'extinction.
 4. `tests/fixtures/sieve.ts` gagne l'objet `VacationResponse` et ses variantes.
 
 ## ✅ Test acceptance criteria
@@ -154,6 +154,6 @@ journey
 | 2.5 | Aucun `create` ni `destroy` n'est émis sur `VacationResponse` |
 | 3.1 | Nommer `isEnabled` classe l'appel `send`, l'omettre le classe `draft` |
 | 3.3 | Éteindre l'absence passe par la même confirmation que l'allumer |
-| 3.4 | La question d'allumage nomme le script de filtrage qui cesse d'être actif |
+| 3.4 | La question d'allumage désigne sans le nommer le script de filtrage qui cesse d'être actif |
 | 5.5 | Une méthode `SieveScript/*` émise par ce manifeste fait tomber le contrat |
 | 5.6 | Une session annonçant l'absence sans Sieve enregistre tout de même l'outil |

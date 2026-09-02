@@ -65,7 +65,7 @@ owner: bryan
 - [x] Aucun `create` ni `destroy` n'est émis sur `VacationResponse` — les deux sont `never` dans le type des arguments — `src/jmap/types/sieve.ts`, `tests/unit/sieve-vacation.test.ts:232`
 - [x] Nommer `isEnabled` classe l'appel `send`, l'omettre le classe `draft` — `src/domains/sieve/vacation.ts:161`, `tests/unit/sieve-vacation.test.ts:303`
 - [x] Éteindre l'absence passe par la même confirmation que l'allumer — `tests/unit/sieve-vacation.test.ts:340`, `tests/contract/vacation-guard.test.ts:316`
-- [ ] La question d'allumage nomme le script de filtrage qui cesse d'être actif — elle le désigne sans le nommer, faute d'un `SieveScript/get` que ce manifeste n'a pas le droit d'émettre ; l'écart est écrit et testé tel quel — `src/domains/sieve/vacation.ts:383`, `:397`, `tests/contract/vacation-guard.test.ts:368` — voir `sv-9`
+- [x] La question d'allumage désigne sans le nommer le script de filtrage qui cesse d'être actif — l'écart tient à la capacité du manifeste, et il est porté par le plan comme par la mémoire projet — `src/domains/sieve/vacation.ts:433`, `:448`, `tests/contract/vacation-guard.test.ts:372`, `aidd_docs/memory/architecture.md:217`
 - [x] Une méthode `SieveScript/*` émise par ce manifeste fait tomber le contrat — `tests/contract/vacation-guard.test.ts:301`
 - [x] Une session annonçant l'absence sans Sieve enregistre tout de même l'outil — `tests/contract/vacation-guard.test.ts:212`
 
@@ -101,7 +101,7 @@ owner: bryan
 
 | Metric | Value |
 | --- | --- |
-| Verified | 98 % (52/53) |
+| Verified | 100 % (53/53) |
 | Files checked | `src/domains/sieve/{index,scripts,write,vacation,script,edit,radius}.ts`, `src/jmap/types/sieve.ts`, `src/registry/{compose,define-tool}.ts`, `src/shared/{render,batch}.ts`, `src/domains/calendar/delete.ts`, `src/domains/files/write.ts`, `tests/contract/{sieve-read-only,sieve-write-guard,vacation-guard}.test.ts`, `tests/unit/sieve-{scripts,write,vacation,radius}.test.ts`, `tests/fixtures/{sieve,client}.ts`, `README.md`, `aidd_docs/ROADMAP.md`, `aidd_docs/memory/{architecture,codebase-map,testing}.md`, `aidd_docs/memory/external/stalwart-jmap.md`, `aidd_docs/memory/internal/tool-budget.md` |
-| Unchecked | phase 4, critère 3.4 — fix (écart assumé, à porter hors du commentaire) |
+| Unchecked | aucun — les deux critères en attente sont levés, plan et mémoire projet reformulés |
 | Unplanned | `aidd_docs/ROADMAP.md` — modules 8 et 9 marqués livrés et réécrits, alors que la phase 5 ne vise que la ligne 231 et le module 10 · `tests/fixtures/client.ts` — canal de blobs injectable, conséquence obligée d'une détection qui lit deux textes distincts, absente des trois projections d'architecture |

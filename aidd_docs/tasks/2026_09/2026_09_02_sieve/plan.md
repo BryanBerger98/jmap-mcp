@@ -112,7 +112,8 @@ Le script `vacation` détruit par le chemin des scripts n'est refusé par person
 Un compte n'a qu'un script actif — `sieve/set.rs:328` n'en résout qu'un — et l'absence est active exactement quand son script l'est — `vacation/set.rs:144`.
 Activer un filtre éteint donc l'absence, et allumer l'absence désactive le filtre — `vacation/set.rs:281-283`, commentée « Deactivate other sieve scripts ».
 
-Les deux confirmations le disent, chacune de son côté : celle de l'activation nomme le script remplacé, celle de l'absence nomme le filtre qui cesse.
+Les deux confirmations le disent, chacune de son côté : celle de l'activation nomme le script remplacé, celle de l'absence désigne sans le nommer le filtre qui cesse.
+L'asymétrie tient à la capacité : le manifeste de l'absence est gaté sur `urn:ietf:params:jmap:vacationresponse` seul, donc il ne peut pas lire le nom.
 Sans cela, un utilisateur poserait son absence et perdrait son rangement automatique sans qu'aucune ligne ne le lui ait dit.
 
 > [!WARNING]

@@ -156,6 +156,7 @@ La classe se lit sur `notify`, jamais sur le nom de l'outil.
 
 C'est ce dernier qui ouvre un trou que le registre ne peut pas voir : il classe l'appel une fois, donc une politique `send: deny` laisserait passer une annulation expédiée sous couvert de destruction.
 `calendar_delete` lit donc `context.policy.send` lui-même et refuse avant toute question — c'est la raison d'être de `policy` dans le contexte d'outil.
+Ils sont deux à le lire désormais : `vacation_manage` lit `context.policy.destroy` sur le même patron, allumer l'absence coupant le filtrage sous une classe `send`.
 
 Un `CalendarEvent/set` réussi ne prouve jamais qu'un mail est parti.
 Stalwart avale l'envoi sans erreur quand iTIP est éteint, quand le compte n'a pas la permission de planification, ou quand l'événement est entièrement passé : les réponses disent ce qui a été demandé au serveur, jamais ce qu'il en a fait.
@@ -212,6 +213,9 @@ Annoncer un `discard` absent coûte une inquiétude ; taire celui qui est là co
 
 Un seul script est actif à la fois, donc activer remplace toujours, et la question nomme ce qui s'arrête.
 Quand c'est l'absence qui était active, la phrase le dit : `vacation/set.rs:144` fait du script actif l'état de l'absence, donc activer un filtre l'éteint.
+
+Dans l'autre sens, la question d'allumage de l'absence désigne le filtre qui s'arrête sans jamais le nommer.
+Lire son nom demanderait un `SieveScript/get`, hors de portée d'un manifeste gaté sur `urn:ietf:params:jmap:vacationresponse` seul, Stalwart accordant `JmapSieveScriptGet` par une permission distincte — `api/session.rs:113` et `:118`.
 
 Le texte d'un script traverse la conversation là où les octets d'un fichier ne le font jamais, et l'écart est voulu : un fichier est un contenu que l'utilisateur possède, un script est un texte qu'il rédige, relit et corrige.
 Le stockage porte un `confirmWhen` pour la même raison : écraser le corps du script actif change le courrier immédiatement, ce que la classe `draft` n'annonce pas.
