@@ -318,6 +318,22 @@ async function runSet(input: Input, context: ToolContext): Promise<ToolResult> {
     ["VacationResponse/set", args, "0"],
   );
 
+  // The shared rendering, and not `explainSetError` from `edit.ts`, though the
+  // two live in the same domain.
+  //
+  // That one translates the six codes Stalwart puts on the wire for a script, and
+  // none of them can reach this branch. `alreadyExists`, `blobNotFound` and
+  // `scriptIsActive` all suppose a creation, an upload or a destruction, and
+  // `create` and `destroy` are `never` on the arguments type
+  // (`jmap/types/sieve.ts:206-207`) while this function emits an `update` alone;
+  // `invalidScript` judges a text no caller here writes.
+  //
+  // The two that would stay plausible would be rendered wrong. `invalidProperties`
+  // blames a script name too long for the server (`edit.ts:163-167`), and the
+  // vacation response has no name of its own; `overQuota` sends the caller to
+  // `sieve_write` (`edit.ts:168-172`), a tool a session gated on the vacation
+  // capability alone does not expose. A refusal that names a way out nobody has
+  // is worse than the server's own words.
   if (response.updated === undefined || !(VACATION_SINGLETON_ID in response.updated)) {
     const refused = response.notUpdated?.[VACATION_SINGLETON_ID];
     return {
