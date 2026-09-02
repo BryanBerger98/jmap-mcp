@@ -8,7 +8,7 @@ No data leaves your machine except the exchange with your own server.
 
 ## Tools
 
-Twenty-eight tools across five domains: mail, calendar, contacts, files, and Sieve with the vacation response. The class is what the write policy below gates.
+Twenty-nine tools across six domains: mail, calendar, contacts, files, sharing, and Sieve with the vacation response. The class is what the write policy below gates.
 
 | Tool | Class | Does |
 | --- | --- | --- |
@@ -18,8 +18,7 @@ Twenty-eight tools across five domains: mail, calendar, contacts, files, and Sie
 | `mail_identities` | `read` | Lists the addresses the account may send from |
 | `mail_compose` | `draft` | Writes a draft, sends nothing |
 | `mail_send` | `send` | Sends an existing draft |
-| `mail_move` | `draft` | Files messages into one folder |
-| `mail_flag` | `draft` | Sets or clears `$seen`, `$flagged` and the other standard keywords |
+| `mail_organize` | `draft` | Files messages into one folder, or sets and clears their standard keywords |
 | `mail_delete` | `draft` or `destroy` | Moves to the trash; `permanent` erases instead |
 | `mail_folder_manage` | `draft` or `destroy` | Creates, renames, moves a folder; `delete` removes one |
 | `contacts_search` | `read` | Searches contact cards, paginated, address books named |
@@ -37,6 +36,8 @@ Twenty-eight tools across five domains: mail, calendar, contacts, files, and Sie
 | `files_fetch` | `read` | Writes a stored file to your disk and returns its path |
 | `files_write` | `draft` | Deposits a local file, creates a folder, renames or moves nodes |
 | `files_delete` | `destroy` | Erases files and folders for good; file storage has no trash |
+| `sharing_access` | `read` | Lists who this account gave access to, or what other accounts opened to it |
+| `sharing_manage` | `send` or `destroy` | Opens rights to another account; `revoke` closes them, `dismiss` discards notifications |
 | `sieve_scripts` | `read` | Lists the Sieve scripts and names the active one; `show` returns one script's source |
 | `sieve_write` | `draft` or `destroy` | Stores a script; `activate`, `deactivate` and `delete` change what filters incoming mail |
 | `vacation_manage` | `draft` or `send` | Reads the automatic reply, or changes it; naming `isEnabled` switches it on or off |
@@ -63,18 +64,24 @@ The confirmation says what a script does, not just what it is called: before act
 
 The script named `vacation` is the vacation response's own, and `sieve_write` refuses to store, activate or destroy it by that id — Stalwart guards the first two itself, but not the third. Switching the automatic reply on through `vacation_manage` makes it the active script, which stops whatever was filtering; switching it off leaves the account with no active script rather than restoring the previous one. Changing the subject, the bodies or the window never switches the reply on or off: only naming `isEnabled` does, which is also what turns the call from a `draft` into a `send`.
 
+Opening an access is the one write here whose undoing does not restore the state before it. Revoking closes the door, but whatever was read while it stood open has been read, and nothing recalls it — the confirmation says so, because that is the fact the person deciding is missing. Both `grant` and `revoke` write one path per named right, so a beneficiary the call does not name keeps exactly the access they had; naming no right on a revoke removes the beneficiary entirely, which the question states rather than implies.
+
+`sharing_manage` needs elicitation for every action it has, since `grant` classifies as `send` and `revoke` and `dismiss` as `destroy`. Claude Desktop does not expose elicitation, so the whole tool fails there by design, and `sharing_access` is the only half of the domain usable from that client.
+
+The domain reads and changes access, and nothing else. It does not manage principals, it never reaches into another account's data, and it has no notion of operating a second account: what it renders about someone else is their name and address as the directory gives them, plus what the server's own notifications report. A server that refuses `Principal/get` answers with less: beneficiaries then appear as raw ids, and the listing says why rather than leaving them unexplained.
+
 Sieve reading and the vacation response sit behind separate capabilities, and Stalwart grants their permissions independently, so a server may expose one without the other. `vacation_manage` sends no `SieveScript` method at all, which is what lets it register on an account that holds only the vacation permission.
 
 ### Batch limits
 
-The organizing, contact-writing, calendar-writing and file-writing tools act on ids a search returned, never on a filter they run themselves. The same two limits govern them.
+The organizing, contact-writing, calendar-writing, file-writing and sharing tools act on ids a search returned, never on a filter they run themselves. The same two limits govern them.
 
 | Limit | Value | Configurable |
 | --- | --- | --- |
 | Ids per call | 50 | No |
 | Asks above | 20 | `bulkConfirmAbove`, `JMAP_BULK_CONFIRM_ABOVE` |
 
-Past the threshold, a reversible bulk write asks before it runs even though its class is `allow` — moving two hundred messages is still a move, but its size is worth a look. `mail_flag` never asks whatever the volume: marking a thousand messages read is undone by marking them unread. `contacts_write` does ask past the threshold: correcting thirty cards at once stays a `draft`, but nothing on the server records what the fields held before. `calendar_write` and `calendar_respond` ask on the same ground, and for one reason more: past a certain count, a write nobody looked at is a write mailed to people nobody counted.
+Past the threshold, a reversible bulk write asks before it runs even though its class is `allow` — moving two hundred messages is still a move, but its size is worth a look. `mail_organize` asks on a move and never on a marking, whatever the volume: marking a thousand messages read is undone by marking them unread, while a move at scale leaves no record of the folders it emptied. `contacts_write` does ask past the threshold: correcting thirty cards at once stays a `draft`, but nothing on the server records what the fields held before. `calendar_write` and `calendar_respond` ask on the same ground, and for one reason more: past a certain count, a write nobody looked at is a write mailed to people nobody counted.
 
 ## Why
 

@@ -43,12 +43,11 @@ flowchart LR
 
     class M1 ambre
     class M2,M5,M7 bleu
-    class M3,M4,M6,M8,M9,M10 violet
-    class M11 ambre
+    class M3,M4,M6,M8,M9,M10,M11 violet
 ```
 
 Les branches mail, contacts, agendas, fichiers et Sieve sont indépendantes après le module 1.
-Le module 11 attend les quatre types qui portent `shareWith`.
+Le module 11 attendait les quatre types qui portent `shareWith`, et les quatre sont livrés.
 
 ## 🧱 Module 1 — Bootstrap et garde
 
@@ -95,7 +94,7 @@ Le contrôle tombe avant la confirmation, jamais après — une adresse hors pé
 
 | Aspect | Contenu |
 | --- | --- |
-| Outils | `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` |
+| Outils | `mail_organize`, `mail_delete`, `mail_folder_manage` |
 | Classes | `draft`, `destroy` |
 | Méthodes | `Email/set` update et destroy, `Mailbox/set` |
 
@@ -234,24 +233,29 @@ L'outil ne l'écrit donc que si l'appel le nomme : le réécrire à chaque chang
 Le compte d'outils est celui du plan `aidd_docs/tasks/2026_09/2026_09_02_sieve/plan.md`, qui a tranché à trois là où le PRD en recommandait deux.
 Fondre l'absence dans l'outil d'écriture aurait mis une lecture et une destruction sous un nom, et l'absence est de surcroît portée par une capacité distincte, que le gating doit pouvoir taire seule.
 
-## 🔗 Module 11 — Partages
+## 🔗 Module 11 — Partages ✅
 
 | Aspect | Contenu |
 | --- | --- |
-| Outils | `sharing_principals`, `sharing_rights`, `sharing_notifications` |
-| Classes | `read`, `send` |
+| Outils | `sharing_access`, `sharing_manage` |
+| Classes | `read`, `send`, `destroy` |
 | Méthodes | `Principal/get`, `Principal/query`, `ShareNotification/*`, propriété `shareWith` |
 
 Aucune méthode de partage n'existe : accorder ou révoquer, c'est patcher la map `shareWith` portée par `Mailbox`, `Calendar`, `AddressBook` et `FileNode`.
-Trois des quatre types sont désormais écrits par un module livré : `Mailbox/set` au module 4, `AddressBook/set` au module 6, `FileNode/set` au module 9, et la lecture-modification-réécriture de `shareWith` s'y branchera sans nouveau client.
-Le quatrième reste à ouvrir : aucun module n'émet `Calendar/set`, un test de contrat le tenant hors de portée du module 8.
-L'outil lit la map, la modifie, la réécrit entière, sans quoi il révoque silencieusement tous les autres partages.
+Les quatre `/set` partent d'un émetteur unique, `domains/sharing/edit.ts`, `Calendar/set` compris : le module 8 n'en émet aucun et un test de contrat le tient toujours hors de sa portée.
+
+La réécriture entière de la map, prévue ici, n'a pas été retenue : elle effacerait un tiers que l'appel ne nomme pas.
+Le patch se fait par chemin, `shareWith/{principal}/{droit}` pour un droit et `shareWith/{principal}` à `null` pour retirer le bénéficiaire entier.
+
+Trois outils étaient prévus, deux ont suffi.
+La découpe par objet mêlait une lecture et une destruction sous un même nom, ce que le troisième critère d'arbitrage interdit : la découpe par classe la remplace, et aucun outil dédié aux principals n'a été retenu.
 
 Octroyer un accès à un tiers est classé `send` : c'est irréversible du point de vue de la donnée déjà consultée.
+Révoquer et écarter une notification sont classés `destroy`.
 
 > [!NOTE]
 > `Principal/set`, `Principal/changes` et `Principal/queryChanges` sont reconnues par Stalwart mais sans implémentation.
-> `Principal/query` rend zéro tant que `allowDirectoryQueries` reste désactivé.
+> `allowDirectoryQueries` désactivé ne suffit pas à fermer `Principal/query` : le refus demande aussi que le jeton n'ait pas la permission, que le rôle utilisateur par défaut accorde — `principal/query.rs:44-45`.
 
 ## 📊 Budget d'outils
 
@@ -263,14 +267,16 @@ Octroyer un accès à un tiers est classé `send` : c'est irréversible du point
 | Agendas | 7 et 8 | 21 | ✅ |
 | Fichiers | 9 | 25 | ✅ |
 | Sieve et absence | 10 | 28 | ✅ |
-| Reste | 11 | à arbitrer | ⏳ |
+| Partages | 11 | 30 | ✅ |
+| Fusion du rangement | — | 29 | ✅ |
 
-Vingt-huit outils sont exposés à ce jour pour vingt-six visés, chiffre relevé sur le rapport de composition et jamais par un décompte à la main.
+Vingt-neuf outils sont exposés à ce jour pour vingt-six visés, chiffre relevé sur le rapport de composition et jamais par un décompte à la main.
+Les partages ont porté le compte à trente, puis la fusion de `mail_move` et de `mail_flag` en `mail_organize` l'a ramené à vingt-neuf.
 
 | Manifeste | Outils |
 | --- | --- |
 | Mail, lecture | `mail_search`, `mail_read`, `mail_folders` |
-| Mail, rangement | `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` |
+| Mail, rangement | `mail_organize`, `mail_delete`, `mail_folder_manage` |
 | Mail, envoi | `mail_identities`, `mail_compose`, `mail_send` |
 | Contacts, lecture | `contacts_search`, `contacts_read` |
 | Contacts, écriture | `contacts_write`, `contacts_delete`, `contacts_book_manage` |
@@ -282,6 +288,8 @@ Vingt-huit outils sont exposés à ce jour pour vingt-six visés, chiffre relev�
 | Sieve, lecture | `sieve_scripts` |
 | Sieve, écriture | `sieve_write` |
 | Absence | `vacation_manage` |
+| Partages, lecture | `sharing_access` |
+| Partages, écriture | `sharing_manage` |
 
 La tranche contacts en prévoyait quatre et en consomme cinq : le module 5 s'était tenu à deux, le module 6 en a pris trois pour ne pas mêler le schéma d'un carnet à celui d'une fiche.
 Les cumuls des tranches suivantes portent ce décalage d'une unité, sans qu'aucune ne le rattrape.
