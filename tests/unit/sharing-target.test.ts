@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { rightsOf } from "../../src/domains/sharing/rights.js";
 import {
   displayNameOf,
+  nameOrId,
   requireCapability,
   SHARE_TARGET_LIST,
   SHARE_TARGETS,
@@ -115,5 +116,18 @@ describe("displayNameOf", () => {
   it("returns nothing when the read did not carry it", () => {
     expect(displayNameOf("Calendar", { id: "c1" })).toBeUndefined();
     expect(displayNameOf("FileNode", { id: "f1", name: null })).toBeUndefined();
+  });
+});
+
+describe("nameOrId", () => {
+  it("quotes the name and keeps the id beside it", () => {
+    expect(nameOrId("Calendar", { id: "cal-1", name: "Team" })).toBe('"Team" (cal-1)');
+    expect(nameOrId("Mailbox", { id: "mb-3", name: "Received" })).toBe('"Received" (mb-3)');
+  });
+
+  it("falls back to the id alone when the read carried no name", () => {
+    // Never a name on its own: the id is what a follow-up call is written in.
+    expect(nameOrId("Mailbox", { id: "mb-1" })).toBe("mb-1");
+    expect(nameOrId("FileNode", { id: "fn-1", name: null })).toBe("fn-1");
   });
 });

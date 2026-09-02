@@ -20,7 +20,7 @@ import {
 import type { SharedObject } from "./grant.js";
 import { resolvePrincipals } from "./principal.js";
 import { linkedRightsNote, refuseUnknownRights, rightLabel } from "./rights.js";
-import { displayNameOf, requireCapability, shareTarget } from "./target.js";
+import { nameOrId, requireCapability, shareTarget } from "./target.js";
 
 /**
  * Opening an access, taking one back, and discarding the record of someone
@@ -461,10 +461,7 @@ async function refuseUnshareable(
   const blocked = targets.objects.filter((object) => object.myRights?.mayShare !== true);
   if (blocked.length === 0) return undefined;
 
-  const named = blocked.map((object) => {
-    const name = displayNameOf(type, object as unknown as Readonly<Record<string, unknown>>);
-    return name === undefined ? object.id : `"${name}" (${object.id})`;
-  });
+  const named = blocked.map((object) => nameOrId(type, object));
 
   return (
     `Refused: mayShare is not granted to this account on ${named.join(", ")}, so the server would ` +
@@ -482,10 +479,7 @@ async function describeObjects(
   const { noun } = shareTarget(type);
   const targets = await readTargets(type, ids, context);
 
-  const named = targets.objects.map((object) => {
-    const name = displayNameOf(type, object as unknown as Readonly<Record<string, unknown>>);
-    return name === undefined ? object.id : `"${name}" (${object.id})`;
-  });
+  const named = targets.objects.map((object) => nameOrId(type, object));
 
   // The ids themselves when the read carried no name: a count on its own would
   // let a confirmation cover objects the reader never identified.

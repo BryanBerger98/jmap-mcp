@@ -21,7 +21,7 @@ import type { ShareableType, ShareNotification } from "../../jmap/types/sharing.
 import { renderFields } from "../../shared/render.js";
 import { CLOSED_DIRECTORY_NOTE, type PrincipalDirectory } from "./principal.js";
 import { describeRights, rightsOf } from "./rights.js";
-import { displayNameOf, shareTarget } from "./target.js";
+import { nameOrId, shareTarget } from "./target.js";
 
 /** A rights map as it comes off the wire: every name a boolean, none of them certain. */
 export type RightsMap = Readonly<Record<string, boolean | undefined>>;
@@ -32,13 +32,19 @@ export type RightsMap = Readonly<Record<string, boolean | undefined>>;
  * Structural rather than a union of the four object types: the four differ in
  * everything but the three properties this domain asks for, and a switch here
  * would say four times what the target table already says once.
+ *
+ * An alias rather than an interface, and the difference is load-bearing: only an
+ * alias gets an implicit index signature, so this satisfies the plain record the
+ * target table reads a name off. An interface forced a double cast at every one
+ * of those call sites, which turned off type checking to work around a rule
+ * about declaration merging that this type never wanted.
  */
-export interface SharedObject {
+export type SharedObject = {
   id: Id;
   name?: string;
   shareWith?: Readonly<Record<Id, RightsMap>> | null;
   myRights?: RightsMap;
-}
+};
 
 /** An object, who reaches it, and with which rights. */
 export function renderSharedObject(
@@ -47,8 +53,7 @@ export function renderSharedObject(
   directory: PrincipalDirectory,
 ): string {
   const { noun } = shareTarget(type);
-  const name = displayNameOf(type, object as unknown as Readonly<Record<string, unknown>>);
-  const heading = `${noun} ${name === undefined ? object.id : `"${name}" (${object.id})`}`;
+  const heading = `${noun} ${nameOrId(type, object)}`;
 
   const entries = Object.entries(object.shareWith ?? {});
   const lines = [heading];

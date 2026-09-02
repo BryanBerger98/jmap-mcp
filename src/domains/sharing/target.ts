@@ -109,3 +109,21 @@ export function displayNameOf(
 
   return typeof value === "string" ? value : undefined;
 }
+
+/**
+ * How an object is named in a sentence someone reads: the name and the id, or
+ * the id alone when the read carried no name.
+ *
+ * The id is never dropped. It is what a follow-up call is written in, and a name
+ * on its own would leave the reader with nothing to pass back.
+ *
+ * The parameter stays a plain record rather than `SharedObject`: that type lives
+ * in `grant.ts`, which already imports this module, and naming it here would
+ * close the cycle.
+ */
+export function nameOrId(type: ShareableType, object: Readonly<Record<string, unknown>>): string {
+  const id = String(object.id);
+  const name = displayNameOf(type, object);
+
+  return name === undefined ? id : `"${name}" (${id})`;
+}
