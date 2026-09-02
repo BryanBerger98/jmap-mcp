@@ -1,7 +1,7 @@
 /**
  * What a batch of ids may carry, whichever domain hands it over.
  *
- * The ceiling lived in `domains/mail/organize.ts` while mail was the only thing
+ * The ceiling lived in `domains/mail/filing.ts` while mail was the only thing
  * that wrote. A second writing domain means either an import across two domains
  * that know nothing of each other, or a second constant that drifts from the
  * first at the next adjustment; neither is a ceiling anyone can rely on.

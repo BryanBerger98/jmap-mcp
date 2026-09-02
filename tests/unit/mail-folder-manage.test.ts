@@ -161,7 +161,7 @@ describe("what mail_folder_manage refuses before it writes", () => {
     );
 
     expect(refusal).toContain("312 messages");
-    expect(refusal).toContain("mail_move");
+    expect(refusal).toContain("mail_organize");
     expect(emitted(requests)).toEqual(["Mailbox/get"]);
   });
 

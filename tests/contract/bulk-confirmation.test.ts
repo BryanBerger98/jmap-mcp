@@ -1,8 +1,8 @@
 import { isInputRequiredResult, type McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../../src/config/policy.js";
+import { MAX_IDS_PER_CALL } from "../../src/domains/mail/filing.js";
 import { mailOrganizingDomain } from "../../src/domains/mail/index.js";
-import { MAX_IDS_PER_CALL } from "../../src/domains/mail/organize.js";
 import type { GetResponse, JmapRequest, SetResponse } from "../../src/jmap/types/core.js";
 import type { Email, Mailbox } from "../../src/jmap/types/mail.js";
 import { compose } from "../../src/registry/compose.js";
@@ -77,8 +77,8 @@ describe("a move past the threshold", () => {
   it("is put to the user, and writes nothing until the answer comes", async () => {
     const { handlers, requests } = organizingSurface([mailboxGet, moved]);
 
-    const result = await handlers.get("mail_move")?.(
-      { ids: ids(THRESHOLD + 1), mailboxId: "mb-archive" },
+    const result = await handlers.get("mail_organize")?.(
+      { action: "move", ids: ids(THRESHOLD + 1), mailboxId: "mb-archive" },
       { mcpReq: {} },
     );
 
@@ -90,8 +90,8 @@ describe("a move past the threshold", () => {
   it("runs once the answer comes back", async () => {
     const { handlers, requests } = organizingSurface([mailboxGet, moved]);
 
-    await handlers.get("mail_move")?.(
-      { ids: ids(THRESHOLD + 1), mailboxId: "mb-archive" },
+    await handlers.get("mail_organize")?.(
+      { action: "move", ids: ids(THRESHOLD + 1), mailboxId: "mb-archive" },
       CONFIRMED,
     );
 
@@ -103,8 +103,8 @@ describe("a move at or under the threshold", () => {
   it("runs without a question", async () => {
     const { handlers, requests } = organizingSurface([mailboxGet, moved]);
 
-    const result = await handlers.get("mail_move")?.(
-      { ids: ids(THRESHOLD), mailboxId: "mb-archive" },
+    const result = await handlers.get("mail_organize")?.(
+      { action: "move", ids: ids(THRESHOLD), mailboxId: "mb-archive" },
       { mcpReq: {} },
     );
 
@@ -117,8 +117,8 @@ describe("a marking, whatever its size", () => {
   it("runs without a question at the batch ceiling itself", async () => {
     const { handlers, requests } = organizingSurface([moved]);
 
-    const result = await handlers.get("mail_flag")?.(
-      { ids: ids(MAX_IDS_PER_CALL), add: ["seen"] },
+    const result = await handlers.get("mail_organize")?.(
+      { action: "flag", ids: ids(MAX_IDS_PER_CALL), add: ["seen"] },
       { mcpReq: {} },
     );
 
@@ -131,8 +131,8 @@ describe("the batch ceiling", () => {
   it("refuses past it without asking anything, and without writing", async () => {
     const { handlers, requests } = organizingSurface([mailboxGet, moved]);
 
-    const result = await handlers.get("mail_move")?.(
-      { ids: ids(MAX_IDS_PER_CALL + 1), mailboxId: "mb-archive" },
+    const result = await handlers.get("mail_organize")?.(
+      { action: "move", ids: ids(MAX_IDS_PER_CALL + 1), mailboxId: "mb-archive" },
       CONFIRMED,
     );
 

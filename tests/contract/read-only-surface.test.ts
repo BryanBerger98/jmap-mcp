@@ -61,8 +61,7 @@ describe("mail domain surface", () => {
     expect(registered).toEqual(
       [...mailDomain.tools, ...mailOrganizingDomain.tools].map((tool) => tool.name),
     );
-    expect(registered).toContain("mail_move");
-    expect(registered).toContain("mail_flag");
+    expect(registered).toContain("mail_organize");
 
     // The sending manifest is the only one skipped, and it is skipped whole.
     expect(report.skipped).toEqual([{ domain: "mail", missing: [CAPABILITY_SUBMISSION] }]);

@@ -168,7 +168,7 @@ export const filesWrite = defineTool({
  *
  * The two steps are sequential and cannot be otherwise — a `FileNode/set` naming
  * a blob that has not been uploaded references nothing. Every check the
- * `precheck` already made is made again here, for the reason `mail_move` and the
+ * `precheck` already made is made again here, for the reason `mail_organize` and the
  * recipient perimeter carry: a hook that swallowed a failed read must not have
  * the last word on what gets written.
  */
