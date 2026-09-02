@@ -1,6 +1,6 @@
 ---
 title: Instruction — Activer, couper, détruire
-status: pending
+status: done
 updated: 2026-09-02
 owner: bryan
 ---

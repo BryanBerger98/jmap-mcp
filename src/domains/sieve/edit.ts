@@ -1,25 +1,34 @@
 /**
  * What writing a Sieve script takes, shared by the tools that do it.
  *
- * The whole module funnels through `sieveScriptSetArguments`, which is the only
- * place `SieveScript/set` arguments are built. Storing a script and activating
- * one are two gestures here, not one: the storing path cannot reach either
- * activation argument, because the type it accepts leaves them out. Phase 3
- * opens the second door explicitly, through `activationArguments`.
+ * Two functions build `SieveScript/set` arguments here, and nothing else in the
+ * module builds any. Storing a script and activating one are two gestures, not
+ * one: `sieveScriptSetArguments` cannot reach either activation argument because
+ * the type it accepts leaves them out, and `sieveActivationArguments` cannot
+ * reach a create, an update or a destroy because it takes none. Every call
+ * changes one thing.
  *
  * Nothing here reads the network. The rule that keeps a store from rerouting the
  * mail flow should not need a server to be checked.
  */
 
-import type { Id, SetError } from "../../jmap/types/core.js";
+import type { Id, SetError, SetResponse } from "../../jmap/types/core.js";
 import type {
   SieveScriptCreation,
   SieveScriptPatch,
   SieveScriptSetArguments,
 } from "../../jmap/types/sieve.js";
+import type { BatchSubject } from "../../shared/batch.js";
+import { renderTable } from "../../shared/render.js";
 
 /** The key a creation is filed under: JMAP hands back the real id in `created`. */
 export const CREATION_KEY = "new";
+
+/** What an id names here, and the tool that hands those ids out. */
+export const SIEVE_SCRIPTS: BatchSubject = {
+  noun: "Sieve script",
+  discoveredBy: "sieve_scripts",
+};
 
 /**
  * Everything a `SieveScript/set` may carry beyond the account, minus the two
@@ -91,6 +100,39 @@ export function sieveScriptSetArguments(
 }
 
 /**
+ * Which way an activation goes, with no third state and no absent one.
+ *
+ * A boolean would have been enough to encode it and would have read as
+ * `sieveActivationArguments(accountId, true)` at the call site, where the two
+ * gestures that reroute every future message differ by one token.
+ */
+export type Activation = { activate: Id } | { deactivate: true };
+
+/**
+ * The second door onto `SieveScript/set`, and the only one that touches what
+ * filters incoming mail.
+ *
+ * It is a separate function from `sieveScriptSetArguments` rather than an option
+ * on it, because the split is what makes the storing path provably harmless: the
+ * arguments it can build carry no `create`, no `update` and no `destroy`, so an
+ * activation is never smuggled alongside a write and a write is never smuggled
+ * alongside an activation. Each call changes one thing, and the confirmation the
+ * caller answered named that thing.
+ *
+ * Both arguments are written on every call here too, one of them null.
+ */
+export function sieveActivationArguments(
+  accountId: Id,
+  activation: Activation,
+): SieveScriptSetArguments {
+  return {
+    accountId,
+    onSuccessActivateScript: "activate" in activation ? activation.activate : null,
+    onSuccessDeactivateScript: "deactivate" in activation ? true : null,
+  };
+}
+
+/**
  * A `SetError` turned into something the caller can act on.
  *
  * The codes translated are the ones Stalwart puts on the wire, not the ones
@@ -136,6 +178,39 @@ export function explainSetError(error: SetError): string {
     default:
       return `Refused by the server: ${error.type}.${said}`;
   }
+}
+
+/**
+ * What a destruction came to, id by id.
+ *
+ * An id the server did not file a refusal against counts as destroyed: it names
+ * what it refused, and reading success off `destroyed` instead would report a
+ * script as still there on a server that answers with the ids in another shape.
+ */
+export function describeDestroyOutcome(
+  response: SetResponse<unknown>,
+  ids: readonly Id[],
+  named: (id: Id) => string,
+): string {
+  const refused = response.notDestroyed ?? {};
+
+  const rows = ids.map((id) => ({
+    script: named(id),
+    id,
+    outcome: refused[id] === undefined ? "destroyed" : `refused: ${explainSetError(refused[id])}`,
+  }));
+
+  const failed = ids.filter((id) => refused[id] !== undefined).length;
+  const succeeded = rows.length - failed;
+
+  const headline =
+    failed === 0
+      ? `${succeeded} Sieve script${succeeded === 1 ? "" : "s"} destroyed.`
+      : succeeded === 0
+        ? `No Sieve script was destroyed: the server refused all ${rows.length}.`
+        : `${succeeded} of ${rows.length} Sieve scripts destroyed, ${failed} refused by the server.`;
+
+  return `${headline}\n\n${renderTable(rows, ["script", "id", "outcome"])}`;
 }
 
 /** The id of the script already holding the name, when the server names it. */

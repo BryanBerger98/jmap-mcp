@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { SetError, SetResponse } from "../../jmap/types/core.js";
+import type { Id, SetError, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CORE, CAPABILITY_SIEVE } from "../../jmap/types/core.js";
 import type {
   SieveScript,
@@ -7,124 +7,160 @@ import type {
   SieveScriptValidateResponse,
 } from "../../jmap/types/sieve.js";
 import { defineTool, type ToolContext, type ToolResult } from "../../registry/define-tool.js";
+import { refuseOversizedBatch } from "../../shared/batch.js";
 import { renderFields } from "../../shared/render.js";
 import {
   buildScriptCreation,
   buildScriptPatch,
   CREATION_KEY,
+  describeDestroyOutcome,
   explainSetError,
+  SIEVE_SCRIPTS,
+  sieveActivationArguments,
   sieveScriptSetArguments,
 } from "./edit.js";
+import { describeRadius, wideRadiusActions } from "./radius.js";
 import {
   activeScript,
+  allScripts,
   describeScripts,
   isVacationName,
   isVacationScript,
   SIEVE_MIME,
   scriptById,
+  scriptText,
 } from "./script.js";
 
 /**
- * Storing a Sieve script: upload the text, compile it, then write the object.
+ * Writing Sieve scripts: storing one, switching which one runs, destroying them.
  *
- * The order is what makes this the one write in the module that changes nothing
- * about the mail flow. `SieveScript/validate` runs the very compiler `set` runs
- * (`sieve/validate.rs:37`), so a verdict here is a verdict for the write that
- * follows, and a script that does not compile never reaches storage.
+ * Four actions, and they do not weigh the same. `store` changes what the account
+ * holds and nothing about what it does, which is why it is a `draft`. The other
+ * three change what happens to every message that arrives afterwards, and all
+ * three are classified `destroy`: activating a script that carries a `discard`
+ * loses mail with no copy anywhere, deactivating one stops filtering that may be
+ * the only thing keeping the inbox usable, and a destroyed script does not come
+ * back — Sieve has no trash.
  *
- * The one exception is written into `confirmWhen`: overwriting the body of the
- * script that is currently active changes what filters incoming mail the moment
- * the write lands, though the call is still a `draft`. The class keeps telling
- * the truth about what the call does; the question is asked anyway.
+ * The two writes stay apart all the way down: `sieveScriptSetArguments` builds
+ * what stores, `sieveActivationArguments` builds what activates, and neither can
+ * express the other's arguments. A confirmation the caller answered names one
+ * gesture, and one gesture is what the request carries.
  */
 
 const inputSchema = z
   .strictObject({
-    action: z.enum(["store"]).describe("What to do: store a Sieve script, without activating it."),
+    action: z
+      .enum(["store", "activate", "deactivate", "delete"])
+      .describe(
+        "What to do: store a script without running it, make one the active script, switch " +
+          "filtering off entirely, or destroy scripts for good.",
+      ),
     name: z
       .string()
       .min(1)
+      .optional()
       .describe(
-        "The name of the script. Always required, including on a correction: a script stored " +
+        "The name of the script. Required on store, including on a correction: a script stored " +
           "without one is given a random name by the server. The name `vacation` is reserved.",
       ),
     script: z
       .string()
       .min(1)
-      .describe("The Sieve source, as text. It is compiled before anything is stored."),
+      .optional()
+      .describe(
+        "The Sieve source, as text. Required on store, and compiled before anything is stored.",
+      ),
     id: z
       .string()
       .optional()
       .describe(
-        "The script to correct, as sieve_scripts returns it. Left out, a new script is created.",
+        "One script, as sieve_scripts returns it. Required on activate. On store, it names the " +
+          "script to correct; left out there, a new script is created.",
+      ),
+    ids: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "The scripts to destroy, exactly as sieve_scripts returned them. Required on delete.",
       ),
   })
-  .describe("Store a Sieve script. Activating one is a separate action.");
+  .refine((input) => input.action !== "store" || input.name !== undefined, {
+    message: "Give the script a `name`.",
+    path: ["name"],
+  })
+  .refine((input) => input.action !== "store" || input.script !== undefined, {
+    message: "Give the Sieve source to store in `script`.",
+    path: ["script"],
+  })
+  .refine((input) => input.action !== "activate" || input.id !== undefined, {
+    message: "Name the script to activate with `id`.",
+    path: ["id"],
+  })
+  .refine((input) => input.action !== "delete" || input.ids !== undefined, {
+    message: "Name the scripts to destroy with `ids`.",
+    path: ["ids"],
+  })
+  .describe("Store, activate, deactivate or destroy Sieve scripts.");
 
 type Input = z.infer<typeof inputSchema>;
 
 export const sieveWrite = defineTool({
   name: "sieve_write",
-  title: "Store a Sieve script",
+  title: "Store, activate or destroy Sieve scripts",
   description:
-    "Stores a Sieve script on the account: creates one, or replaces the text of one that is " +
-    "already there. " +
-    "Nothing stored here filters anything: only the active script runs, and this tool never " +
-    "activates. " +
-    "The text is compiled before it is written, so a script that does not compile is refused with " +
-    "the compiler's own message and nothing is stored. " +
-    "The script named `vacation` belongs to the vacation response and is written through " +
-    "vacation_manage, never here.",
+    "Writes the Sieve filters of the account. " +
+    "`store` creates a script or replaces the text of one, and activates nothing: the text is " +
+    "compiled first, so a script that does not compile is refused with the compiler's own message " +
+    "and nothing is stored. " +
+    "`activate` makes one script the one that filters incoming mail, which always stops whatever " +
+    "was filtering before — only one script runs at a time. " +
+    "`deactivate` leaves the account with no filtering at all. " +
+    "`delete` destroys scripts for good: Sieve has no trash and no later call brings one back. " +
+    "It acts on ids only, as sieve_scripts returns them. " +
+    "The script named `vacation` belongs to the vacation response: it is written, activated and " +
+    "switched off through vacation_manage, never here.",
   inputSchema,
-  // Storing loses nothing and sends nothing: the account keeps filtering with
-  // whatever it was filtering with before the call.
-  classes: ["draft"],
-  classify: () => "draft",
+  // `store` leaves the mail flow exactly as it was. The other three decide what
+  // happens to every message that arrives afterwards, and one of them is
+  // irreversible in the plain sense.
+  classes: ["draft", "destroy"],
+  classify: (input) => (input.action === "store" ? "draft" : "destroy"),
   summarize: async (input, context) => {
-    if (input.id === undefined) return `Store a new Sieve script named ${input.name}.`;
-
-    const target = await scriptById(input.id, context);
-    const named = target === undefined ? input.id : describeScripts([target]);
-    return `Replace the text of ${named} and name it ${input.name}.`;
+    switch (input.action) {
+      case "activate":
+        return summarizeActivate(input, context);
+      case "deactivate":
+        return summarizeDeactivate(context);
+      case "delete":
+        return summarizeDelete(input, context);
+      default:
+        return summarizeStore(input, context);
+    }
   },
   precheck: async (input, context) => {
-    // Refused here rather than left to the server, which does refuse both
-    // (`sieve/set.rs:416-424` and `:443-448`) but at the cost of a round trip
-    // that uploads the text first.
-    if (isVacationName(input.name)) {
-      return (
-        "Refused: `vacation` is the name the vacation response owns, and a script stored under it " +
-        "would be overwritten the next time that response is set. Use vacation_manage to change " +
-        "the automatic reply, or store this script under another name."
-      );
+    switch (input.action) {
+      case "activate":
+        return precheckActivate(input, context);
+      case "deactivate":
+        return precheckDeactivate(context);
+      case "delete":
+        return precheckDelete(input, context);
+      default:
+        return precheckStore(input, context);
     }
-
-    if (input.id === undefined) return undefined;
-
-    const target = await scriptById(input.id, context);
-    if (target === undefined) {
-      return (
-        `Refused: no Sieve script has the id ${input.id}. Run sieve_scripts with action list to ` +
-        "see what the account holds, or leave `id` out to store a new script."
-      );
-    }
-
-    return isVacationScript(target)
-      ? `Refused: ${describeScripts([target])} is the script the vacation response generates, and ` +
-          "rewriting it by hand is refused by the server. Change the automatic reply with " +
-          "vacation_manage instead."
-      : undefined;
   },
   /**
-   * The one call this tool makes that is not without consequence.
+   * The one call this tool makes that is not without consequence, and is not
+   * already being confirmed for its class.
    *
-   * A `draft` class is the honest one — nothing is destroyed and nothing is sent
-   * — but replacing the body of the active script reroutes the very next message
-   * the account receives. The reason is returned in place of the class, because
-   * "this is a draft operation" says nothing about that.
+   * `draft` is the honest class for a store — nothing is destroyed and nothing
+   * is sent — but replacing the body of the active script reroutes the very next
+   * message the account receives. The reason is returned in place of the class,
+   * because "this is a draft operation" says nothing about that.
    */
   confirmWhen: async (input, context) => {
-    if (input.id === undefined) return undefined;
+    if (input.action !== "store" || input.id === undefined) return undefined;
 
     const active = await activeScript(context);
     if (active === undefined || active.id !== input.id) return undefined;
@@ -134,8 +170,55 @@ export const sieveWrite = defineTool({
       "its text changes how the next message is handled, as soon as this call lands."
     );
   },
-  run: async (input, context) => runStore(input, context),
+  run: async (input, context) => {
+    switch (input.action) {
+      case "activate":
+        return runActivate(input, context);
+      case "deactivate":
+        return runDeactivate(context);
+      case "delete":
+        return runDelete(input, context);
+      default:
+        return runStore(input, context);
+    }
+  },
 });
+
+/* ------------------------------------------------------------------ store -- */
+
+function summarizeStore(input: Input, context: ToolContext): Promise<string> | string {
+  if (input.id === undefined) return `Store a new Sieve script named ${input.name}.`;
+
+  const id = input.id;
+  return scriptById(id, context).then((target) => {
+    const named = target === undefined ? id : describeScripts([target]);
+    return `Replace the text of ${named} and name it ${input.name}.`;
+  });
+}
+
+async function precheckStore(input: Input, context: ToolContext): Promise<string | undefined> {
+  // Refused here rather than left to the server, which does refuse both
+  // (`sieve/set.rs:416-424` and `:443-448`) but at the cost of a round trip
+  // that uploads the text first.
+  if (isVacationName(input.name)) {
+    return (
+      "Refused: `vacation` is the name the vacation response owns, and a script stored under it " +
+      "would be overwritten the next time that response is set. Use vacation_manage to change " +
+      "the automatic reply, or store this script under another name."
+    );
+  }
+
+  if (input.id === undefined) return undefined;
+
+  const target = await scriptById(input.id, context);
+  if (target === undefined) return unknownId(input.id);
+
+  return isVacationScript(target)
+    ? `Refused: ${describeScripts([target])} is the script the vacation response generates, and ` +
+        "rewriting it by hand is refused by the server. Change the automatic reply with " +
+        "vacation_manage instead."
+    : undefined;
+}
 
 /**
  * Upload, compile, write — in that order, and the order carries the guarantee.
@@ -147,10 +230,12 @@ export const sieveWrite = defineTool({
  */
 async function runStore(input: Input, context: ToolContext): Promise<ToolResult> {
   const { accountId } = context.session;
+  const source = input.script ?? "";
+  const name = input.name ?? "";
 
   // The text travels through the conversation, unlike the bytes of the file
   // storage: it is what the caller wrote and what they will read back.
-  const blob = await context.blobs.upload(new TextEncoder().encode(input.script), SIEVE_MIME);
+  const blob = await context.blobs.upload(new TextEncoder().encode(source), SIEVE_MIME);
 
   const validateArguments: SieveScriptValidateArguments = { accountId, blobId: blob.blobId };
   const verdict = await context.client.request<SieveScriptValidateResponse>(
@@ -178,8 +263,8 @@ async function runStore(input: Input, context: ToolContext): Promise<ToolResult>
       sieveScriptSetArguments(
         accountId,
         input.id === undefined
-          ? { create: { [CREATION_KEY]: buildScriptCreation(input.name, blob.blobId) } }
-          : { update: { [input.id]: buildScriptPatch({ name: input.name, blobId: blob.blobId }) } },
+          ? { create: { [CREATION_KEY]: buildScriptCreation(name, blob.blobId) } }
+          : { update: { [input.id]: buildScriptPatch({ name, blobId: blob.blobId }) } },
       ),
       "0",
     ],
@@ -187,8 +272,291 @@ async function runStore(input: Input, context: ToolContext): Promise<ToolResult>
 
   return {
     text:
-      input.id === undefined ? describeCreated(response, input) : describeUpdated(response, input),
+      input.id === undefined ? describeCreated(response, name) : describeUpdated(response, input),
   };
+}
+
+/* --------------------------------------------------------------- activate -- */
+
+/**
+ * What activating this script commits the account to, in one paragraph.
+ *
+ * Three things, and the third is the one nobody asks about: the script's name,
+ * what its source can do to a message, and what stops running the moment this
+ * one starts. Only one script filters at a time (`sieve/set.rs:378-383`), so
+ * every activation is also a deactivation, and a confirmation that named only
+ * the incoming script would hide half of what it changes.
+ */
+async function summarizeActivate(input: Input, context: ToolContext): Promise<string> {
+  const id = input.id ?? "";
+  const target = await scriptById(id, context);
+  const named = target === undefined ? id : describeScripts([target]);
+
+  const source = target === undefined ? undefined : await scriptSource(target, context);
+  const radius =
+    source === undefined
+      ? "Its source could not be read, so what it does to a message is unknown."
+      : describeRadius(wideRadiusActions(source));
+
+  return (
+    `Make ${named} the script that filters incoming mail, from the next message on. ` +
+    `${radius} ${describeReplaced(await activeScript(context), id)}`
+  );
+}
+
+async function precheckActivate(input: Input, context: ToolContext): Promise<string | undefined> {
+  const id = input.id ?? "";
+  const target = await scriptById(id, context);
+
+  // An unknown id is refused here because the server does not refuse it: it
+  // drops `onSuccessActivateScript` silently (`sieve/set.rs:97-100`) and answers
+  // a success that activated nothing.
+  if (target === undefined) return unknownId(id);
+
+  if (isVacationScript(target)) {
+    return (
+      `Refused: ${describeScripts([target])} is the script the vacation response generates. ` +
+      "Turning the automatic reply on is what activates it, and vacation_manage is where that " +
+      "happens — activating it by hand here would leave the response on with nothing having " +
+      "asked for it."
+    );
+  }
+
+  const source = await scriptSource(target, context);
+  if (source === undefined) {
+    // The confirmation would have to say "this script does something, we could
+    // not read what". Nobody can arbitrate that, so it is not put to them.
+    return (
+      `Refused: the source of ${describeScripts([target])} could not be read, so this call cannot ` +
+      "say what activating it would do to incoming mail. Nothing was activated; try " +
+      "sieve_scripts with action show to see whether the text is reachable at all."
+    );
+  }
+
+  return undefined;
+}
+
+async function runActivate(input: Input, context: ToolContext): Promise<ToolResult> {
+  const id = input.id ?? "";
+  // Read before the write, off the same cached answer `precheck` decided on:
+  // afterwards the account has a different active script, and the report would
+  // name the one it just installed as the one it replaced.
+  const scripts = await allScripts(context);
+  const target = scripts.find((script) => script.id === id);
+  const previous = scripts.find((script) => script.isActive === true);
+
+  await context.client.request<SetResponse<SieveScript>>(
+    [CAPABILITY_CORE, CAPABILITY_SIEVE],
+    ["SieveScript/set", sieveActivationArguments(context.session.accountId, { activate: id }), "0"],
+  );
+
+  return {
+    text: renderFields({
+      active: target === undefined ? id : describeScripts([target]),
+      effect: "every message the account receives from now on goes through this script",
+      replaced:
+        previous === undefined
+          ? "nothing — no script was filtering before this call"
+          : previous.id === id
+            ? "nothing — it was already the active script"
+            : `${describeScripts([previous])}, which no longer filters anything`,
+    }),
+  };
+}
+
+/** What the activation displaces, named in the terms the caller has to weigh. */
+function describeReplaced(active: SieveScript | undefined, id: Id): string {
+  if (active === undefined) {
+    return "Nothing filters incoming mail today, so this adds filtering where there was none.";
+  }
+
+  if (active.id === id) return "It is already the active script, so this changes nothing.";
+
+  // Not a nicety: the account's vacation response is the active state of the
+  // `vacation` script (`vacation/set.rs:144`), so replacing it as the active
+  // script is what switches the automatic reply off — and nothing in the word
+  // "activate" says the words "your automatic reply stops".
+  return isVacationScript(active)
+    ? `The vacation response is what is active today (${active.id}), and this switches that ` +
+        "automatic reply off: nobody writing to the account will be answered any more."
+    : `${describeScripts([active])} stops filtering the moment this lands.`;
+}
+
+/* ------------------------------------------------------------- deactivate -- */
+
+async function summarizeDeactivate(context: ToolContext): Promise<string> {
+  const active = await activeScript(context);
+
+  if (active === undefined) {
+    return "Switch off Sieve filtering, though nothing is filtering right now.";
+  }
+
+  return isVacationScript(active)
+    ? "Switch off the vacation response, which is what is active: nobody writing to the account " +
+        "will be answered automatically any more."
+    : `Switch off ${describeScripts([active])}, so no script filters incoming mail afterwards: ` +
+        "every message lands where the server would put it untouched, including the ones this " +
+        "script was filing away or refusing.";
+}
+
+/**
+ * Refused rather than run when nothing is active.
+ *
+ * The call would succeed — clearing an already-clear active script is not an
+ * error on this server — and that is the problem: it would be confirmed, run,
+ * and report a change that never happened. A refusal says the account is
+ * already in the state that was asked for.
+ */
+async function precheckDeactivate(context: ToolContext): Promise<string | undefined> {
+  const active = await activeScript(context);
+
+  return active === undefined
+    ? "Refused: no script is active, so nothing filters incoming mail and there is nothing to " +
+        "switch off. Nothing was changed."
+    : undefined;
+}
+
+async function runDeactivate(context: ToolContext): Promise<ToolResult> {
+  const previous = await activeScript(context);
+
+  await context.client.request<SetResponse<SieveScript>>(
+    [CAPABILITY_CORE, CAPABILITY_SIEVE],
+    [
+      "SieveScript/set",
+      sieveActivationArguments(context.session.accountId, { deactivate: true }),
+      "0",
+    ],
+  );
+
+  return {
+    text: renderFields({
+      filtering: "nothing — no Sieve script is active on this account any more",
+      stopped: previous === undefined ? "nothing was active" : describeScripts([previous]),
+      note: "the scripts themselves are untouched; sieve_write with action activate starts one again",
+    }),
+  };
+}
+
+/* ----------------------------------------------------------------- delete -- */
+
+async function summarizeDelete(input: Input, context: ToolContext): Promise<string> {
+  const ids = input.ids ?? [];
+  const targets = await resolveTargets(ids, context);
+
+  return (
+    `Permanently destroy ${describeScripts(targets, ids.length)}. Sieve scripts have no trash: ` +
+    "the source goes with them and no later call brings either back."
+  );
+}
+
+async function precheckDelete(input: Input, context: ToolContext): Promise<string | undefined> {
+  const ids = input.ids ?? [];
+
+  // The ceiling first, before anything is read: fifty-one ids are refused
+  // whatever they point at.
+  const oversized = refuseOversizedBatch(ids, SIEVE_SCRIPTS);
+  if (oversized !== undefined) return oversized;
+
+  const scripts = await allScripts(context);
+  const held = new Set(scripts.map((script) => script.id));
+
+  const unknown = ids.filter((id) => !held.has(id));
+  if (unknown.length > 0) {
+    return (
+      `Refused: the account holds no Sieve script with ${unknown.length === 1 ? "the id" : "the ids"} ` +
+      `${unknown.join(", ")}. Nothing was destroyed. Run sieve_scripts with action list to see ` +
+      "what is there."
+    );
+  }
+
+  const active = scripts.find((script) => script.isActive === true && ids.includes(script.id));
+  if (active !== undefined) {
+    // The server refuses this one too, with `scriptIsActive`, but only after the
+    // confirmation has been asked and answered.
+    return (
+      `Refused: ${describeScripts([active])} is the script currently filtering incoming mail, and ` +
+      "this server never removes the active script out from under the account. Nothing was " +
+      "destroyed. Switch filtering off with action deactivate, or activate another script first."
+    );
+  }
+
+  const vacation = scripts.find((script) => isVacationScript(script) && ids.includes(script.id));
+  if (vacation !== undefined) {
+    // The one path in this module where the client is the only guard: the
+    // server's destroy branch tests the active-script condition and nothing else
+    // (`sieve/set.rs:329-351`), so a `vacation` script handed to it is destroyed
+    // and the account's automatic reply goes with it.
+    return (
+      `Refused: ${describeScripts([vacation])} is the script the vacation response generates, and ` +
+      "destroying it would take the automatic reply with it — this server would carry that out " +
+      "without a word. Nothing was destroyed. Turn the reply off with vacation_manage instead."
+    );
+  }
+
+  return undefined;
+}
+
+async function runDelete(input: Input, context: ToolContext): Promise<ToolResult> {
+  const ids = input.ids ?? [];
+  // Read before the destruction, so the report can name what disappeared: after
+  // it, the ids point at nothing.
+  const targets = await resolveTargets(ids, context);
+  const named = new Map(targets.map((script) => [script.id, script.name ?? "(unnamed)"]));
+
+  // `destroy` alone: an `update` riding along would rewrite scripts under a
+  // confirmation read as a destruction, and both activation arguments are
+  // written null by the factory, so nothing here switches what filters.
+  const response = await context.client.request<SetResponse<SieveScript>>(
+    [CAPABILITY_CORE, CAPABILITY_SIEVE],
+    [
+      "SieveScript/set",
+      sieveScriptSetArguments(context.session.accountId, { destroy: [...ids] }),
+      "0",
+    ],
+  );
+
+  return {
+    text: describeDestroyOutcome(response, ids, (id) => named.get(id) ?? "(unknown)"),
+  };
+}
+
+/* ------------------------------------------------------------------ ------ */
+
+/**
+ * The source of a script, once per invocation, or nothing at all.
+ *
+ * `summarize` and `precheck` both need it — one to describe the activation, the
+ * other to refuse it when it cannot be described — and two downloads could hand
+ * back two different texts, refusing on one and confirming the other.
+ *
+ * A failure is `undefined` rather than an exception: an unreadable script is a
+ * refusal this tool words itself, not a transport error the caller has to
+ * interpret.
+ */
+function scriptSource(script: SieveScript, context: ToolContext): Promise<string | undefined> {
+  return context.once(`sieve:text:${script.id}`, async () => {
+    try {
+      return await scriptText(script, context);
+    } catch {
+      return undefined;
+    }
+  });
+}
+
+/** The scripts an id set names, off the one shared read. */
+async function resolveTargets(ids: readonly Id[], context: ToolContext): Promise<SieveScript[]> {
+  const scripts = await allScripts(context);
+  return ids
+    .map((id) => scripts.find((script) => script.id === id))
+    .filter((script): script is SieveScript => script !== undefined);
+}
+
+/** The refusal an id the account does not hold earns, wherever it came in. */
+function unknownId(id: Id): string {
+  return (
+    `Refused: no Sieve script has the id ${id}. Run sieve_scripts with action list to see what ` +
+    "the account holds."
+  );
 }
 
 /**
@@ -213,18 +581,18 @@ function explainValidation(error: SetError): string {
 }
 
 /** What a creation came to, read off `created` and nothing else. */
-function describeCreated(response: SetResponse<SieveScript>, input: Input): string {
+function describeCreated(response: SetResponse<SieveScript>, name: string): string {
   const created = response.created?.[CREATION_KEY];
 
   if (created === undefined) {
     const refused = response.notCreated?.[CREATION_KEY];
     return refused === undefined
-      ? `Script ${input.name} was not created: the server said nothing, neither creating it nor refusing it.`
+      ? `Script ${name} was not created: the server said nothing, neither creating it nor refusing it.`
       : explainSetError(refused);
   }
 
   return renderFields({
-    stored: `Script ${input.name} created`,
+    stored: `Script ${name} created`,
     id: created.id,
     active: NOT_ACTIVATED,
   });
@@ -249,7 +617,7 @@ function describeUpdated(response: SetResponse<SieveScript>, input: Input): stri
 }
 
 /**
- * Said on every success, and said in full.
+ * Said on every successful store, and said in full.
  *
  * A script stored and not activated does nothing at all, and the difference is
  * invisible from the answer unless the answer names it: "stored" reads like
