@@ -1,6 +1,7 @@
 import { CAPABILITY_SIEVE, CAPABILITY_VACATION } from "../../jmap/types/core.js";
 import { defineDomain } from "../../registry/manifest.js";
 import { sieveScripts } from "./scripts.js";
+import { vacationManage } from "./vacation.js";
 import { sieveWrite } from "./write.js";
 
 /** Reading the Sieve filters of the account, and nothing else. */
@@ -41,5 +42,5 @@ export const sieveVacationDomain = defineDomain({
   // entries reading "sieve" would say nothing about which surface went quiet.
   name: "sieve-vacation",
   requires: [CAPABILITY_VACATION],
-  tools: [],
+  tools: [vacationManage],
 });

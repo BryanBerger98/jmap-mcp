@@ -1,6 +1,6 @@
 ---
 title: Instruction — Poser et lever une absence
-status: pending
+status: done
 updated: 2026-09-02
 owner: bryan
 ---

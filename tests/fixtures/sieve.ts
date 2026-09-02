@@ -1,6 +1,11 @@
 import type { BlobChannel } from "../../src/jmap/blob.js";
 import type { GetResponse, Id, QueryResponse, SetResponse } from "../../src/jmap/types/core.js";
-import type { SieveScript, SieveScriptValidateResponse } from "../../src/jmap/types/sieve.js";
+import type {
+  SieveScript,
+  SieveScriptValidateResponse,
+  VacationResponse,
+} from "../../src/jmap/types/sieve.js";
+import { VACATION_SINGLETON_ID } from "../../src/jmap/types/sieve.js";
 import { type BlobTraffic, UPLOADED_BLOB_ID } from "./client.js";
 
 /**
@@ -140,6 +145,53 @@ export function sieveUpdated(id: Id): SetResponse<SieveScript> {
     oldState: "sieve-state-1",
     newState: "sieve-state-2",
     updated: { [id]: null },
+  };
+}
+
+/**
+ * The window the vacation fixtures are dated around.
+ *
+ * Fixed dates rather than dates relative to today: whether the reply is
+ * answering is read off an instant the test names, and a fixture that moved with
+ * the clock would make that assertion pass for a different reason every day.
+ */
+export const VACATION_WINDOW = { from: "2026-09-10T00:00:00Z", to: "2026-09-20T00:00:00Z" };
+
+/** The vacation response as an account that has written one but left it off. */
+export const VACATION_RESPONSE: VacationResponse = {
+  id: VACATION_SINGLETON_ID,
+  isEnabled: false,
+  fromDate: VACATION_WINDOW.from,
+  toDate: VACATION_WINDOW.to,
+  subject: "Out of office",
+  textBody: "Back on the 20th.",
+  htmlBody: "<p>Back on the 20th.</p>",
+};
+
+/** The same object with the properties a test cares about moved. */
+export function vacationWith(overrides: Partial<VacationResponse> = {}): VacationResponse {
+  return { ...VACATION_RESPONSE, ...overrides };
+}
+
+/** A `VacationResponse/get` answer holding the singleton, and only it. */
+export function vacationGet(
+  response: VacationResponse = VACATION_RESPONSE,
+): GetResponse<VacationResponse> {
+  return {
+    accountId: "acc-1",
+    state: "vacation-state-1",
+    list: [response],
+    notFound: [],
+  };
+}
+
+/** A `VacationResponse/set` answer accepting the update. Null is a success. */
+export function vacationUpdated(): SetResponse<VacationResponse> {
+  return {
+    accountId: "acc-1",
+    oldState: "vacation-state-1",
+    newState: "vacation-state-2",
+    updated: { [VACATION_SINGLETON_ID]: null },
   };
 }
 
