@@ -310,6 +310,70 @@ describe("what makes a call a send", () => {
   });
 });
 
+describe("what a switch on is refused for", () => {
+  /** A policy that allows everything but destruction, so only one rule can bite. */
+  const DENYING_DESTROY = {
+    read: "allow",
+    draft: "allow",
+    send: "allow",
+    destroy: "deny",
+  } as const;
+
+  it("refuses to switch the reply on when the policy denies destructions", async () => {
+    // Switching on stops whatever was filtering, which `sieve_write deactivate`
+    // reaches as a `destroy`: the registry only ever sees this call's own class.
+    const { context, requests } = fakeTransport([vacationGet()], { policy: DENYING_DESTROY });
+
+    const refusal = await vacationManage.precheck?.({ action: "set", isEnabled: true }, context);
+
+    expect(refusal).toContain("policy.destroy");
+    expect(refusal).toContain("filtering incoming mail");
+    // Unconditional on the argument alone: reading the active script would take a
+    // `SieveScript/get` this manifest is not gated on.
+    expect(methodsOf(requests)).toEqual([]);
+  });
+
+  it("refuses it just the same when the call also rewords the reply", async () => {
+    const { context } = fakeTransport([vacationGet()], { policy: DENYING_DESTROY });
+
+    const refusal = await vacationManage.precheck?.(
+      { action: "set", isEnabled: true, subject: "Away", toDate: null },
+      context,
+    );
+
+    expect(refusal).toContain("Refused");
+  });
+
+  it("lets the switch off through, since nothing that was filtering is lost", async () => {
+    const { context } = fakeTransport([vacationGet()], { policy: DENYING_DESTROY });
+
+    // The active script was the vacation one already; ending it takes no filter
+    // away, so the destruction the other direction carries is not there.
+    const refusal = await vacationManage.precheck?.({ action: "set", isEnabled: false }, context);
+
+    expect(refusal).toBeUndefined();
+  });
+
+  it("lets a change of wording and a read through under the same policy", async () => {
+    const { context } = fakeTransport([vacationGet()], { policy: DENYING_DESTROY });
+
+    expect(
+      await vacationManage.precheck?.({ action: "set", subject: "Away" }, context),
+    ).toBeUndefined();
+    expect(await vacationManage.precheck?.({ action: "show" }, context)).toBeUndefined();
+  });
+
+  it("says nothing about a switch on under a policy that does not deny destructions", async () => {
+    const { context } = fakeTransport([vacationGet()]);
+
+    // The default policy confirms destructions rather than denying them, and a
+    // confirmation is exactly what this call already asks for on its own class.
+    const refusal = await vacationManage.precheck?.({ action: "set", isEnabled: true }, context);
+
+    expect(refusal).toBeUndefined();
+  });
+});
+
 describe("the question a toggle raises", () => {
   it("names the window it is switching on, off the stored bounds when none are given", async () => {
     const { context } = fakeTransport([vacationGet()]);

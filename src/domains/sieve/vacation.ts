@@ -172,9 +172,43 @@ export const vacationManage = defineTool({
       ? summarizeSwitchOn(input, current)
       : summarizeSwitchOff(input, current);
   },
+  precheck: (input, context) => refuse(input, context),
   run: async (input, context) =>
     input.action === "show" ? runShow(context) : runSet(input, context),
 });
+
+/**
+ * The effect the class cannot carry, refused before the question is put.
+ *
+ * Switching the reply on makes the vacation script the active one, and only one
+ * runs at a time (`sieve/set.rs:328`): whatever was filtering incoming mail
+ * stops. Reached through `sieve_write` under its deactivate action, that same
+ * effect is a `destroy`. The registry guards a call on the single class
+ * `classify` returns, so a configuration refusing destructions would leave this
+ * door open — `precheck` is where it closes, on the policy in hand.
+ *
+ * The refusal is unconditional on `isEnabled: true`, and reads no script.
+ * Whether a filter is active today would take a `SieveScript/get`, a method this
+ * manifest cannot promise: it is gated on the vacation capability alone, which
+ * Stalwart grants through a permission separate from the Sieve one
+ * (`api/session.rs:113` and `:118`). So it fails closed, which is the direction
+ * to fail in when the alternative is filtering silently switched off.
+ *
+ * Switching the reply off is not covered. The active script was the vacation one
+ * already, so nothing that was filtering is lost by ending it.
+ */
+function refuse(input: Input, context: ToolContext): string | undefined {
+  if (input.action !== "set" || input.isEnabled !== true) return undefined;
+  if (context.policy.destroy !== "deny") return undefined;
+
+  return (
+    "Refused: switching the automatic reply on makes the vacation script the active one, which " +
+    "stops whatever Sieve script was filtering incoming mail — the same effect sieve_write " +
+    "reaches under its deactivate action — and policy.destroy is set to deny in the " +
+    "configuration. Call again without isEnabled to change the wording or the window without " +
+    "touching what filters, or lift policy.destroy first."
+  );
+}
 
 /* -------------------------------------------------------------------- show -- */
 

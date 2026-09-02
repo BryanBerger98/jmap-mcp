@@ -1,7 +1,7 @@
 import { isInputRequiredResult, type McpServer } from "@modelcontextprotocol/server";
 import { describe, expect, it } from "vitest";
 import type { ZodType } from "zod";
-import { DEFAULT_POLICY } from "../../src/config/policy.js";
+import { DEFAULT_POLICY, type WritePolicy } from "../../src/config/policy.js";
 import { sieveVacationDomain } from "../../src/domains/sieve/index.js";
 import type { JmapClient } from "../../src/jmap/client.js";
 import type { JmapSession } from "../../src/jmap/session.js";
@@ -46,8 +46,12 @@ const DECLINED = {
 };
 const UNANSWERED = { mcpReq: {} };
 
-function vacationSurface(responses: unknown[], capabilities: Record<string, unknown> | null) {
-  const { context, requests } = fakeTransport(responses);
+function vacationSurface(
+  responses: unknown[],
+  capabilities: Record<string, unknown> | null,
+  policy: WritePolicy = DEFAULT_POLICY,
+) {
+  const { context, requests } = fakeTransport(responses, { policy });
   const handlers = new Map<string, Handler>();
 
   compose({
@@ -60,7 +64,7 @@ function vacationSurface(responses: unknown[], capabilities: Record<string, unkn
     domains: [sieveVacationDomain],
     session: advertisingVacation(context.session),
     client: context.client,
-    policy: DEFAULT_POLICY,
+    policy,
     blobs: context.blobs,
   });
 
@@ -372,6 +376,48 @@ describe("a toggle of the automatic reply", () => {
 
     expect(isInputRequiredResult(result)).toBe(true);
     expect(methodsOf(requests)).toEqual(["VacationResponse/get"]);
+  });
+});
+
+describe("a policy that denies destructions", () => {
+  /** Everything allowed but destruction, so no other rule can account for a refusal. */
+  const DENYING_DESTROY: WritePolicy = {
+    read: "allow",
+    draft: "allow",
+    send: "allow",
+    destroy: "deny",
+  };
+
+  it("refuses the switch on, which the class alone would have let through", async () => {
+    // `classify` returns `send` here, so the registry's own guard sees an allowed
+    // class. What the call also does — stopping whatever Sieve script filters —
+    // is a destruction `sieve_write deactivate` is guarded on, and only the
+    // tool's `precheck` can close that gap.
+    const { manage, requests } = vacationSurface(
+      [vacationGet(), vacationUpdated()],
+      { elicitation: {} },
+      DENYING_DESTROY,
+    );
+
+    const result = await manage({ action: "set", isEnabled: true }, CONFIRMED);
+
+    expect((result as { isError?: boolean }).isError).toBe(true);
+    expect(textOf(result)).toContain("policy.destroy");
+    // Refused before anything was asked of the server, the read included.
+    expect(methodsOf(requests)).toEqual([]);
+  });
+
+  it("leaves the switch off alone: the script it ends is the vacation one", async () => {
+    const { manage, requests } = vacationSurface(
+      [vacationGet(vacationWith({ isEnabled: true })), vacationUpdated()],
+      { elicitation: {} },
+      DENYING_DESTROY,
+    );
+
+    const result = await manage({ action: "set", isEnabled: false }, CONFIRMED);
+
+    expect((result as { isError?: boolean }).isError).toBeFalsy();
+    expect(vacationSets(requests)).toHaveLength(1);
   });
 });
 
