@@ -111,6 +111,36 @@ export type PrincipalGetArguments = {
   properties?: string[] | null;
 };
 
+/**
+ * The five conditions `Principal/query` executes.
+ *
+ * `name` and `email` are the same lookup: both route to an exact login search
+ * (`principal/query.rs`), so neither is a substring match and a partial address
+ * finds nothing rather than a shortlist. `text` is the only loose one.
+ *
+ * The whole method is the one this domain can be refused on principle: an
+ * instance that leaves directory queries off answers `forbidden` instead of an
+ * empty list, and that refusal is a different fact from "no such account".
+ */
+export type PrincipalFilter = {
+  /** An exact account login, not a fragment of one. */
+  name?: string;
+  /** The same lookup as `name`, under the name a caller reaches for. */
+  email?: string;
+  text?: string;
+  type?: "individual" | "group";
+  accountIds?: Id[];
+};
+
+/** No `sort`: the server applies no comparator to this query either. */
+export type PrincipalQueryArguments = {
+  accountId: Id;
+  filter?: PrincipalFilter;
+  position?: number;
+  limit?: number;
+  calculateTotal?: boolean;
+};
+
 export type ShareNotificationGetArguments = {
   accountId: Id;
   ids?: Id[] | null;
