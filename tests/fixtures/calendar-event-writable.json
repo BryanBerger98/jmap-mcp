@@ -4,9 +4,11 @@
   "list": [
     {
       "id": "ev-simple",
-      "calendarIds": { "cal-1": true },
+      "calendarIds": {
+        "cal-1": true
+      },
       "uid": "0f2a-simple",
-      "baseEventId": null,
+      "baseEventId": "ev-simple",
       "recurrenceId": null,
       "title": "Point budget",
       "description": "Revoir les postes du trimestre.",
@@ -16,13 +18,19 @@
       "showWithoutTime": false,
       "status": "confirmed",
       "freeBusyStatus": "busy",
-      "locations": { "l1": { "name": "Salle Nord" } }
+      "locations": {
+        "l1": {
+          "name": "Salle Nord"
+        }
+      }
     },
     {
       "id": "ev-series",
-      "calendarIds": { "cal-1": true },
+      "calendarIds": {
+        "cal-1": true
+      },
       "uid": "0f2a-series",
-      "baseEventId": null,
+      "baseEventId": "ev-series",
       "title": "Point hebdomadaire",
       "description": "Tour de table.",
       "start": "2026-09-07T09:30:00",
@@ -30,13 +38,20 @@
       "timeZone": "Europe/Paris",
       "showWithoutTime": false,
       "status": "confirmed",
-      "recurrenceRules": [{ "frequency": "weekly", "interval": 1 }]
+      "recurrenceRules": [
+        {
+          "frequency": "weekly",
+          "interval": 1
+        }
+      ]
     },
     {
       "id": "ev-invited",
-      "calendarIds": { "cal-2": true },
+      "calendarIds": {
+        "cal-2": true
+      },
       "uid": "0f2a-invited",
-      "baseEventId": null,
+      "baseEventId": "ev-invited",
       "title": "Revue de contrat",
       "start": "2026-09-11T10:00:00",
       "duration": "PT2H",
@@ -47,7 +62,10 @@
           "name": "Claire Mercier",
           "calendarAddress": "mailto:claire@example.org",
           "email": "claire@example.org",
-          "roles": { "owner": true, "attendee": true },
+          "roles": {
+            "owner": true,
+            "attendee": true
+          },
           "participationStatus": "accepted",
           "expectReply": false
         },
@@ -55,16 +73,22 @@
           "name": "Bryan Berger",
           "calendarAddress": "mailto:bryan@example.com",
           "email": "bryan@example.com",
-          "roles": { "attendee": true },
+          "roles": {
+            "attendee": true
+          },
           "participationStatus": "needs-action",
           "expectReply": true,
-          "sendTo": { "imip": "mailto:bryan@example.com" }
+          "sendTo": {
+            "imip": "mailto:bryan@example.com"
+          }
         },
         "att-c3": {
           "name": "Paul Ivanov",
           "calendarAddress": "mailto:paul@example.org",
           "email": "paul@example.org",
-          "roles": { "attendee": true },
+          "roles": {
+            "attendee": true
+          },
           "participationStatus": "tentative",
           "expectReply": true
         }
@@ -72,9 +96,11 @@
     },
     {
       "id": "ev-both-identities",
-      "calendarIds": { "cal-2": true },
+      "calendarIds": {
+        "cal-2": true
+      },
       "uid": "0f2a-both",
-      "baseEventId": null,
+      "baseEventId": "ev-both-identities",
       "title": "Comité de pilotage",
       "start": "2026-09-12T16:00:00",
       "duration": "PT1H",
@@ -84,20 +110,26 @@
         "att-11": {
           "calendarAddress": "mailto:bryan@example.com",
           "email": "bryan@example.com",
-          "roles": { "attendee": true },
+          "roles": {
+            "attendee": true
+          },
           "participationStatus": "needs-action"
         },
         "att-12": {
           "calendarAddress": "mailto:bryan.berger@example.com",
           "email": "bryan.berger@example.com",
-          "roles": { "attendee": true },
+          "roles": {
+            "attendee": true
+          },
           "participationStatus": "needs-action"
         }
       }
     },
     {
       "id": "ev-series_20260914T093000",
-      "calendarIds": { "cal-1": true },
+      "calendarIds": {
+        "cal-1": true
+      },
       "uid": "0f2a-series",
       "baseEventId": "ev-series",
       "recurrenceId": "2026-09-14T09:30:00",

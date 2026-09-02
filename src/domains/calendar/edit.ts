@@ -33,7 +33,7 @@ import { CAPABILITY_CALENDARS, CAPABILITY_CORE } from "../../jmap/types/core.js"
 import type { ToolContext } from "../../registry/define-tool.js";
 import type { BatchSubject } from "../../shared/batch.js";
 import { describeSetError, renderTable } from "../../shared/render.js";
-import { CALENDAR_PROPERTIES } from "./event.js";
+import { CALENDAR_PROPERTIES, isExpandedOccurrence } from "./event.js";
 
 /** One read per handler invocation, whichever hook asks for the calendars first. */
 export const CALENDARS_KEY = "calendar:calendars";
@@ -351,11 +351,13 @@ export function matchingParticipantKey(
  * correcting one Tuesday is not correcting the series, and nothing in the answer
  * would say which happened. The refusal names the base event so the caller has
  * somewhere to go.
+ *
+ * An event whose `baseEventId` is its own id is not an occurrence: the server
+ * fills the property on everything it hands back, and reading its presence
+ * alone refused every write this domain can make.
  */
 export function refuseIsolatedOccurrence(events: readonly CalendarEvent[]): string | undefined {
-  const isolated = events.filter(
-    (event) => event.baseEventId !== undefined && event.baseEventId !== null,
-  );
+  const isolated = events.filter(isExpandedOccurrence);
   if (isolated.length === 0) return undefined;
 
   const named = isolated

@@ -145,6 +145,12 @@ C'est un mail réellement expédié : le même `CalendarEvent/set` passe de `dra
 
 Le pire cas cumule les deux risques : `Calendar/set` destroy, `onDestroyRemoveEvents` vrai, `sendSchedulingMessages` vrai.
 
+**Une création récurrente refusée, cause non établie**
+
+Le serveur de test rend `invalidProperties` sur `recurrenceRules` à chaque création tentée, sur quatre formes : `@type` avec `count`, `frequency` nue, avec `until`, et en majuscules.
+Le constat est celui d'un déploiement et d'un jour, jamais celui de l'implémentation : rien n'a été lu dans le code du serveur pour l'expliquer, donc il ne vaut pas règle.
+Ce qu'il coûte est borné : créer une série passe par un autre client, lire et déplier une série existante n'est pas touché.
+
 ## 👤 Contacts, RFC 9610
 
 Les neuf méthodes de la RFC sont implémentées, plus deux extensions.

@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from "node:fs";
 import {
   CLIENT_CAPABILITIES_META_KEY,
   isInputRequiredResult,
@@ -17,6 +18,17 @@ import { defineDomain } from "../../src/registry/manifest.js";
  * confirm, a `confirm` call emits no JMAP request at all. The counter is the
  * proof — a refusal that still ran the tool is not a refusal.
  */
+
+const SOURCES = new URL("../../src/", import.meta.url);
+
+/** Every file under `src/` whose text matches, as a path relative to `src/`. */
+function filesMatching(pattern: RegExp): string[] {
+  return readdirSync(SOURCES, { recursive: true, encoding: "utf8" })
+    .map((entry) => entry.replaceAll("\\", "/"))
+    .filter((entry) => entry.endsWith(".ts"))
+    .filter((entry) => pattern.test(readFileSync(new URL(entry, SOURCES), "utf8")))
+    .sort();
+}
 
 type Handler = (
   args: unknown,
@@ -173,6 +185,47 @@ describe("elicitation required", () => {
     await handlers.get("mail_move")?.({ ids: ["m1"] }, { mcpReq: {} });
 
     expect(run).toHaveBeenCalledOnce();
+  });
+
+  /**
+   * Two protocol eras carry the same question, and the server writes it once.
+   *
+   * On a 2026-07-28 connection the client reads `inputRequests` off the tool
+   * result and calls back. On anything older the SDK's legacy shim unrolls that
+   * same result into ordinary `elicitation/create` requests and drives the
+   * rounds itself — which is what a live Stalwart session on `2025-11-25` does,
+   * and what a harness ignoring that method waits ten minutes for.
+   *
+   * The shim gates on a bare `elicitation: {}` counting as form support. Anything
+   * here that asked for `elicitation.form` instead would refuse every 2025-era
+   * client the shim was about to serve, so the two gates are asserted together.
+   */
+  it("asks a client that declares elicitation bare, which is the shim's own gate", async () => {
+    const run = vi.fn(async () => ({ text: "sent" }));
+    const handlers = composeWith({ elicitation: {} }, sendingTool(run));
+
+    const result = await handlers.get("mail_send")?.({ emailId: "m1" }, { mcpReq: {} });
+
+    expect(run).not.toHaveBeenCalled();
+    expect(isInputRequiredResult(result)).toBe(true);
+  });
+
+  it("asks a client that declares the modes, the way a 2026-era client does", async () => {
+    const run = vi.fn(async () => ({ text: "sent" }));
+    const handlers = composeWith({ elicitation: { form: {} } }, sendingTool(run));
+
+    const result = await handlers.get("mail_send")?.({ emailId: "m1" }, { mcpReq: {} });
+
+    expect(run).not.toHaveBeenCalled();
+    expect(isInputRequiredResult(result)).toBe(true);
+  });
+
+  it("raises every confirmation through inputRequired and never pushes one itself", () => {
+    // `elicitInput` and `sendElicitation` throw on a 2026-era request by design.
+    // A single call to either would make the confirmation work on one era only,
+    // and the era is the client's to choose.
+    expect(filesMatching(/\belicitInput\s*\(|\bsendElicitation\s*\(/)).toEqual([]);
+    expect(filesMatching(/\binputRequired\s*\(/)).toEqual(["registry/compose.ts"]);
   });
 
   it("consults no client capability on an allowed class", async () => {

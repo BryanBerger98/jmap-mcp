@@ -33,6 +33,8 @@ export const CALENDAR_PROPERTIES = [
 export const EVENT_ROW_PROPERTIES = [
   "id",
   "calendarIds",
+  "baseEventId",
+  "recurrenceId",
   "title",
   "utcStart",
   "utcEnd",
@@ -182,7 +184,7 @@ export function eventRow(
     ),
     where: truncate(placeOf(event), 28),
     calendar: calendarNames(event, byId).join(", "),
-    id: event.id,
+    id: addressableId(event),
   };
 }
 
@@ -251,15 +253,51 @@ function repeats(event: CalendarEvent): boolean {
 }
 
 /**
+ * Whether this event is an instance the server expanded out of a series.
+ *
+ * The test is the inequality and never the mere presence of `baseEventId`:
+ * Stalwart fills that property on every event it hands back, a base event
+ * pointing at itself. Reading presence alone makes every event on the account
+ * look like an occurrence, which costs a wrong line in a rendering and every
+ * write in a refusal.
+ */
+export function isExpandedOccurrence(event: CalendarEvent): boolean {
+  return (
+    event.baseEventId !== undefined && event.baseEventId !== null && event.baseEventId !== event.id
+  );
+}
+
+/**
+ * The id a search row hands back, which is not always the id the row carries.
+ *
+ * Expanding a window mints a synthetic id for every event it covers, recurring
+ * or not: a one-off meeting read through `after` and `before` comes back as
+ * `eaaaaac` pointing at a base `c`, with no `recurrenceId` to say which date it
+ * stands for. That id names an instance, and the three writing tools refuse an
+ * instance, so handing it out turns a search into a dead end for the event the
+ * caller just found.
+ *
+ * A genuine occurrence keeps its own id: it carries a `recurrenceId`, one date
+ * of a series really is what it names, and `calendar_read` has to be able to
+ * show that date rather than the rule behind it.
+ */
+export function addressableId(event: CalendarEvent): Id {
+  const standsForOneDate = event.recurrenceId !== undefined && event.recurrenceId !== null;
+  if (!isExpandedOccurrence(event) || standsForOneDate) return event.id;
+
+  return event.baseEventId as Id;
+}
+
+/**
  * What an event says about repeating, from the two sides of an expansion.
  *
- * An occurrence handed back by the server carries `baseEventId` and no rule,
- * because the server already resolved the overrides; a base event read directly
- * carries the rule and no occurrence. Both deserve a mention, and neither
- * deserves the rule spelled out.
+ * An occurrence handed back by the server carries another event's id and no
+ * rule, because the server already resolved the overrides; a base event read
+ * directly carries the rule and points at itself. Both deserve a mention, and
+ * neither deserves the rule spelled out.
  */
 function recurrenceNote(event: CalendarEvent): string {
-  if (event.baseEventId !== undefined && event.baseEventId !== null) {
+  if (isExpandedOccurrence(event)) {
     const at = event.recurrenceId ?? "";
     return `one occurrence of ${event.baseEventId}${at === "" ? "" : ` (instance ${at})`}`;
   }

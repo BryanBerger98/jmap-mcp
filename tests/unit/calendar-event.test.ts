@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addressableId,
   calendarNames,
   EVENT_DETAIL_PROPERTIES,
   EVENT_ROW_PROPERTIES,
@@ -160,6 +161,40 @@ describe("eventRow", () => {
       calendar: "",
       id: "ev-x",
     });
+  });
+
+  // Shapes taken verbatim from a live Stalwart: expanding a window mints an id
+  // for a one-off event too, and only a genuine occurrence carries the date it
+  // stands for.
+  it("hands back the event's own id when the window merely expanded a one-off", () => {
+    const expanded: CalendarEvent = {
+      id: "eaaaaac",
+      baseEventId: "c",
+      title: "PROBE single",
+      utcStart: "2026-09-02T16:00:00Z",
+      utcEnd: "2026-09-02T16:30:00Z",
+    };
+
+    expect(eventRow(expanded, PARIS, byId).id).toBe("c");
+    expect(addressableId(expanded)).toBe("c");
+  });
+
+  it("keeps the occurrence's own id when it stands for one date of a series", () => {
+    const occurrence: CalendarEvent = {
+      id: "ev-01_20260914T093000",
+      baseEventId: "ev-01",
+      recurrenceId: "2026-09-14T09:30:00",
+      title: "Standup",
+      utcStart: "2026-09-14T07:30:00Z",
+      utcEnd: "2026-09-14T08:00:00Z",
+    };
+
+    expect(eventRow(occurrence, PARIS, byId).id).toBe("ev-01_20260914T093000");
+    expect(addressableId(occurrence)).toBe("ev-01_20260914T093000");
+  });
+
+  it("leaves a base event alone, which points at itself on every read", () => {
+    expect(addressableId(rows[0] as CalendarEvent)).toBe("ev-01");
   });
 });
 

@@ -1,5 +1,5 @@
 {
-  "name": "jmap-mcp",
+  "name": "@bryanberger/jmap-mcp",
   "version": "0.1.0",
   "description": "Local MCP server exposing a Stalwart JMAP server (mail, calendar, contacts, files, sharing, Sieve) to an AI assistant, with a configurable write policy.",
   "keywords": [
@@ -25,6 +25,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=24"
   },
@@ -34,7 +37,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome check .",
-    "format": "biome check --write ."
+    "format": "biome check --write .",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "pnpm build && changeset publish"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
@@ -42,6 +48,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.11",
+    "@changesets/cli": "^3.0.1",
     "@types/node": "^24.0.0",
     "typescript": "7.0.2",
     "vitest": "4.1.11"

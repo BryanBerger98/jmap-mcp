@@ -138,7 +138,7 @@ describe("calendar_search", () => {
     expect(text).toContain("Give after and before");
   });
 
-  it("says each line is one occurrence when the window expanded them", async () => {
+  it("tells an occurrence line from a line the writing tools take", async () => {
     const { context } = fakeTransport(answers());
 
     const { text } = await calendarSearch.run(
@@ -146,7 +146,9 @@ describe("calendar_search", () => {
       context,
     );
 
-    expect(text).toContain("each line is one occurrence");
+    expect(text).toContain("each of their lines is one occurrence");
+    expect(text).toContain("the writing tools refuse");
+    expect(text).toContain("Every other line carries the id of the event itself");
   });
 
   it("names the zone it read the hours in, even when the call gave none", async () => {

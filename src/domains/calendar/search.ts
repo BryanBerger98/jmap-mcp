@@ -50,8 +50,9 @@ const SORT: CalendarEventQueryArguments["sort"] = [{ property: "start", isAscend
 const SORT_NOTE = "Sorted by start, earliest first.";
 
 const EXPANDED_NOTE =
-  "Recurring events are expanded over the window: each line is one occurrence, and its id reads " +
-  "like any other in calendar_read.";
+  "Recurring events are expanded over the window: each of their lines is one occurrence, whose id " +
+  "calendar_read shows and the writing tools refuse, a series being written whole. Every other " +
+  "line carries the id of the event itself, which every tool takes.";
 
 const NOT_EXPANDED_NOTE =
   "[no date window: a recurring event shows once as its base event, not as its occurrences. " +

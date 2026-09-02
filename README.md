@@ -1,10 +1,10 @@
-# jmap-mcp
+# @bryanberger/jmap-mcp
 
 Local MCP server that exposes a [Stalwart](https://stalw.art) mail server's JMAP surface to an AI assistant: mail, calendar, contacts, files, sharing, Sieve.
 
 No data leaves your machine except the exchange with your own server.
 
-> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable and writable: cards and the address books that hold them. Calendars are readable and writable: searching, reading, checking availability, creating, correcting, answering an invitation and deleting. File storage is readable and writable: browsing, fetching, depositing, organizing and deleting. Sieve is readable and writable: listing scripts, storing one, switching which one filters, and the vacation response that answers while you are away. Sharing registers nothing yet.
+> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable and writable: cards and the address books that hold them. Calendars are readable and writable: searching, reading, checking availability, creating, correcting, answering an invitation and deleting. File storage is readable and writable: browsing, fetching, depositing, organizing and deleting. Sieve is readable and writable: listing scripts, storing one, switching which one filters, and the vacation response that answers while you are away. Sharing is readable and writable: reading who an object is open to, granting a right, revoking one, and dismissing the notifications that record the change.
 
 ## Tools
 
@@ -101,7 +101,9 @@ Every tool call is classified from its _arguments_, not from its method name —
 | `send` | Outbound sending, irreversible | `confirm` |
 | `destroy` | Permanent deletion | `confirm` |
 
-`confirm` relies on MRTR, the required-input pattern of MCP revision `2026-07-28`. **When the client does not expose it, the tool refuses — it never executes silently.** Claude Desktop does not support elicitation today, so `send` and `destroy` operations fail there by design.
+`confirm` asks through MRTR, the required-input pattern of MCP revision `2026-07-28`. On an older connection the SDK's legacy shim carries the same question as an ordinary `elicitation/create` request and drives the rounds itself, so a 2025-era client is asked too — what a client has to declare, on either revision, is the `elicitation` capability.
+
+**When it does not declare it, the tool refuses — it never executes silently.** Claude Desktop does not support elicitation today, so `send` and `destroy` operations fail there by design.
 
 ## Configuration
 
@@ -145,7 +147,7 @@ Under any scope other than `anyone`, `contacts_search` and `contacts_read` mark 
 ## Register with a client
 
 ```sh
-claude mcp add jmap -- npx -y jmap-mcp
+claude mcp add jmap -- npx -y @bryanberger/jmap-mcp
 ```
 
 ## Development

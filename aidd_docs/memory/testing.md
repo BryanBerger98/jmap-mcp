@@ -8,7 +8,7 @@ owner: bryan
 # Tests
 
 > [!NOTE]
-> 1344 tests passent sur 72 fichiers, dont 20 de contrat, chiffres relevés sur une exécution de `pnpm test`.
+> 1353 tests passent sur 72 fichiers, dont 20 de contrat, chiffres relevés sur une exécution de `pnpm test`.
 > Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact, les agendas, les nœuds de fichier, les scripts Sieve et les partages, en lecture comme en écriture.
 
 ## 🎯 Stratégie
@@ -27,7 +27,7 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | --- | --- |
 | `policy-guard.test.ts` | Aucun `send` ni `destroy` sans garde |
 | `read-only-surface.test.ts` | Aucun outil du manifeste mail ne déclare ni ne classe autre chose que `read` |
-| `elicitation-required.test.ts` | Sans élicitation : refus, pas exécution |
+| `elicitation-required.test.ts` | Sans élicitation : refus, pas exécution ; et la question part par un seul émetteur, quelle que soit la révision |
 | `send-never-destroys.test.ts` | Jamais d'`onSuccessDestroyEmail` à l'envoi |
 | `recipient-scope.test.ts` | Hors périmètre : refus avant confirmation |
 | `organizing-takes-ids.test.ts` | Aucun outil de rangement ne prend un critère de recherche |
@@ -45,6 +45,10 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | `vacation-guard.test.ts` | Absence : `isEnabled` écrite seulement si l'appel l'a demandée, et aucun `SieveScript/` émis |
 | `sharing-read-only.test.ts` | Partages en lecture : rien hors les sept lectures nommées, aucun `/set` sur aucune branche |
 | `sharing-write-guard.test.ts` | Écriture des partages : un tiers non nommé préservé, carte jamais écrite entière, drapeau de cascade toujours présent |
+
+Le contrat sur l'élicitation tient une chose que le refus seul ne dit pas : la même question doit partir sur les deux révisions du protocole.
+Un `elicitation` nu suffit à la poser, parce que c'est le portillon du legacy shim lui-même, et exiger `elicitation.form` refuserait tout client de l'ère 2025 que le shim allait servir.
+Une assertion sur les sources garde `inputRequired` seul émetteur : `elicitInput` et `sendElicitation` lèvent sur une requête de l'ère 2026, et un seul appel ferait marcher la confirmation sur une révision et pas l'autre.
 
 Le contrat sur la lecture des contacts sépare deux affirmations : la classe déclarée d'une part, ce qui part réellement sur le fil d'autre part.
 Il exécute chaque outil du manifeste sur des arguments minimaux tirés de son propre schéma, donc il tient un outil ajouté au domaine sans être réécrit.

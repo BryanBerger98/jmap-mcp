@@ -4,9 +4,11 @@
   "list": [
     {
       "id": "ev-01",
-      "calendarIds": { "cal-2": true },
+      "calendarIds": {
+        "cal-2": true
+      },
       "uid": "b2c8f0e4-0001@example.com",
-      "baseEventId": null,
+      "baseEventId": "ev-01",
       "recurrenceId": null,
       "title": "Revue de sprint",
       "description": "Point hebdomadaire sur l'avancement, les blocages et la prochaine livraison.",
@@ -17,34 +19,58 @@
       "status": "confirmed",
       "freeBusyStatus": "busy",
       "privacy": "public",
-      "locations": { "l1": { "name": "Salle Bleue" } },
-      "virtualLocations": { "v1": { "name": "Visio", "uri": "https://meet.example.org/sprint" } },
+      "locations": {
+        "l1": {
+          "name": "Salle Bleue"
+        }
+      },
+      "virtualLocations": {
+        "v1": {
+          "name": "Visio",
+          "uri": "https://meet.example.org/sprint"
+        }
+      },
       "participants": {
         "p1": {
           "name": "Bryan Berger",
           "email": "bryan@example.com",
-          "roles": { "owner": true, "attendee": true },
+          "roles": {
+            "owner": true,
+            "attendee": true
+          },
           "participationStatus": "accepted"
         },
         "p2": {
           "email": "camille@example.org",
-          "roles": { "attendee": true },
+          "roles": {
+            "attendee": true
+          },
           "participationStatus": "declined"
         },
         "p3": {
           "name": "Ana Silva",
           "email": "ana.silva0@example.org",
-          "roles": { "attendee": true },
+          "roles": {
+            "attendee": true
+          },
           "participationStatus": "needs-action"
         }
       },
-      "recurrenceRules": [{ "frequency": "weekly", "interval": 1, "until": "2026-12-31T14:00:00" }],
+      "recurrenceRules": [
+        {
+          "frequency": "weekly",
+          "interval": 1,
+          "until": "2026-12-31T14:00:00"
+        }
+      ],
       "utcStart": "2026-09-03T12:00:00Z",
       "utcEnd": "2026-09-03T13:00:00Z"
     },
     {
       "id": "ev-01_20260910T140000",
-      "calendarIds": { "cal-2": true },
+      "calendarIds": {
+        "cal-2": true
+      },
       "uid": "b2c8f0e4-0001@example.com",
       "baseEventId": "ev-01",
       "recurrenceId": "2026-09-10T14:00:00",
@@ -60,7 +86,9 @@
         "p1": {
           "name": "Bryan Berger",
           "email": "bryan@example.com",
-          "roles": { "owner": true },
+          "roles": {
+            "owner": true
+          },
           "participationStatus": "accepted"
         }
       },
@@ -70,9 +98,11 @@
     },
     {
       "id": "ev-42",
-      "calendarIds": { "cal-3": true },
+      "calendarIds": {
+        "cal-3": true
+      },
       "uid": "b2c8f0e4-0042@example.com",
-      "baseEventId": null,
+      "baseEventId": "ev-42",
       "showWithoutTime": true,
       "status": "cancelled",
       "freeBusyStatus": "free",
