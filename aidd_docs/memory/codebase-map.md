@@ -74,7 +74,8 @@ Il s'appelait `organize.ts` jusqu'à la fusion de `mail_move` et de `mail_flag` 
 
 `src/domains/mail/html.ts` est une fonction pure sur une chaîne, lue par le seul `mail_compose`, sur le patron de `sieve/radius.ts` : elle rend l'extrait dégradé d'un corps HTML et les cibles de ses liens.
 Elle vit dans le domaine et non sous `src/shared/` pour cette raison-là, un second lecteur seul l'y ferait monter.
-Sa raison d'être est que rien ne filtre le corps : la phrase de confirmation est tout ce qui reste entre un corps rédigé par un modèle et un message signé par l'utilisateur.
+Sa raison d'être est que rien ne filtre le corps : sur l'envoi direct de `mail_compose`, la phrase de confirmation est tout ce qui reste entre un corps rédigé par un modèle et un message signé par l'utilisateur.
+Un brouillon expédié plus tard par `mail_send` n'en bénéficie pas, sa confirmation ne nommant que le sujet, l'identité et les destinataires — `src/domains/mail/send.ts:66-68`.
 
 Les contacts se scindent en deux manifestes sur la même capacité, pour la raison qui vaut déjà pour le mail : la lecture reste prouvablement sans écriture, et un test de contrat le tient.
 `src/domains/contacts/card.ts` porte ce que les outils de lecture partagent : nom d'affichage, adresse principale, propriétés et noms de carnets, marque de périmètre et rendu d'une fiche complète.
