@@ -47,14 +47,14 @@ Le dépôt Stalwart est épinglé au commit `e7594d3` du 2026-09-01, branche `ma
 
 **🔑 Les quatre vocabulaires, sans dénominateur commun**
 
-Chaque type a le sien, et seul `mayShare` leur est commun.
+Chaque type a le sien, et seuls `mayShare` et `mayDelete` leur sont communs.
 Aucun vocabulaire unifié n'est inventé : les droits s'affichent et s'écrivent sous le nom que le serveur parse.
 
 | Type | Droits |
 | --- | --- |
 | `Mailbox` | `mayReadItems`, `mayAddItems`, `mayRemoveItems`, `maySetSeen`, `maySetKeywords`, `mayCreateChild`, `mayRename`, `maySubmit`, `mayDelete`, `mayShare` |
-| `Calendar` | `mayReadFreeBusy`, `mayReadItems`, `mayWriteAll`, `mayWriteOwn`, `mayUpdatePrivate`, `mayRSVP`, `mayDelete`, `mayShare` |
-| `AddressBook` | `mayRead`, `mayWrite`, `mayDelete`, `mayShare` |
+| `Calendar` | `mayReadFreeBusy`, `mayReadItems`, `mayWriteAll`, `mayWriteOwn`, `mayUpdatePrivate`, `mayRSVP`, `mayShare`, `mayDelete` |
+| `AddressBook` | `mayRead`, `mayWrite`, `mayShare`, `mayDelete` |
 | `FileNode` | `mayRead`, `mayAddChildren`, `mayRename`, `mayDelete`, `mayModifyContent`, `mayShare` |
 
 > [!WARNING]
