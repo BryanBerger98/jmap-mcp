@@ -1,8 +1,8 @@
 ---
 objective: "`mail_compose` fait partir un corps HTML fourni tel quel, seul ou aux côtés d'un corps texte, refuse un appel sans aucun corps, et nomme le format à la confirmation en montrant le texte et les liens que le HTML porte."
 title: Plan — Corps HTML à l'envoi
-status: in-progress
-updated: 2026-09-02
+status: implemented
+updated: 2026-09-03
 owner: bryan
 ---
 

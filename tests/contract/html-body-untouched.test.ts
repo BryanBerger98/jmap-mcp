@@ -50,7 +50,7 @@ const moved: SetResponse<Email> = {
  */
 const HTML_BODY = [
   "<!-- draft 3 -->",
-  '<style>.cta { color: #b91c1c }</style>',
+  "<style>.cta { color: #b91c1c }</style>",
   '<p style="margin:0">Bonjour <strong>Camille</strong>,</p>',
   "<p>Le devis est prêt &mdash; voir",
   ' <a href="https://example.org/d?ref=a&amp;lot=2" class="cta">le document</a>.',
@@ -139,7 +139,8 @@ describe("an HTML body reaches the server untouched", () => {
 
       expect(creations).toHaveLength(1);
       const values = creations[0]?.bodyValues as Record<string, { value: string }>;
-      const part = (creations[0]?.htmlBody as { partId: string }[])[0];
+      const parts = creations[0]?.htmlBody as { partId: string }[] | undefined;
+      const part = parts?.[0];
 
       expect(part).toBeDefined();
       expect(values[part?.partId ?? ""]?.value).toBe(HTML_BODY);
