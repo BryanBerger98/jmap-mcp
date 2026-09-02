@@ -137,7 +137,7 @@ journey
 2. `classify` rend `destroy`, par symétrie avec l'activation : ce qui bascule l'état du courrier se confirme dans les deux sens.
 3. `summarize` : nomme le script qui cesse de filtrer, et dit que l'absence s'éteint quand c'est elle qui était active.
 4. `run` : `SieveScript/set` ne portant que `onSuccessDeactivateScript` à vrai.
-5. Aucun script n'étant actif, l'appel le dit et n'émet rien.
+5. Aucun script n'étant actif, l'appel le dit et n'émet aucune écriture, la lecture qui l'établit exceptée.
 
 ### `4)` `sieve_write`, action `delete`
 
@@ -179,7 +179,7 @@ journey
 | 2.4 | Un texte de script illisible fait refuser l'activation avant toute question |
 | 2.6 | Remplacer le script `vacation` actif fait dire à la question que l'absence s'éteint |
 | 2.7 | Un appel d'activation n'émet ni création, ni mise à jour, ni destruction |
-| 3.5 | Sans script actif, couper le filtrage n'émet aucune méthode |
+| 3.5 | Sans script actif, couper le filtrage n'émet aucune écriture, la lecture qui l'établit exceptée |
 | 4.2 | Cinquante et un identifiants sont refusés avant toute lecture |
 | 4.3 | L'identifiant du script actif fait refuser la destruction en nommant l'activation |
 | 4.4 | L'identifiant du script `vacation` fait refuser la destruction côté client |
