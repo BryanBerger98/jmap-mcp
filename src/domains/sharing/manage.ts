@@ -365,6 +365,20 @@ interface Targets {
   notFound: Id[];
   /** Set by anything that stopped the read: a refusal, not an empty result. */
   unreadable: boolean;
+  /** What stopped it, when something did. The refusal is otherwise the same sentence for every failure. */
+  reason?: string;
+}
+
+/**
+ * Why a read stopped, in the shortest form that still names a cause.
+ *
+ * The method-level type comes first: `forbidden` and `serverFail` are the two
+ * the caller acts on differently, and the wrapping sentence adds nothing to
+ * either. Anything else keeps its message, which is all a transport failure has
+ * to offer. Same shape as the recipient perimeter's own catch — `server.ts:112`.
+ */
+function causeOf(error: unknown): string {
+  return error instanceof JmapMethodError ? error.type : (error as Error).message;
 }
 
 function readTargets(
@@ -394,8 +408,13 @@ function readTargets(
         notFound: response.notFound,
         unreadable: false,
       };
-    } catch {
-      return { objects: [], notFound: [], unreadable: true };
+    } catch (error) {
+      // The catch stays wide on purpose: the guard has to close on anything at
+      // all, since a sharing whose permission is unknown is a sharing this call
+      // must not change. It carries the cause rather than rethrowing — nothing
+      // wraps `precheck`, so a throw would lose "Nothing was written" on the one
+      // path that cannot be undone.
+      return { objects: [], notFound: [], unreadable: true, reason: causeOf(error) };
     }
   });
 }
@@ -420,9 +439,15 @@ async function refuseUnshareable(
   const targets = await readTargets(type, ids, context);
 
   if (targets.unreadable) {
+    // The cause is named because the way out differs by it: a `forbidden` is an
+    // account that will never read this, a `serverFail` is a call worth making
+    // again. One sentence for both would send the reader down the wrong one.
+    const cause = targets.reason === undefined ? "" : ` (${targets.reason})`;
+
     return (
-      `Refused: the sharing of these ${noun}(s) could not be read, so whether this account may ` +
-      "change it is unknown. Run sharing_access to check, then call again. Nothing was written."
+      `Refused: the sharing of these ${noun}(s) could not be read${cause}, so whether this ` +
+      "account may change it is unknown. Run sharing_access to check, then call again. " +
+      "Nothing was written."
     );
   }
 

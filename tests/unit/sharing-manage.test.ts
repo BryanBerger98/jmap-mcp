@@ -431,6 +431,32 @@ describe("what precheck refuses before it asks", () => {
     expect(refusal).toContain("Nothing was written");
   });
 
+  it("names what stopped the read, rather than one sentence for every failure", async () => {
+    // The refusal is the same whatever went wrong, so without the cause a
+    // permission the account will never have reads exactly like a server that
+    // was briefly down — and the two have opposite ways out.
+    const call = {
+      action: "grant",
+      objectType: "Mailbox",
+      ids: [SHARED_MAILBOX.id],
+      beneficiary: PRINCIPAL_IDS.bob,
+      rights: ["mayReadItems"],
+    };
+
+    const forbidden = await precheck(
+      call,
+      sharingScript({ "Mailbox/get": ["error", { type: "forbidden" }] }),
+    );
+    const failed = await precheck(
+      call,
+      sharingScript({ "Mailbox/get": ["error", { type: "serverFail" }] }),
+    );
+
+    expect(forbidden.refusal).toContain("forbidden");
+    expect(failed.refusal).toContain("serverFail");
+    expect(forbidden.refusal).not.toContain("serverFail");
+  });
+
   it("refuses an id this account does not hold", async () => {
     const { refusal } = await precheck(
       {
