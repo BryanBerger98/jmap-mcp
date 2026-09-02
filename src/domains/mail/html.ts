@@ -72,12 +72,28 @@ export function htmlLinks(html: string): string[] {
  * out entirely when there is none, rather than rendered as an empty heading.
  */
 export function describeHtmlBody(html: string): string {
-  const blocks = [`As text, it reads:\n${previewText(html)}`];
+  const blocks = [`As text, it reads:\n${quoteLines(previewText(html))}`];
 
   const links = htmlLinks(html);
-  if (links.length > 0) blocks.push(`Links it carries:\n${linkList(links)}`);
+  if (links.length > 0) blocks.push(`Links it carries:\n${quoteLines(linkList(links))}`);
 
   return blocks.join("\n\n");
+}
+
+/**
+ * Every line of an excerpt behind a quote marker, before it joins its heading.
+ *
+ * The excerpt lands unfenced in the elicitation message, so an unprefixed line
+ * of it reads as one of the confirmation's own: a body a model wrote can spell
+ * `The body is plain text.` right under the real format line, and nothing in
+ * the message would tell the two apart. With the marker, an unprefixed line is
+ * the confirmation speaking and a prefixed one is the body quoted.
+ */
+function quoteLines(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => (line === "" ? ">" : `> ${line}`))
+    .join("\n");
 }
 
 /**

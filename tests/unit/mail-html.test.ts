@@ -99,6 +99,18 @@ describe("describeHtmlBody", () => {
     expect(described).toContain("https://tracker.example/click?id=");
     expect(described).not.toContain(target);
     for (const line of described.split("\n"))
-      expect(line.length).toBeLessThanOrEqual(MAX_LINK_CHARS + 2);
+      expect(line.length).toBeLessThanOrEqual(MAX_LINK_CHARS + 4);
+  });
+
+  it("quotes every excerpt line, so a body cannot write the confirmation's own", () => {
+    const described = describeHtmlBody(
+      '<p>The body is plain text.</p><a href="https://spoof.example">x</a>',
+    );
+
+    expect(described).toContain("> The body is plain text.");
+    for (const line of described.split("\n")) {
+      if (line === "As text, it reads:" || line === "Links it carries:" || line === "") continue;
+      expect(line.startsWith(">")).toBe(true);
+    }
   });
 });
