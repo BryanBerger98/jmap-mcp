@@ -114,7 +114,7 @@ export const filesWrite = defineTool({
       case "create-folder":
         return `Create the folder ${input.name} in ${where}.`;
       default: {
-        const ids = input.ids ?? [];
+        const ids = organizeIds(input);
         const named = describeNodes(await resolveNodes(ids, context), ids.length);
         return `${organizeAction(input).imperative} ${named}${input.parentId === undefined ? "" : ` into ${where}`}.`;
       }
@@ -142,7 +142,7 @@ export const filesWrite = defineTool({
   // Only `organize` counts anything: a deposit and a folder are one object each,
   // whatever else the call carries.
   confirmWhen: (input, context) => {
-    const count = input.action === "organize" ? (input.ids ?? []).length : 0;
+    const count = input.action === "organize" ? organizeIds(input).length : 0;
 
     return Promise.resolve(
       count > context.bulkConfirmAbove
@@ -263,7 +263,7 @@ async function runCreateFolder(input: Input, context: ToolContext): Promise<Tool
 
 /** Renames or moves nodes that already exist: one patch, applied to each id. */
 async function runOrganize(input: Input, context: ToolContext): Promise<ToolResult> {
-  const ids = input.ids ?? [];
+  const ids = organizeIds(input);
 
   const unusable = refuseUnusableBatch(input);
   if (unusable !== undefined) return { text: unusable };
@@ -331,10 +331,13 @@ function describeCreation(
  * listing then shows as one thing three times.
  */
 function refuseUnusableBatch(input: Input): string | undefined {
-  const ids = input.ids ?? [];
-
-  const oversized = refuseOversizedBatch(ids, FILE_NODES);
+  // The cap is measured on the list as typed, not on the deduplicated one: it
+  // bounds how wrong a single mistaken call can go, and sixty ids of which fifty
+  // are distinct is still a call nobody meant to make.
+  const oversized = refuseOversizedBatch(input.ids ?? [], FILE_NODES);
   if (oversized !== undefined) return oversized;
+
+  const ids = organizeIds(input);
 
   if (input.name !== undefined && ids.length > 1) {
     return (
@@ -439,6 +442,19 @@ async function refuseUnusableParent(
   return isDirectory(parent)
     ? undefined
     : `Refused: ${describeNodes([parent])} is a file, not a folder, so nothing can be put inside it.`;
+}
+
+/**
+ * The nodes an organize call really touches, each named once.
+ *
+ * The update map is keyed by id, so a repeated id was already collapsed into one
+ * entry before this existed. What it did not collapse was the counting: the
+ * summary, the confirmation and the outcome table all read the raw list, so the
+ * same node was announced twice, asked about twice and reported as two. They all
+ * read this instead, and say what the server was actually told.
+ */
+function organizeIds(input: Input): Id[] {
+  return [...new Set(input.ids ?? [])];
 }
 
 /** The name a deposit gives the node: the one asked for, or the local file's. */

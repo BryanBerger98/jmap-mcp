@@ -321,6 +321,21 @@ describe("files_write, organizing what is already there", () => {
     expect(calls(sent.requests)[0]?.[1]).toMatchObject({ update: { "fn-3": { parentId: null } } });
   });
 
+  it("counts a repeated id once, as the update it builds already did", async () => {
+    const sent = transport([updated(["fn-3"])]);
+
+    const result = await filesWrite.run(
+      { action: "organize", ids: ["fn-3", "fn-3"], parentId: "fn-2" },
+      sent.context,
+    );
+
+    // The update map was always keyed by id, so it held one entry either way.
+    // What used to disagree with it was the report, built over the raw list.
+    const args = calls(sent.requests)[0]?.[1] as { update: Record<string, object> };
+    expect(args.update).toEqual({ "fn-3": { parentId: "fn-2" } });
+    expect(result.text).toContain("1 file node moved.");
+  });
+
   it("refuses one name given for several nodes, before any request", async () => {
     const sent = transport();
 
