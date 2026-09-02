@@ -248,6 +248,18 @@ export interface EmailSubmission {
  * `headers` and any `header:*` property are refused at creation, so a draft is
  * built from the convenience properties alone. Nothing here names a charset, a
  * size or a transfer encoding either: the server computes all three.
+ *
+ * `textBody` and `htmlBody` are accepted together, under three conditions read
+ * off the server rather than off the RFC. The request must carry no
+ * `bodyStructure` — `email/set.rs:128-129` sends the whole creation down the
+ * other branch, where neither body property is looked at. Each property must
+ * name at most one part — `email/set.rs:263-285`. And the `type` of that part
+ * must be exactly `text/plain` or `text/html`, the server naming the type it
+ * expected otherwise — `email/set.rs:453-467`.
+ *
+ * `bodyStructure` and `attachments` are therefore absent from this type on
+ * purpose: their mere presence in the object would make the server ignore the
+ * bodies it is being given.
  */
 export type EmailCreate = {
   mailboxIds: Record<Id, boolean>;
@@ -259,8 +271,10 @@ export type EmailCreate = {
   subject?: string;
   inReplyTo?: string[] | null;
   references?: string[] | null;
+  /** One entry per body part, keyed by the `partId` the properties below name. */
   bodyValues?: Record<string, { value: string }>;
   textBody?: { partId: string; type: string }[];
+  htmlBody?: { partId: string; type: string }[];
 };
 
 /**

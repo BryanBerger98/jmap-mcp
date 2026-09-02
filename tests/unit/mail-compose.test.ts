@@ -47,6 +47,13 @@ function submissionCreated(requests: JmapRequest[]): Record<string, unknown> | u
   return create?.submission;
 }
 
+/**
+ * A body carrying everything the transit must not touch: tags, an attribute, a
+ * character entity, and a link whose target is what a degradation would erase.
+ */
+const HTML_BODY =
+  '<p>Bonjour <strong>Camille</strong>,</p>\n<p>Voir <a href="https://example.org/r?a=1&amp;b=2" class="cta">le rapport</a> &mdash; merci.</p>';
+
 describe("mail_compose", () => {
   it("classifies a call that does not send as a draft", () => {
     expect(mailCompose.classify({ to: ["a@b.c"], body: "x" })).toBe("draft");
@@ -86,6 +93,74 @@ describe("mail_compose", () => {
     // The server computes all three; naming them would fight it.
     expect(draft).not.toHaveProperty("charset");
     expect(draft).not.toHaveProperty("size");
+    // Nothing HTML is inferred from a text-only call, not even an empty list.
+    expect(draft).not.toHaveProperty("htmlBody");
+  });
+
+  describe("the body parts", () => {
+    it("sends one text/html part and no text part when only HTML is given", async () => {
+      const { context, requests } = fakeTransport([soleIdentity, mailboxGet, emailSetCreated]);
+
+      await mailCompose.run({ to: ["camille@example.org"], htmlBody: HTML_BODY }, context);
+      const draft = draftSent(requests);
+
+      expect(draft?.htmlBody).toEqual([{ partId: "html", type: "text/html" }]);
+      // No text fallback is derived: the PRD rules one out, and a derived text
+      // would be a message nobody read before it left.
+      expect(draft).not.toHaveProperty("textBody");
+      expect(draft?.bodyValues).toEqual({ html: { value: HTML_BODY } });
+    });
+
+    it("sends two parts under two distinct partIds when both bodies are given", async () => {
+      const { context, requests } = fakeTransport([soleIdentity, mailboxGet, emailSetCreated]);
+
+      await mailCompose.run(
+        { to: ["camille@example.org"], body: "Bonjour Camille,", htmlBody: HTML_BODY },
+        context,
+      );
+      const draft = draftSent(requests);
+
+      expect(draft?.textBody).toEqual([{ partId: "body", type: "text/plain" }]);
+      expect(draft?.htmlBody).toEqual([{ partId: "html", type: "text/html" }]);
+      expect(draft?.bodyValues).toEqual({
+        body: { value: "Bonjour Camille," },
+        html: { value: HTML_BODY },
+      });
+    });
+
+    it("writes the HTML character for character, as it was given", async () => {
+      const { context, requests } = fakeTransport([soleIdentity, mailboxGet, emailSetCreated]);
+
+      await mailCompose.run({ to: ["camille@example.org"], htmlBody: HTML_BODY }, context);
+      const values = draftSent(requests)?.bodyValues as Record<string, { value: string }>;
+
+      expect(values.html?.value).toBe(HTML_BODY);
+    });
+
+    it("never emits a body property as an empty list", async () => {
+      const { context, requests } = fakeTransport([soleIdentity, mailboxGet, emailSetCreated]);
+
+      await mailCompose.run({ to: ["camille@example.org"], htmlBody: HTML_BODY }, context);
+      const draft = draftSent(requests) ?? {};
+
+      for (const property of ["textBody", "htmlBody"]) {
+        const value = draft[property];
+        if (value !== undefined) expect((value as unknown[]).length).toBe(1);
+      }
+    });
+
+    it("carries no bodyStructure and no attachments, which would void the bodies", async () => {
+      const { context, requests } = fakeTransport([soleIdentity, mailboxGet, emailSetCreated]);
+
+      await mailCompose.run(
+        { to: ["camille@example.org"], body: "Texte", htmlBody: HTML_BODY },
+        context,
+      );
+      const draft = draftSent(requests);
+
+      expect(draft).not.toHaveProperty("bodyStructure");
+      expect(draft).not.toHaveProperty("attachments");
+    });
   });
 
   it("takes the sender from the identity, never from the input", async () => {
@@ -210,6 +285,26 @@ describe("mail_compose", () => {
       await mailCompose.run({ replyToEmailId: "em-origin-1", body: "D'accord" }, context);
 
       expect(draftSent(requests)?.to).toEqual([{ name: null, email: "camille@example.org" }]);
+    });
+
+    it("keeps the threading intact when the reply is written in HTML", async () => {
+      const { context, requests } = fakeTransport([
+        soleIdentity,
+        mailboxGet,
+        replySource,
+        emailSetCreated,
+      ]);
+
+      await mailCompose.run({ replyToEmailId: "em-origin-1", htmlBody: HTML_BODY }, context);
+      const draft = draftSent(requests);
+
+      expect(draft?.inReplyTo).toEqual(["<origin-1@example.org>"]);
+      expect(draft?.references).toEqual([
+        "<root-0@example.org>",
+        "<middle-1@example.org>",
+        "<origin-1@example.org>",
+      ]);
+      expect(draft?.htmlBody).toEqual([{ partId: "html", type: "text/html" }]);
     });
 
     it("never updates the origin message", async () => {
@@ -357,6 +452,29 @@ describe("mail_compose", () => {
       expect(submissionCreated(requests)?.emailId).toBe("#draft");
     });
 
+    it("creates and submits an HTML message in the same single request", async () => {
+      const { context, requests } = fakeTransport([
+        soleIdentity,
+        mailboxGet,
+        emailSetCreated,
+        submissionSet,
+        movedToSent,
+      ]);
+
+      await mailCompose.run(
+        { to: ["camille@example.org"], subject: "Hi", htmlBody: HTML_BODY, send: true },
+        context,
+      );
+
+      expect(requests).toHaveLength(2);
+      expect(requests[1]?.methodCalls.map(([name]) => name)).toEqual([
+        "Email/set",
+        "EmailSubmission/set",
+      ]);
+      expect(draftSent(requests)?.bodyValues).toEqual({ html: { value: HTML_BODY } });
+      expect(submissionCreated(requests)?.emailId).toBe("#draft");
+    });
+
     it("carries the same envelope and the same move as sending in two gestures", async () => {
       const { context, requests } = fakeTransport([
         soleIdentity,
@@ -449,6 +567,27 @@ describe("mail_compose", () => {
 
     it("refuses an empty recipient list", () => {
       expect(mailCompose.inputSchema.safeParse({ to: [], body: "Text" }).success).toBe(false);
+    });
+
+    it("refuses a call carrying no body at all, and emits nothing", () => {
+      const { requests } = fakeTransport([soleIdentity, mailboxGet, emailSetCreated]);
+      const parsed = mailCompose.inputSchema.safeParse({ to: ["camille@example.org"] });
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error?.issues.some((issue) => issue.message.includes("htmlBody"))).toBe(true);
+      // The refusal is the schema's, so `run` is never reached and no round trip
+      // is ever spent on a message that has nothing in it.
+      expect(requests).toEqual([]);
+    });
+
+    it("accepts either body on its own, and both together", () => {
+      const to = ["camille@example.org"];
+
+      expect(mailCompose.inputSchema.safeParse({ to, body: "Text" }).success).toBe(true);
+      expect(mailCompose.inputSchema.safeParse({ to, htmlBody: HTML_BODY }).success).toBe(true);
+      expect(
+        mailCompose.inputSchema.safeParse({ to, body: "Text", htmlBody: HTML_BODY }).success,
+      ).toBe(true);
     });
   });
 });
