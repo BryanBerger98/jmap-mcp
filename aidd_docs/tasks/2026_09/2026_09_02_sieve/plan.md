@@ -1,7 +1,7 @@
 ---
 objective: "L'assistant lit les scripts Sieve du compte, en stocke un validé sans jamais l'activer, active ou détruit sur confirmation nommant ce qui change, et règle la réponse d'absence sans jamais l'éteindre à l'insu de l'utilisateur."
 title: Plan — Sieve et réponse d'absence
-status: in-progress
+status: implemented
 updated: 2026-09-02
 owner: bryan
 ---
