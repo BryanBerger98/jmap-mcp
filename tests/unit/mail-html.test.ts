@@ -73,10 +73,10 @@ describe("describeHtmlBody", () => {
     expect(describeHtmlBody("<p>Bonjour</p>")).not.toContain("Links it carries");
   });
 
-  it("cuts a long body and says how many bytes are not shown", () => {
+  it("cuts a long body and says how many bytes of the degraded text are not shown", () => {
     const described = describeHtmlBody(`<p>${"a".repeat(MAX_PREVIEW_CHARS + 500)}</p>`);
 
-    expect(described).toContain("[cut here: 500 more bytes of this body are not shown]");
+    expect(described).toContain("[cut here: 500 more bytes of this text are not shown]");
     expect(described).not.toContain("a".repeat(MAX_PREVIEW_CHARS + 1));
   });
 

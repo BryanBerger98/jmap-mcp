@@ -80,13 +80,20 @@ export function describeHtmlBody(html: string): string {
   return blocks.join("\n\n");
 }
 
-/** The degraded text, cut at the cap while saying how much was left out. */
+/**
+ * The degraded text, cut at the cap while saying how much was left out.
+ *
+ * The sentence names the text and not the body on purpose: the cut is made on
+ * the degraded rendering, and the count is the bytes of that rendering. Saying
+ * "of this body" would announce a size of the source markup, which nothing here
+ * measures and which is always the larger of the two.
+ */
 function previewText(html: string): string {
   const text = htmlToText(html);
   if (text.length <= MAX_PREVIEW_CHARS) return text;
 
   const omitted = new TextEncoder().encode(text.slice(MAX_PREVIEW_CHARS)).byteLength;
-  return `${text.slice(0, MAX_PREVIEW_CHARS)}\n[cut here: ${omitted} more bytes of this body are not shown]`;
+  return `${text.slice(0, MAX_PREVIEW_CHARS)}\n[cut here: ${omitted} more bytes of this text are not shown]`;
 }
 
 /** The targets, one per line, saying how many are not listed rather than stopping. */
