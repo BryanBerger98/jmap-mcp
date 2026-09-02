@@ -7,7 +7,7 @@ import {
   MAX_IDS_PER_CALL,
   refuseOversizedBatch as refuseBatch,
 } from "../../shared/batch.js";
-import { renderTable } from "../../shared/render.js";
+import { describeSetError, renderTable } from "../../shared/render.js";
 
 /*
  * What filing messages takes, shared by the tools that do it.
@@ -154,11 +154,6 @@ function describeOutcome(ids: readonly Id[], refused: Record<Id, SetError>, done
         : `${succeeded} of ${rows.length} messages ${done}, ${failed} refused by the mail server.`;
 
   return `${headline}\n\n${renderTable(rows, ["id", "outcome"])}`;
-}
-
-/** The server's own words, which beat any guess at what it meant. */
-function describeSetError(error: SetError): string {
-  return error.description === undefined ? error.type : `${error.type} — ${error.description}`;
 }
 
 function plural(count: number): string {

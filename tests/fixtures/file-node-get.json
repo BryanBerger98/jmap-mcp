@@ -1,0 +1,117 @@
+{
+  "accountId": "acc-1",
+  "state": "file-state-1",
+  "list": [
+    {
+      "id": "fn-1",
+      "parentId": null,
+      "nodeType": "directory",
+      "blobId": null,
+      "size": null,
+      "name": "Documents",
+      "type": null,
+      "created": "2026-01-04T09:12:00Z",
+      "modified": "2026-08-21T17:40:00Z",
+      "changed": "2026-08-21T17:40:00Z",
+      "executable": false,
+      "role": null,
+      "myRights": {
+        "mayRead": true,
+        "mayAddChildren": true,
+        "mayRename": true,
+        "mayDelete": true,
+        "mayModifyContent": true,
+        "mayShare": false
+      }
+    },
+    {
+      "id": "fn-2",
+      "parentId": null,
+      "nodeType": "directory",
+      "blobId": null,
+      "size": null,
+      "name": "Photos",
+      "type": null,
+      "created": "2026-02-11T08:00:00Z",
+      "modified": "2026-02-11T08:00:00Z",
+      "changed": "2026-02-11T08:00:00Z",
+      "executable": false,
+      "role": null,
+      "myRights": {
+        "mayRead": true,
+        "mayAddChildren": true,
+        "mayRename": true,
+        "mayDelete": true,
+        "mayModifyContent": true,
+        "mayShare": false
+      }
+    },
+    {
+      "id": "fn-3",
+      "parentId": "fn-1",
+      "nodeType": "file",
+      "blobId": "blob-report",
+      "size": 184320,
+      "name": "report.pdf",
+      "type": "application/pdf",
+      "created": "2026-03-02T14:25:00Z",
+      "modified": "2026-08-21T17:40:00Z",
+      "changed": "2026-08-21T17:40:00Z",
+      "executable": false,
+      "role": null,
+      "myRights": {
+        "mayRead": true,
+        "mayAddChildren": false,
+        "mayRename": true,
+        "mayDelete": true,
+        "mayModifyContent": true,
+        "mayShare": false
+      }
+    },
+    {
+      "id": "fn-4",
+      "parentId": "fn-1",
+      "nodeType": "file",
+      "blobId": "blob-notes",
+      "size": 2048,
+      "name": "notes.txt",
+      "type": "text/plain",
+      "created": "2026-03-02T14:26:00Z",
+      "modified": "2026-06-09T11:02:00Z",
+      "changed": "2026-06-09T11:02:00Z",
+      "executable": false,
+      "role": null,
+      "myRights": {
+        "mayRead": true,
+        "mayAddChildren": false,
+        "mayRename": true,
+        "mayDelete": true,
+        "mayModifyContent": true,
+        "mayShare": false
+      }
+    },
+    {
+      "id": "fn-5",
+      "parentId": null,
+      "nodeType": "file",
+      "blobId": "blob-invoice",
+      "size": 15360,
+      "name": "invoice.csv",
+      "type": "text/csv",
+      "created": "2026-07-30T06:45:00Z",
+      "modified": "2026-07-30T06:45:00Z",
+      "changed": "2026-07-30T06:45:00Z",
+      "executable": false,
+      "role": null,
+      "myRights": {
+        "mayRead": true,
+        "mayAddChildren": false,
+        "mayRename": true,
+        "mayDelete": true,
+        "mayModifyContent": true,
+        "mayShare": false
+      }
+    }
+  ],
+  "notFound": []
+}

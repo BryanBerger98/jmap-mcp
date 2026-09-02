@@ -1,0 +1,113 @@
+{
+  "created": {
+    "accountId": "acc-1",
+    "oldState": "file-state-1",
+    "newState": "file-state-2",
+    "created": {
+      "new": {
+        "id": "fn-9",
+        "parentId": "fn-1",
+        "nodeType": "file",
+        "blobId": "blob-uploaded",
+        "size": 14,
+        "type": "text/plain",
+        "created": "2026-09-01T10:00:00Z",
+        "modified": "2026-09-01T10:00:00Z",
+        "changed": "2026-09-01T10:00:00Z"
+      }
+    }
+  },
+  "createdFolder": {
+    "accountId": "acc-1",
+    "oldState": "file-state-1",
+    "newState": "file-state-2",
+    "created": {
+      "new": {
+        "id": "fn-10",
+        "parentId": null,
+        "nodeType": "directory",
+        "blobId": null,
+        "size": null,
+        "type": null,
+        "created": "2026-09-01T10:05:00Z",
+        "modified": "2026-09-01T10:05:00Z",
+        "changed": "2026-09-01T10:05:00Z"
+      }
+    }
+  },
+  "notCreated": {
+    "accountId": "acc-1",
+    "oldState": "file-state-1",
+    "newState": "file-state-1",
+    "notCreated": {
+      "new": {
+        "type": "alreadyExists",
+        "description": "A node named report.pdf already exists in this folder."
+      }
+    }
+  },
+  "updated": {
+    "accountId": "acc-1",
+    "oldState": "file-state-1",
+    "newState": "file-state-2",
+    "updated": { "fn-3": null, "fn-4": null }
+  },
+  "notUpdated": {
+    "accountId": "acc-1",
+    "oldState": "file-state-1",
+    "newState": "file-state-1",
+    "notUpdated": {
+      "fn-3": {
+        "type": "invalidProperties",
+        "description": "The name is not allowed.",
+        "properties": ["name"]
+      }
+    }
+  },
+  "destroyed": {
+    "accountId": "acc-1",
+    "oldState": "file-state-1",
+    "newState": "file-state-2",
+    "destroyed": ["fn-3", "fn-4"]
+  },
+  "notDestroyed": {
+    "accountId": "acc-1",
+    "oldState": "file-state-1",
+    "newState": "file-state-1",
+    "notDestroyed": {
+      "fn-1": {
+        "type": "nodeHasChildren",
+        "description": "This folder still holds children."
+      }
+    }
+  },
+  "mixed": {
+    "accountId": "acc-1",
+    "oldState": "file-state-1",
+    "newState": "file-state-2",
+    "created": {
+      "new": {
+        "id": "fn-11",
+        "parentId": "fn-1",
+        "nodeType": "directory",
+        "blobId": null,
+        "size": null,
+        "type": null
+      }
+    },
+    "updated": { "fn-4": null },
+    "destroyed": ["fn-5"],
+    "notCreated": {
+      "other": {
+        "type": "alreadyExists",
+        "description": "A node named Archive already exists in this folder."
+      }
+    },
+    "notDestroyed": {
+      "fn-1": {
+        "type": "nodeHasChildren",
+        "description": "This folder still holds children."
+      }
+    }
+  }
+}

@@ -5,6 +5,19 @@
  * most of it is noise for the question being asked.
  */
 
+import type { SetError } from "../jmap/types/core.js";
+
+/**
+ * A `SetError` in one line, wherever a refusal has to be read rather than parsed.
+ *
+ * Nothing is mapped here on purpose: the server's own words beat any guess at
+ * what it meant. Four domains rendered this exact line before it was hoisted,
+ * and four copies would have drifted at the first correction.
+ */
+export function describeSetError(error: SetError): string {
+  return error.description === undefined ? error.type : `${error.type} — ${error.description}`;
+}
+
 /** Renders a record as `key: value` lines, dropping empty values. */
 export function renderFields(fields: Record<string, unknown>): string {
   return Object.entries(fields)

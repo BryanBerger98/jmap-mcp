@@ -285,7 +285,7 @@ describe("contacts_write — refusals", () => {
 describe("contacts_write — what it says after writing", () => {
   it("writes an address outside the perimeter and says the send stays refused", async () => {
     const scope = restrictTo({ fromContacts: ["camille@example.org"], allow: [] });
-    const { context } = fakeTransport([books, sets.noMatch, sets.created], scope);
+    const { context } = fakeTransport([books, sets.noMatch, sets.created], { recipients: scope });
 
     const result = await contactsWrite.run(
       { name: "Noor Haddad", emails: { add: ["noor@example.org"] } },
@@ -330,7 +330,7 @@ describe("contacts_write — class and volume", () => {
   });
 
   it("asks past the bulk threshold, naming the count and the threshold", async () => {
-    const { context } = fakeTransport([], OPEN_SCOPE, 2);
+    const { context } = fakeTransport([], { recipients: OPEN_SCOPE, bulkConfirmAbove: 2 });
 
     const reason = await contactsWrite.confirmWhen?.(
       { cardIds: ["a", "b", "c"], addressBooks: { add: ["bk-1"] } },
@@ -342,7 +342,7 @@ describe("contacts_write — class and volume", () => {
   });
 
   it("stays silent below the threshold", async () => {
-    const { context } = fakeTransport([], OPEN_SCOPE, 5);
+    const { context } = fakeTransport([], { recipients: OPEN_SCOPE, bulkConfirmAbove: 5 });
 
     const reason = await contactsWrite.confirmWhen?.({ cardIds: ["a", "b"] }, context);
 

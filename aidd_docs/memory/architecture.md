@@ -1,7 +1,7 @@
 ---
 title: Architecture
 status: draft
-updated: 2026-09-01
+updated: 2026-09-02
 owner: bryan
 ---
 
@@ -160,12 +160,49 @@ C'est ce dernier qui ouvre un trou que le registre ne peut pas voir : il classe 
 Un `CalendarEvent/set` réussi ne prouve jamais qu'un mail est parti.
 Stalwart avale l'envoi sans erreur quand iTIP est éteint, quand le compte n'a pas la permission de planification, ou quand l'événement est entièrement passé : les réponses disent ce qui a été demandé au serveur, jamais ce qu'il en a fait.
 
+## 📦 Ce qu'un octet ne traverse pas
+
+Les octets d'un fichier ne passent jamais par la conversation.
+`files_fetch` écrit sur le disque et rend un chemin, `files_write` lit un chemin et téléverse : ce que le client voit est une ligne de compte rendu, jamais un contenu encodé.
+
+Le canal d'octets est une paire de méthodes posée dans le contexte d'outil, `upload` et `download`.
+Il ferme sur le jeton et sur les deux gabarits d'URL du noyau, parce que les blobs voyagent en HTTP simple hors du point JMAP : un outil qui les atteindrait lui-même aurait le jeton en main, et un jeton passé en argument finit dans une trace.
+
+```txt
+Outil → BlobChannel.upload/download → uploadUrl / downloadUrl → Stalwart
+         ↑ jeton fermé ici, jamais au-delà
+```
+
+La frontière du disque est `files.localRoot`, et rien ne bouge tant qu'elle n'est pas posée.
+Le refus nomme la clé plutôt que d'inventer un répertoire de travail : un chemin que l'utilisateur n'a pas nommé est un chemin qu'il ne surveille pas.
+
+La résolution se fait deux fois, et c'est la seconde qui compte.
+Le contrôle lexical arrête `../`, la résolution réelle arrête le lien symbolique : `racine/lien` est dans la racine, le fichier visé n'a aucune raison de l'être.
+
+## 🌳 La cascade autorisée
+
+`onDestroyRemoveChildren` est le premier des trois drapeaux de cascade à pouvoir valoir vrai, et la raison est écrite ici plutôt que sous-entendue.
+Un dossier ne se vide pas comme un carnet : il n'y a pas d'outil pour supprimer cent fichiers un par un, et refuser toute cascade ferait de la suppression d'une arborescence une impasse.
+
+Ce qui rend la cascade acceptable n'est pas le drapeau, c'est ce qui le précède.
+
+```txt
+ids → plafond de cinquante → comptage du sous-arbre → refus si peuplé sans cascade
+                                                    → question comptant fichiers et dossiers → set
+```
+
+Le comptage tourne une fois par appel et sert deux fois : `precheck` décide dessus, `summarize` l'énonce.
+Deux comptages pourraient diverger, et refuser sur un arbre en confirmant l'autre est exactement ce que ce partage empêche.
+
+Un comptage que rien n'établit fait refuser, dans les deux sens du drapeau.
+Une lecture en échec, un `total` que le serveur décline, et la confirmation sous-déclarerait ce qui disparaît : il n'y a pas de corbeille pour rattraper la différence.
+
 ## ⚠️ Pièges
 
 - Le niveau `confirm` s'appuie sur MRTR. Quand le client ne l'expose pas, l'outil refuse : jamais d'exécution silencieuse.
 - Claude Desktop ne supporte pas l'élicitation. Toute opération `send` ou `destroy` y échoue par conception.
 - Les annotations MCP, `destructiveHint` en tête, sont déclarées non fiables. Elles documentent, elles ne gardent rien.
-- La dégradation se voit dès trente outils exposés. Le gating par capacité vise vingt-six.
+- La dégradation se voit dès trente outils exposés. Le gating par capacité vise vingt-six, la composition en enregistre vingt-cinq, et `internal/tool-budget.md` arbitre la place qui reste.
 - La classe d'opération ne se lit pas sur le nom de la méthode. Un argument suffit à faire basculer une écriture en destruction ou en envoi, dans les six domaines.
 - Une opération destructrice ne prend jamais un filtre en entrée. Stalwart abandonne silencieusement une condition `header` mal formée, et la requête rend alors plus de résultats que demandé.
 - Supprimer un dossier ne supprime jamais son contenu. `onDestroyRemoveEmails` est écrit à faux sur chaque `Mailbox/set` émis, y compris ceux qui ne détruisent rien : un défaut serveur n'est pas une garantie, et l'absence de l'argument ne se voit sur aucun test unitaire.
@@ -181,3 +218,6 @@ Stalwart avale l'envoi sans erreur quand iTIP est éteint, quand le compte n'a p
 - Une occurrence isolée ne s'écrit pas. Stalwart accepte un identifiant synthétique et transforme silencieusement l'écriture en plan d'instance, donc les trois outils d'écriture le refusent côté client sur `baseEventId` : corriger un mardi n'est pas corriger la série, et la réponse ne dirait pas lequel a eu lieu.
 - La clé du participant que le compte occupe ne se devine pas. Zéro correspondance comme deux font refuser : prendre la première clé répondrait à la place de l'organisateur, et une réponse partie ne se rappelle pas.
 - Les trois champs de nom retombent sur le même index. Filtrer sur `name`, `name/given` ou `name/surname` rend le même résultat, donc chercher un prénom seul est hors de portée du serveur et la description de l'outil doit le dire.
+- `FileNode/query` parse vingt-deux conditions et n'en exécute que neuf. Les treize autres tombent dans une branche vide, sans erreur : une requête qui en porte une rend plus de résultats que demandé, donc aucune condition hors des neuf honorées ne part sur le fil, et un contrat le tient.
+- Un comparateur de fichiers non supporté ne rend pas `UnsupportedSort`, il disparaît. La liste vidée retombe en ordre de document, et une pagination qui croit trier par date pagine alors un ordre qu'elle n'a pas demandé.
+- Le stockage de fichiers n'a pas de corbeille et `onExists` a quatre valeurs, dont deux détruisent. Ce serveur écrit `null` sur chaque `FileNode/set` : remplacer un fichier est une destruction, et une destruction passe par `files_delete`, où elle se confirme.

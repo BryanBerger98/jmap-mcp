@@ -74,7 +74,7 @@ function writingSurface(
   capabilities: Record<string, unknown> | null,
   bulkConfirmAbove?: number,
 ) {
-  const { context, requests } = fakeTransport(responses, undefined, bulkConfirmAbove);
+  const { context, requests } = fakeTransport(responses, { bulkConfirmAbove });
   const handlers = new Map<string, Handler>();
 
   compose({

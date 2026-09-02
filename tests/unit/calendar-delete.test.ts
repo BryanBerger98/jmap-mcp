@@ -82,7 +82,7 @@ describe("calendar_delete — what it destroys", () => {
 
 describe("calendar_delete — the refusals", () => {
   it("refuses a notifying deletion under a policy that denies sends, before reading", async () => {
-    const { context, requests } = fakeTransport([], undefined, undefined, NO_SEND);
+    const { context, requests } = fakeTransport([], { policy: NO_SEND });
 
     const refusal = await calendarDelete.precheck?.({ ids: ["ev-invited"], notify: true }, context);
 
@@ -91,7 +91,7 @@ describe("calendar_delete — the refusals", () => {
   });
 
   it("lets a silent deletion through the same policy, since nothing is mailed", async () => {
-    const { context } = fakeTransport([only("ev-invited")], undefined, undefined, NO_SEND);
+    const { context } = fakeTransport([only("ev-invited")], { policy: NO_SEND });
 
     const refusal = await calendarDelete.precheck?.({ ids: ["ev-invited"] }, context);
 
@@ -119,7 +119,9 @@ describe("calendar_delete — the refusals", () => {
 
   it("refuses to cancel towards a participant outside the perimeter", async () => {
     const scope = restrictTo({ fromContacts: ["claire@example.org"], allow: [] });
-    const { context, requests } = fakeTransport([only("ev-invited"), eventSet], scope);
+    const { context, requests } = fakeTransport([only("ev-invited"), eventSet], {
+      recipients: scope,
+    });
 
     const result = await calendarDelete.run({ ids: ["ev-invited"], notify: true }, context);
 
@@ -130,7 +132,9 @@ describe("calendar_delete — the refusals", () => {
 
   it("leaves the perimeter out of a deletion that mails nobody", async () => {
     const scope = restrictTo({ fromContacts: ["claire@example.org"], allow: [] });
-    const { context, requests } = fakeTransport([only("ev-invited"), eventSet], scope);
+    const { context, requests } = fakeTransport([only("ev-invited"), eventSet], {
+      recipients: scope,
+    });
 
     await calendarDelete.run({ ids: ["ev-invited"] }, context);
 
@@ -139,7 +143,9 @@ describe("calendar_delete — the refusals", () => {
 
   it("re-refuses in run what a swallowed hook could have let through", async () => {
     const scope = restrictTo({ fromContacts: ["claire@example.org"], allow: [] });
-    const { context, requests } = fakeTransport([only("ev-invited"), eventSet], scope);
+    const { context, requests } = fakeTransport([only("ev-invited"), eventSet], {
+      recipients: scope,
+    });
 
     const refusal = await calendarDelete.precheck?.({ ids: ["ev-invited"], notify: true }, context);
     const result = await calendarDelete.run({ ids: ["ev-invited"], notify: true }, context);

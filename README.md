@@ -4,11 +4,11 @@ Local MCP server that exposes a [Stalwart](https://stalw.art) mail server's JMAP
 
 No data leaves your machine except the exchange with your own server.
 
-> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable and writable: cards and the address books that hold them. Calendars are readable and writable: searching, reading, checking availability, creating, correcting, answering an invitation and deleting. The three other domains register nothing yet.
+> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable and writable: cards and the address books that hold them. Calendars are readable and writable: searching, reading, checking availability, creating, correcting, answering an invitation and deleting. File storage is readable and writable: browsing, fetching, depositing, organizing and deleting. Sharing and Sieve register nothing yet.
 
 ## Tools
 
-Twenty-one tools across three domains, mail, calendar and contacts. The class is what the write policy below gates.
+Twenty-five tools across four domains, mail, calendar, contacts and files. The class is what the write policy below gates.
 
 | Tool | Class | Does |
 | --- | --- | --- |
@@ -33,6 +33,10 @@ Twenty-one tools across three domains, mail, calendar and contacts. The class is
 | `calendar_write` | `draft` or `send` | Creates an event, or corrects the named fields of one; `notify` mails the invitation |
 | `calendar_respond` | `send` or `draft` | Answers a received invitation; `notify: false` keeps the answer local |
 | `calendar_delete` | `destroy` | Erases events for good; `notify` mails a cancellation |
+| `files_browse` | `read` | Lists a folder or searches the tree, paginated |
+| `files_fetch` | `read` | Writes a stored file to your disk and returns its path |
+| `files_write` | `draft` | Deposits a local file, creates a folder, renames or moves nodes |
+| `files_delete` | `destroy` | Erases files and folders for good; file storage has no trash |
 
 A contact write only ever touches the fields the call names: it patches the paths given and leaves every other field of the card untouched. `contacts_delete` has no reversible form, which is why it carries a single class — no folder holds a destroyed card and no later call brings it back. Deleting an address book never destroys the cards inside it: a book still holding cards is refused, as are the default book and the last remaining one.
 
@@ -44,9 +48,15 @@ The three calendar writes read their class off `notify`, because that argument d
 
 One gap is deliberate: a single occurrence of a recurring series cannot be corrected, answered or deleted on its own. Passing an occurrence id is refused by name rather than quietly applied to the whole series, and deleting a recurring event takes every occurrence with it.
 
+File bytes never travel through the conversation. `files_fetch` writes the file to your disk and answers with its path; `files_write` reads a path and uploads what it finds there. Both work only inside the directory named by `files.localRoot`, which has no default: without it they refuse and say which key to set, rather than picking a directory you are not watching. Browsing, creating a folder, organizing and deleting need no such directory.
+
+`files_browse` only sends the nine filter conditions Stalwart actually executes. The other thirteen its parser accepts — full-text, MIME type, role, dates — are silently dropped server-side, which would return more results than asked for, so they are not offered at all.
+
+`files_delete` is the one tool here whose cascade may be turned on. A folder that still holds something is refused unless `withChildren` is set, and that flag is never assumed: the subtree is counted first, the confirmation says how many files and folders go with it, and a count the server will not produce is a refusal rather than a guess. Nothing recovers a destroyed node.
+
 ### Batch limits
 
-The organizing, contact-writing and calendar-writing tools act on ids a search returned, never on a filter they run themselves. The same two limits govern them.
+The organizing, contact-writing, calendar-writing and file-writing tools act on ids a search returned, never on a filter they run themselves. The same two limits govern them.
 
 | Limit | Value | Configurable |
 | --- | --- | --- |
@@ -85,6 +95,16 @@ export JMAP_BEARER_TOKEN="…"   # never passed as a CLI argument
 ```
 
 Optional: `JMAP_ACCOUNT_ID` pins one account when the session exposes several, and `JMAP_BULK_CONFIRM_ABOVE` (config key `bulkConfirmAbove`, default `20`) sets how many objects a reversible write may touch before it asks.
+
+**Local file directory.** `files.localRoot` is the only directory `files_fetch` and `files_write` may read or write, and it has no environment equivalent — set it in the config file, as an absolute path. It cannot be `/`: a boundary drawn around the whole disk is not a boundary, so the filesystem root is refused when the configuration loads.
+
+```json
+{ "files": { "localRoot": "/Users/you/jmap-files", "maxDownloadSize": 104857600 } }
+```
+
+A relative path given to a tool is taken from that root; an absolute one is accepted only if it already lands inside it. Both are then resolved for real, symlinks included, because the string `root/link` is inside the root and the file it points at need not be.
+
+`files.maxDownloadSize` caps one fetch, in bytes, and defaults to 100 MB. A file the server declares larger is refused before any byte moves, naming the key to raise: a download is held whole in memory before it reaches the disk, and no JMAP capability publishes a ceiling for it — only uploads have one, which the session states and `files_write` quotes back. A node whose size the server does not state is fetched anyway.
 
 **Recipient perimeter.** `recipients.scope` bounds who the server may write to. It is resolved once at startup, before any tool is registered.
 

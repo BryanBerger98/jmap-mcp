@@ -325,7 +325,9 @@ describe("mail_send", () => {
         fromContacts: ["camille@example.org", "ana@example.org"],
         allow: [],
       });
-      const { context, requests } = fakeTransport([identityGet, mailboxGet, draft], scope);
+      const { context, requests } = fakeTransport([identityGet, mailboxGet, draft], {
+        recipients: scope,
+      });
 
       const refusal = await mailSend.precheck?.({ emailId: "em-draft-1" }, context);
       const summary = await mailSend.summarize({ emailId: "em-draft-1" }, context);

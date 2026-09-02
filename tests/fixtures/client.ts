@@ -1,10 +1,17 @@
 import { readFileSync } from "node:fs";
 import { DEFAULT_POLICY, type WritePolicy } from "../../src/config/policy.js";
 import { OPEN_SCOPE, type RecipientScope } from "../../src/config/recipients.js";
-import { DEFAULT_BULK_CONFIRM_ABOVE } from "../../src/config/schema.js";
+import { type Config, DEFAULT_BULK_CONFIRM_ABOVE } from "../../src/config/schema.js";
+import type { BlobChannel } from "../../src/jmap/blob.js";
 import { JmapClient } from "../../src/jmap/client.js";
 import { JmapSession } from "../../src/jmap/session.js";
-import type { Invocation, JmapRequest, JmapResponse, Session } from "../../src/jmap/types/core.js";
+import type {
+  Id,
+  Invocation,
+  JmapRequest,
+  JmapResponse,
+  Session,
+} from "../../src/jmap/types/core.js";
 import { perInvocationCache, type ToolContext } from "../../src/registry/define-tool.js";
 
 /**
@@ -28,6 +35,44 @@ export interface FakeTransport {
   context: ToolContext;
   /** Every JMAP request body sent, in order. Its length is the round-trip count. */
   requests: JmapRequest[];
+  /** Every byte transfer, so a test can assert on order against `requests`. */
+  blobs: BlobTraffic;
+}
+
+export interface BlobTraffic {
+  uploads: { body: Uint8Array; contentType: string }[];
+  downloads: { blobId: Id; name: string; type: string }[];
+}
+
+/** The bytes the fake channel serves on every download. */
+export const FIXTURE_BYTES = new TextEncoder().encode("fixture-bytes\n");
+
+/** The blobId the fake channel hands back on every upload. */
+export const UPLOADED_BLOB_ID = "blob-uploaded";
+
+/**
+ * A channel that moves nothing and remembers everything.
+ *
+ * It records rather than asserts: a test on the order of a deposit needs to see
+ * that the upload happened before the `FileNode/set`, and only a shared log of
+ * both can show that.
+ */
+export function fakeBlobs(traffic: BlobTraffic): BlobChannel {
+  return {
+    upload: async (body, contentType) => {
+      traffic.uploads.push({ body, contentType });
+      return {
+        accountId: "acc-1",
+        blobId: UPLOADED_BLOB_ID,
+        type: contentType,
+        size: body.byteLength,
+      };
+    },
+    download: async (blobId, name, type) => {
+      traffic.downloads.push({ blobId, name, type });
+      return FIXTURE_BYTES;
+    },
+  };
 }
 
 /**
@@ -38,13 +83,30 @@ export interface FakeTransport {
  * reads before it writes spends several round trips, and its later calls need
  * answers of their own.
  */
+/**
+ * What a test may say about the context beyond the responses it queues.
+ *
+ * Every key admits `undefined` so a caller forwarding its own optional field
+ * lands on the default instead of failing under `exactOptionalPropertyTypes`.
+ */
+export interface FakeTransportOptions {
+  recipients?: RecipientScope | undefined;
+  bulkConfirmAbove?: number | undefined;
+  policy?: WritePolicy | undefined;
+  files?: Config["files"] | undefined;
+}
+
 export function fakeTransport(
   results: unknown[],
-  recipients: RecipientScope = OPEN_SCOPE,
-  bulkConfirmAbove: number = DEFAULT_BULK_CONFIRM_ABOVE,
-  // The default the server ships with, so a test that says nothing about the
-  // policy is testing the configuration almost everybody runs.
-  policy: WritePolicy = DEFAULT_POLICY,
+  {
+    recipients = OPEN_SCOPE,
+    bulkConfirmAbove = DEFAULT_BULK_CONFIRM_ABOVE,
+    // The default the server ships with, so a test that says nothing about the
+    // policy is testing the configuration almost everybody runs.
+    policy = DEFAULT_POLICY,
+    // No local directory unless the test names one, as in a fresh configuration.
+    files = {},
+  }: FakeTransportOptions = {},
 ): FakeTransport {
   const requests: JmapRequest[] = [];
   let served = 0;
@@ -70,6 +132,7 @@ export function fakeTransport(
   }) as unknown as typeof fetch;
 
   const client = new JmapClient({ apiUrl: API_URL, bearerToken: "a-token", fetchImpl });
+  const blobs: BlobTraffic = { uploads: [], downloads: [] };
 
   // One cache per context, as the registry builds one per handler invocation:
   // a test calling a hook directly stands in for exactly one such invocation.
@@ -77,12 +140,15 @@ export function fakeTransport(
     context: {
       client,
       session: fixtureSession(),
+      blobs: fakeBlobs(blobs),
+      files,
       recipients,
       policy,
       bulkConfirmAbove,
       once: perInvocationCache(),
     },
     requests,
+    blobs,
   };
 }
 

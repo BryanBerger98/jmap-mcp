@@ -1,3 +1,4 @@
+import { dirname, isAbsolute, resolve } from "node:path";
 import { z } from "zod";
 import { DEFAULT_POLICY, POLICY_LEVELS, type WritePolicy } from "./policy.js";
 
@@ -74,6 +75,63 @@ const recipientsSchema = z
  */
 export const DEFAULT_BULK_CONFIRM_ABOVE = 20;
 
+/**
+ * The one directory this server may read from and write to on the local disk.
+ *
+ * No default, deliberately. A temporary directory the user never named is a
+ * directory they never watch, and the two tools that move bytes refuse by naming
+ * this key rather than inventing a destination. Everything else — browsing,
+ * creating a folder, organizing, deleting — works without it.
+ *
+ * The filesystem root is refused here rather than at the first transfer. The
+ * containment check would refuse it anyway, but by accident and with a sentence
+ * that blames the path instead of the configuration; and a boundary that names
+ * the whole disk is not a boundary. The test is structural — a path whose parent
+ * is itself — so it holds on every platform, `C:\` included.
+ */
+function isFilesystemRoot(path: string): boolean {
+  const absolute = resolve(path);
+  return dirname(absolute) === absolute;
+}
+
+/**
+ * How many bytes one fetch may pull down before it is refused.
+ *
+ * A number had to be invented: the session publishes `maxSizeUpload` and nothing
+ * at all in the other direction, so no capability states this. Reusing the upload
+ * ceiling was the tempting shortcut and the wrong one — a file legitimately
+ * stored above it would become unfetchable with no way out. A hundred megabytes
+ * is what a single blob may cost this process, which holds it whole in memory
+ * before it reaches the disk.
+ */
+export const DEFAULT_MAX_DOWNLOAD_SIZE = 100 * 1024 * 1024;
+
+const filesSchema = z
+  .object({
+    localRoot: z
+      .string()
+      .refine(isAbsolute, { message: "files.localRoot must be an absolute path" })
+      .refine((path) => !isFilesystemRoot(path), {
+        message:
+          "files.localRoot cannot be the filesystem root: it would open the whole disk to the " +
+          "assistant. Name a dedicated directory instead.",
+      })
+      .optional(),
+    // Optional rather than `.default(DEFAULT_MAX_DOWNLOAD_SIZE)`, because the
+    // object around it carries `.default({})`: Zod hands that literal back
+    // without parsing it, so an inner default would be typed `number` and be
+    // `undefined` at runtime. The fallback is applied where the value is read.
+    maxDownloadSize: z
+      .int()
+      .min(1)
+      .optional()
+      .describe(
+        "Largest file files_fetch will download, in bytes. Defaults to 100 MB. A node the server " +
+          "declares larger is refused before any byte moves.",
+      ),
+  })
+  .default({});
+
 export const configSchema = z.object({
   /** The JMAP session resource, e.g. https://mail.example.com/.well-known/jmap */
   sessionUrl: z.url(),
@@ -83,6 +141,7 @@ export const configSchema = z.object({
   accountId: z.string().min(1).optional(),
   policy: writePolicySchema.default(DEFAULT_POLICY),
   recipients: recipientsSchema.default(OPEN_RECIPIENTS),
+  files: filesSchema,
   bulkConfirmAbove: z
     .int()
     .min(1)

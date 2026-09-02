@@ -1,7 +1,7 @@
 ---
 title: VCS
 status: draft
-updated: 2026-08-30
+updated: 2026-09-02
 owner: bryan
 ---
 
@@ -23,13 +23,13 @@ owner: bryan
 
 - Convention : Conventional Commits.
 - Format : `type(scope): description`.
-- Règles : impératif, minuscule, sujet court.
+- Règles : impératif, minuscule, sujet tenant sur une seule ligne ; la phrase descriptive est le style de la maison, la limite est la ligne et non un compte de caractères.
 - Scope utile : le domaine touché (`mail`, `calendar`, `registry`, `config`).
 
 ## 🔀 Pull requests
 
 - Base : toujours `main`, aucun préfixe de branche n'en désigne une autre.
-- Ouverture en draft, la promotion est un geste humain.
+- Ouverture prête à relire, jamais en draft : le skill `aidd-vcs` dit l'inverse, cette règle le prime.
 - Aucun template dans le dépôt : celui du skill `aidd-vcs` fait foi.
 - Label de triage déduit du préfixe, posé seulement s'il existe déjà.
 

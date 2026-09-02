@@ -1,12 +1,32 @@
 import type { ZodType, z } from "zod";
 import type { OperationClass, WritePolicy } from "../config/policy.js";
 import type { RecipientScope } from "../config/recipients.js";
+import type { Config } from "../config/schema.js";
+import type { BlobChannel } from "../jmap/blob.js";
 import type { JmapClient } from "../jmap/client.js";
 import type { JmapSession } from "../jmap/session.js";
 
 export interface ToolContext {
   client: JmapClient;
   session: JmapSession;
+  /**
+   * The one way bytes move, in either direction.
+   *
+   * Blobs do not travel over the JMAP endpoint the client owns: they go to the
+   * session's upload and download URLs, under the same bearer token. A tool
+   * given that token to build the request itself would be a tool that could log
+   * it. The channel holds it instead, and hands out two methods.
+   */
+  blobs: BlobChannel;
+  /**
+   * Where on this machine bytes are allowed to land, and to come from.
+   *
+   * The channel above says how bytes move; this says where they may touch the
+   * disk. Carried on the context rather than read from a module-level
+   * configuration so a test can hand a tool a temporary directory without
+   * touching a global.
+   */
+  files: Config["files"];
   /** Who this server may write to, resolved once at startup. */
   recipients: RecipientScope;
   /**

@@ -29,6 +29,7 @@ Refreshed automatically by the memory hook. Do not edit by hand.
 
 Read on demand:
 
+- [internal/tool-budget.md](internal/tool-budget.md)
 - [external/stalwart-jmap.md](external/stalwart-jmap.md)
 <!-- files:end -->
 

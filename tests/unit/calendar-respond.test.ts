@@ -245,7 +245,7 @@ describe("calendar_respond — the perimeter and the question", () => {
 
   it("refuses an organiser outside the perimeter, before any question is asked", async () => {
     const scope = restrictTo({ fromContacts: ["paul@example.org"], allow: [] });
-    const { context, requests } = fakeTransport([INVITED, identities], scope);
+    const { context, requests } = fakeTransport([INVITED, identities], { recipients: scope });
 
     const refusal = await calendarRespond.precheck?.(
       { eventIds: ["ev-invited"], status: "accepted" },
@@ -258,7 +258,7 @@ describe("calendar_respond — the perimeter and the question", () => {
 
   it("lets an organiser inside the perimeter through", async () => {
     const scope = restrictTo({ fromContacts: ["claire@example.org"], allow: [] });
-    const { context } = fakeTransport([INVITED, identities], scope);
+    const { context } = fakeTransport([INVITED, identities], { recipients: scope });
 
     const refusal = await calendarRespond.precheck?.(
       { eventIds: ["ev-invited"], status: "accepted" },
@@ -271,7 +271,7 @@ describe("calendar_respond — the perimeter and the question", () => {
   it("lets a failed read fall through to run rather than refusing on a transport error", async () => {
     const scope = restrictTo({ fromContacts: ["paul@example.org"], allow: [] });
     // The transport answers `{}`, so the read throws inside the hook.
-    const { context } = fakeTransport([], scope);
+    const { context } = fakeTransport([], { recipients: scope });
 
     const refusal = await calendarRespond.precheck?.(
       { eventIds: ["ev-invited"], status: "accepted" },
@@ -282,7 +282,7 @@ describe("calendar_respond — the perimeter and the question", () => {
   });
 
   it("asks about volume past the threshold, and stays quiet under it", async () => {
-    const { context } = fakeTransport([], undefined, 3);
+    const { context } = fakeTransport([], { bulkConfirmAbove: 3 });
     const ids = (count: number) => Array.from({ length: count }, (_, index) => `ev-${index}`);
 
     const under = await calendarRespond.confirmWhen?.(

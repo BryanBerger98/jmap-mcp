@@ -28,11 +28,11 @@ import type {
   ParticipantIdentity,
   ParticipantIdentityGetArguments,
 } from "../../jmap/types/calendars.js";
-import type { GetResponse, Id, SetError, SetResponse } from "../../jmap/types/core.js";
+import type { GetResponse, Id, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CALENDARS, CAPABILITY_CORE } from "../../jmap/types/core.js";
 import type { ToolContext } from "../../registry/define-tool.js";
 import type { BatchSubject } from "../../shared/batch.js";
-import { renderTable } from "../../shared/render.js";
+import { describeSetError, renderTable } from "../../shared/render.js";
 import { CALENDAR_PROPERTIES } from "./event.js";
 
 /** One read per handler invocation, whichever hook asks for the calendars first. */
@@ -445,7 +445,7 @@ export function describeEventOutcome(
 
   const rows = ids.map((id) => {
     const error = refused[id];
-    return { id, outcome: error === undefined ? done : `refused: ${describeEventSetError(error)}` };
+    return { id, outcome: error === undefined ? done : `refused: ${describeSetError(error)}` };
   });
 
   // Counted off the server's answer, never off the cell rendered from it: a
@@ -461,11 +461,6 @@ export function describeEventOutcome(
         : `${succeeded} of ${rows.length} events ${done}, ${failed} refused by the server.`;
 
   return `${headline}\n\n${renderTable(rows, ["id", "outcome"])}`;
-}
-
-/** A `SetError` in one line, wherever a refusal has to be read rather than parsed. */
-export function describeEventSetError(error: SetError): string {
-  return error.description === undefined ? error.type : `${error.type} — ${error.description}`;
 }
 
 /**

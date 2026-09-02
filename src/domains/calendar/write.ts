@@ -11,6 +11,7 @@ import type { GetResponse, Id, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CALENDARS, CAPABILITY_CORE } from "../../jmap/types/core.js";
 import { defineTool, type ToolContext } from "../../registry/define-tool.js";
 import { refuseOversizedBatch } from "../../shared/batch.js";
+import { describeSetError } from "../../shared/render.js";
 import {
   buildEventCreation,
   buildEventPatch,
@@ -18,7 +19,6 @@ import {
   defaultCalendar,
   describeCalendars,
   describeEventOutcome,
-  describeEventSetError,
   describeWhen,
   EVENT_WRITE_PROPERTIES,
   type EventEdit,
@@ -315,8 +315,7 @@ async function createEvent(input: WriteInput, context: ToolContext) {
   const rejected = response.notCreated?.[CREATION_KEY];
 
   if (created === undefined) {
-    const reason =
-      rejected === undefined ? "the server said nothing" : describeEventSetError(rejected);
+    const reason = rejected === undefined ? "the server said nothing" : describeSetError(rejected);
     return { text: `No event was created: ${reason}.` };
   }
 

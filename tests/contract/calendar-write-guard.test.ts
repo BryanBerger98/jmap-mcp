@@ -84,11 +84,10 @@ function writingSurface(
   capabilities: Record<string, unknown> | null,
   options: { bulkConfirmAbove?: number; recipients?: RecipientScope } = {},
 ) {
-  const { context, requests } = fakeTransport(
-    responses,
-    options.recipients ?? OPEN_SCOPE,
-    options.bulkConfirmAbove,
-  );
+  const { context, requests } = fakeTransport(responses, {
+    recipients: options.recipients ?? OPEN_SCOPE,
+    bulkConfirmAbove: options.bulkConfirmAbove,
+  });
   const handlers = new Map<string, Handler>();
 
   compose({

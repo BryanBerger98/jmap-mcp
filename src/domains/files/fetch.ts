@@ -1,0 +1,157 @@
+import { z } from "zod";
+import { defineTool } from "../../registry/define-tool.js";
+import { renderFields } from "../../shared/render.js";
+import {
+  MAX_DOWNLOAD_SIZE_KEY,
+  MISSING_ROOT_REFUSAL,
+  maxDownloadSize,
+  refuseUnusableRoot,
+  resolveWithinRoot,
+  statLocalFile,
+  writeWithoutOverwrite,
+} from "./local.js";
+import { FALLBACK_MIME } from "./name.js";
+import { describeNodes, formatSize, isDirectory, resolveNodes } from "./node.js";
+
+const inputSchema = z.strictObject({
+  id: z
+    .string()
+    .describe("Id of a file node, as files_browse returns it. A folder carries no bytes."),
+  saveAs: z
+    .string()
+    .optional()
+    .describe(
+      "Name, or path relative to the configured local directory, to write the file at. " +
+        "Defaults to the name the node carries. An existing file is never overwritten.",
+    ),
+});
+
+export const filesFetch = defineTool({
+  name: "files_fetch",
+  title: "Fetch a file",
+  description:
+    "Downloads one file from the account and writes it to the local directory this server was " +
+    "configured with, then answers with the path it wrote, the size and the MIME type. " +
+    "The bytes never travel through this conversation: there is no excerpt, no preview and no " +
+    "base64 in the answer, whatever the file is. Open the path to see the content. " +
+    "Only paths under the configured directory are writable, and an existing file is never " +
+    "overwritten: pass saveAs with another name instead.",
+  inputSchema,
+  classes: ["read"],
+  classify: () => "read",
+  summarize: (input) => `Fetch file node ${input.id} to the local directory.`,
+  // Asked before anything else: a fetch with nowhere to write is refused whatever
+  // the node turns out to be, and reading it first would spend a round trip on a
+  // call that was already lost. Unnamed and named-but-absent are both nowhere.
+  precheck: (_input, context) => refuseUnusableRoot(context.files.localRoot),
+  run: async (input, context) => {
+    const { localRoot } = context.files;
+    if (localRoot === undefined) {
+      // Unreachable through the registry, which ran `precheck` first. Kept
+      // because `run` cannot narrow the option from a check made elsewhere, and
+      // an absent root must never reach the resolver.
+      return { text: MISSING_ROOT_REFUSAL };
+    }
+
+    // Repeated from the `precheck` and kept ahead of the download on purpose:
+    // the root may have gone between the two, and the whole point of asking is
+    // to not spend a full transfer discovering it.
+    const unusableRoot = await refuseUnusableRoot(localRoot);
+    if (unusableRoot !== undefined) return { text: unusableRoot };
+
+    const [node] = await resolveNodes([input.id], context);
+    if (node === undefined) {
+      return {
+        text: `Refused: no file node has the id ${input.id}. Run files_browse to list what the account holds.`,
+      };
+    }
+
+    const named = describeNodes([node]);
+    if (isDirectory(node)) {
+      return {
+        text:
+          `Refused: ${named} is a folder, and a folder holds no bytes to fetch. Browse it with ` +
+          "files_browse and fetch one of the files inside it.",
+      };
+    }
+
+    const { blobId } = node;
+    if (blobId === undefined || blobId === null) {
+      return {
+        text: `Refused: ${named} carries no blobId, so the server has no content to hand back for it.`,
+      };
+    }
+
+    // Asked here, where `size` is already in hand from the node that was just
+    // read, so the ceiling costs no round trip. The deposit side refuses before
+    // it transfers rather than failing halfway; a download had no such ceiling,
+    // and `blobs.download` holds the whole blob in memory before the disk sees
+    // any of it. A node whose `size` the server declines to state — the property
+    // is nullable — is downloaded anyway: refusing on a number nobody gave would
+    // make an unmeasured file unreachable, which is worse than the memory this
+    // guards.
+    const oversized = refuseOversizedDownload(node.size, named, maxDownloadSize(context.files));
+    if (oversized !== undefined) return { text: oversized };
+
+    const destination = await resolveWithinRoot(input.saveAs ?? node.name ?? node.id, localRoot);
+    if (!destination.ok) return { text: destination.refusal };
+
+    // Checked before the transfer and again by the exclusive write below. The
+    // first check is the courteous one — downloading megabytes only to refuse to
+    // write them wastes the round trip; the second is the honest one, since
+    // anything may land on that path in between.
+    const occupied = await statLocalFile(destination.path);
+    if (occupied.kind === "unreadable") {
+      // Neither free nor taken: the disk would not say. Refused here rather than
+      // after the download, which is the round trip this check exists to save.
+      return {
+        text:
+          `Refused: ${destination.path} could not be examined — ${occupied.reason}. Nothing was ` +
+          "transferred. Check the permissions on that path, or pass saveAs with another name.",
+      };
+    }
+    if (occupied.kind !== "missing") {
+      return {
+        text:
+          `Refused: ${destination.path} already exists and this server never overwrites a local ` +
+          "file. Pass saveAs with another name, or move the existing file aside.",
+      };
+    }
+
+    // Borrowed from the upload side rather than declared again: the fallback is
+    // what the blob channel is told to call content whose type nobody states, and
+    // octet-stream is that default in both directions.
+    const bytes = await context.blobs.download(
+      blobId,
+      node.name ?? node.id,
+      node.type ?? FALLBACK_MIME,
+    );
+
+    const failed = await writeWithoutOverwrite(destination.path, bytes);
+    if (failed !== undefined) return { text: failed };
+
+    return {
+      text: renderFields({
+        saved: destination.path,
+        size: `${bytes.byteLength} bytes (${formatSize(bytes.byteLength)})`,
+        mime: node.type,
+        source: named,
+      }),
+    };
+  },
+});
+
+/** A file this server will not pull into memory, refused with the number to raise. */
+function refuseOversizedDownload(
+  size: number | null | undefined,
+  named: string,
+  ceiling: number,
+): string | undefined {
+  if (size === null || size === undefined || size <= ceiling) return undefined;
+
+  return (
+    `Refused: ${named} is ${formatSize(size)} and this server fetches at most ${formatSize(ceiling)} ` +
+    `per file (${ceiling} bytes). Nothing was transferred. Raise ${MAX_DOWNLOAD_SIZE_KEY} in your ` +
+    "configuration to fetch it."
+  );
+}
