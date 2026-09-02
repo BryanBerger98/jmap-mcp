@@ -62,6 +62,11 @@ export interface FileNode {
   executable?: boolean;
   role?: string | null;
   myRights?: FilesRights;
+  /**
+   * Beneficiary principal id to the rights it holds. Only the sharing domain
+   * asks for it; every other read of a node leaves it out.
+   */
+  shareWith?: Record<Id, FilesRights>;
 }
 
 /**

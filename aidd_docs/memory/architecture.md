@@ -120,7 +120,7 @@ Deux règles du patch se tiennent avant la requête, pas sur le fil.
 Un patch préfixe d'un autre est invalide (RFC 8620 §5.3) : remplacer une famille de champs et l'amender dans le même appel est refusé ici plutôt que renvoyé en `invalidPatch`.
 Les clés d'une entry-map sont opaques, donc une adresse se retire par sa valeur et jamais par sa clé, que le serveur choisit.
 
-La non-cascade porte désormais deux drapeaux, `onDestroyRemoveEmails` sur un dossier et `onDestroyRemoveContents` sur un carnet.
+La non-cascade porte désormais quatre drapeaux : `onDestroyRemoveEmails` sur un dossier, `onDestroyRemoveContents` sur un carnet, `onDestroyRemoveChildren` sur un nœud de fichier, et `onDestroyRemoveEvents` sur un agenda, ce dernier n'étant écrit que par l'émetteur de partage.
 Le second est obligatoire dans le type des arguments : une branche qui l'oublierait ne compile pas, et le contrat le vérifie quand même, pour le jour où le type serait assoupli.
 
 Le périmètre des destinataires ne s'élargit pas en cours de session.
@@ -128,8 +128,10 @@ Créer une fiche avec `contacts_write` n'ouvre rien : le périmètre est résolu
 
 ## 📅 Ce qu'une disponibilité traverse
 
-`Principal/getAvailability` est le seul chemin propre vers une disponibilité, et Stalwart le referme par défaut : sans `allowDirectoryQueries`, la permission est retirée du jeton et la méthode répond `forbidden`.
-La capacité est pourtant annoncée sans condition, donc le gating par capacité ne protège de rien ici : seul un repli tient la promesse de l'outil.
+`Principal/getAvailability` est le seul chemin propre vers une disponibilité, et son refus est plus rare que ce document l'écrivait.
+Le verrou est un ET et non le réglage seul : `principal/availability.rs:65-66` ne répond `forbidden` que si `allow_directory_query` est faux et que le jeton n'a pas non plus `JmapPrincipalGetAvailability`.
+Or le rôle utilisateur par défaut reçoit toute permission dont le nom commence par `jmap` — `common/src/auth/permissions.rs:263-274` — donc un compte ordinaire franchit la méthode même sur un serveur qui n'autorise pas les requêtes d'annuaire.
+Le repli reste écrit pour le compte à qui un administrateur a retiré cette permission-là, et la capacité étant annoncée sans condition, le gating par capacité ne protège de rien ici.
 
 ```txt
 Principal/getAvailability
@@ -182,7 +184,7 @@ Le contrôle lexical arrête `../`, la résolution réelle arrête le lien symbo
 
 ## 🌳 La cascade autorisée
 
-`onDestroyRemoveChildren` est le premier des trois drapeaux de cascade à pouvoir valoir vrai, et la raison est écrite ici plutôt que sous-entendue.
+`onDestroyRemoveChildren` est le seul des quatre drapeaux de cascade à pouvoir valoir vrai, et la raison est écrite ici plutôt que sous-entendue.
 Un dossier ne se vide pas comme un carnet : il n'y a pas d'outil pour supprimer cent fichiers un par un, et refuser toute cascade ferait de la suppression d'une arborescence une impasse.
 
 Ce qui rend la cascade acceptable n'est pas le drapeau, c'est ce qui le précède.
@@ -220,12 +222,35 @@ Lire son nom demanderait un `SieveScript/get`, hors de portée d'un manifeste ga
 Le texte d'un script traverse la conversation là où les octets d'un fichier ne le font jamais, et l'écart est voulu : un fichier est un contenu que l'utilisateur possède, un script est un texte qu'il rédige, relit et corrige.
 Le stockage porte un `confirmWhen` pour la même raison : écraser le corps du script actif change le courrier immédiatement, ce que la classe `draft` n'annonce pas.
 
+## 🔑 Ce qu'un octroi traverse
+
+Ouvrir un accès est la seule écriture du projet dont l'annulation ne restaure pas l'état antérieur.
+Un message replacé dans son dossier y est de nouveau ; un accès révoqué ne l'est pas, ce qui a été lu pendant qu'il était ouvert l'ayant été, et rien ici ne le rappelle.
+Cette phrase est dans la confirmation et pas seulement ici : c'est le fait qui manque à la personne qui arbitre.
+
+La classe se lit sur l'action et jamais sur le nom de l'outil.
+`grant` est un `send` — il remet quelque chose à un autre compte, et le serveur peut lever une notification chez lui.
+`revoke` et `dismiss` sont des `destroy`, l'un retirant un accès, l'autre le seul témoin qu'un accès ait bougé.
+
+```txt
+ids → plafond de lot → capacité du type → vocabulaire des droits → bénéficiaire → myRights.mayShare → question → set
+```
+
+L'ordre du `precheck` est celui-là, et il refuse avant de demander pour la raison qui vaut partout : un appel que le serveur refusera quelle que soit la réponse ne se fait pas confirmer.
+
+Le patch par chemin est la seule forme sûre, et il en a exactement deux.
+`shareWith/{principalId}/{droit}` à un booléen déplace un droit et laisse le reste de la carte du bénéficiaire où il est ; `shareWith/{principalId}` à `null` retire le bénéficiaire entier — `api/acl.rs:142-144`.
+Écrire la carte `shareWith` complète effacerait le tiers que l'appel ne nomme pas, ce qu'aucune confirmation parlant d'un seul bénéficiaire n'a annoncé.
+
+Les deux formes ne voyagent jamais ensemble, et un chemin préfixe d'un autre est refusé côté client plutôt que renvoyé en `invalidPatch` (RFC 8620 §5.3).
+Ne nommer aucun droit sur une révocation n'est pas une révocation vide : c'est l'entrée entière qui part, et la phrase de confirmation dit lequel des deux gestes a lieu.
+
 ## ⚠️ Pièges
 
 - Le niveau `confirm` s'appuie sur MRTR. Quand le client ne l'expose pas, l'outil refuse : jamais d'exécution silencieuse.
 - Claude Desktop ne supporte pas l'élicitation. Toute opération `send` ou `destroy` y échoue par conception.
 - Les annotations MCP, `destructiveHint` en tête, sont déclarées non fiables. Elles documentent, elles ne gardent rien.
-- La dégradation se voit dès trente outils exposés. La cible est vingt-six, la composition en enregistre vingt-huit, et `internal/tool-budget.md` porte ce dépassement plutôt que de l'arrondir.
+- La dégradation se voit dès trente outils exposés. La cible est vingt-six, la composition en enregistre vingt-neuf, et `internal/tool-budget.md` porte ce dépassement plutôt que de l'arrondir.
 - La classe d'opération ne se lit pas sur le nom de la méthode. Un argument suffit à faire basculer une écriture en destruction ou en envoi, dans les six domaines.
 - Une opération destructrice ne prend jamais un filtre en entrée. Stalwart abandonne silencieusement une condition `header` mal formée, et la requête rend alors plus de résultats que demandé.
 - Supprimer un dossier ne supprime jamais son contenu. `onDestroyRemoveEmails` est écrit à faux sur chaque `Mailbox/set` émis, y compris ceux qui ne détruisent rien : un défaut serveur n'est pas une garantie, et l'absence de l'argument ne se voit sur aucun test unitaire.
@@ -249,3 +274,7 @@ Le stockage porte un `confirmWhen` pour la même raison : écraser le corps du s
 - Détruire le script `vacation` n'est gardé que par le client. Son écriture et sa création sont refusées par le serveur, mais `sieve/set.rs:329-351` ne teste que la condition du script actif : c'est le seul endroit du module où rien ne rattraperait l'oubli.
 - Les codes de refus de Sieve ne sont pas ceux de la RFC. Le fil rend `invalidScript` et `scriptIsActive` là où RFC 9661 nomme `invalidSieve` et `sieveIsActive`, donc un mapping écrit sur la RFC ne reconnaîtrait aucun des deux.
 - `isEnabled` ne retombe jamais seul. `vacation/set.rs:144` l'initialise depuis le script actif et seule une propriété explicite le change : l'écrire à chaque changement de texte confondrait reformuler l'absence et décider qu'elle répond.
+- Deux droits d'une boîte ne se distinguent pas, ni deux droits d'un agenda. `api/acl.rs:196` fait retomber `maySetSeen` et `maySetKeywords` sur la même permission interne, et `mayWriteAll` d'un agenda emporte `mayDelete` : accorder l'un accorde l'autre, et la lecture les rend tous les deux.
+- Un nom de droit que le type ne connaît pas, écrit à `false`, disparaît sans erreur. `jmap-tools/src/json/value.rs:236-242` ne garde que les entrées valant `true`, donc une révocation mal orthographiée réussit sans rien révoquer : le vocabulaire est vérifié côté client, jamais laissé au serveur.
+- Le nombre de bénéficiaires par objet est plafonné à dix par défaut. `crates/registry/src/schema/structs_impl.rs:36076-36083` pose ce défaut, `crates/jmap/src/api/acl.rs:242-245` l'applique sous le nom `max_shares_per_item` : un octroi peut échouer sur un objet déjà partagé sans que rien dans l'appel l'annonce.
+- `changedBy.name` d'une notification n'est pas un nom d'affichage garanti. `sn-get.rs:205-206` rend la description de l'annuaire et retombe sur l'identifiant de connexion, donc ce champ n'est jamais vide mais peut ne porter qu'une adresse : le rendu ne suppose ni l'un ni l'autre.

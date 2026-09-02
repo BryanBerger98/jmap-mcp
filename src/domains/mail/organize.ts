@@ -1,161 +1,218 @@
-import type { GetResponse, Id, SetError, SetResponse } from "../../jmap/types/core.js";
+import { z } from "zod";
+import type { Id, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CORE, CAPABILITY_MAIL } from "../../jmap/types/core.js";
-import type { Mailbox, MailboxGetArguments } from "../../jmap/types/mail.js";
-import type { ToolContext } from "../../registry/define-tool.js";
+import type { Email, EmailSetArguments, EmailSetUpdate, Mailbox } from "../../jmap/types/mail.js";
+import { STANDARD_KEYWORDS, type StandardKeyword } from "../../jmap/types/mail.js";
+import { defineTool, type ToolContext } from "../../registry/define-tool.js";
 import {
-  type BatchSubject,
-  MAX_IDS_PER_CALL,
-  refuseOversizedBatch as refuseBatch,
-} from "../../shared/batch.js";
-import { describeSetError, renderTable } from "../../shared/render.js";
+  describeUpdateOutcome,
+  refuseOversizedBatch,
+  resolveMailboxes,
+  unknownMailbox,
+} from "./filing.js";
 
-/*
- * What filing messages takes, shared by the tools that do it.
+/**
+ * Filing a batch of messages, and marking one.
  *
- * `mail_move`, `mail_flag` and `mail_delete` refuse the same batches, read the
- * same folder list and account for the same partial outcomes. Those pieces live
- * here rather than in whichever tool happened to need them first.
+ * Two verbs close enough to share a tool: the same class, the same batch of
+ * ids, nothing either of them does that cannot be done back. What separates
+ * them is not what they write but what they owe the user before writing it,
+ * and that distinction is the whole reason this file is worth reading.
+ *
+ * A move at scale is a state nobody can reconstruct: the messages came from
+ * folders the call never recorded, and moving them back means knowing where
+ * back was. A marking at scale is undone by the opposite marking, on the same
+ * ids, in one more call. So the volume escalates a move and never a flag, and
+ * `confirmWhen` says so by branching on the action.
  */
 
 /**
- * The shared ceiling, re-exported under the name the mail tools already call it.
+ * Only the keywords RFC 8621 gives a meaning to.
  *
- * It lives in `shared/` now that contacts write too, and is named here so no
- * mail module has to know that a second domain exists.
+ * A free-form string would let a typo invent a keyword the mail client never
+ * shows, so the mistake would be invisible rather than reported. `$draft` is
+ * absent on purpose: it is what tells the server a message is sendable, and
+ * neither setting it nor clearing it is a marking.
  */
-export { MAX_IDS_PER_CALL };
+const keyword = z.enum(STANDARD_KEYWORDS);
 
-/** What a mail batch is made of, for the refusals below. */
-const MESSAGES: BatchSubject = { noun: "message", discoveredBy: "mail_search" };
+const inputSchema = z
+  .object({
+    action: z
+      .enum(["move", "flag"])
+      .describe(
+        "What to do: `move` files the messages into one folder, `flag` sets or clears keywords " +
+          "on them without moving anything.",
+      ),
+    ids: z
+      .array(z.string())
+      .describe("The message ids to act on, as returned by mail_search or mail_read."),
+    mailboxId: z
+      .string()
+      .optional()
+      .describe(
+        "On move, the id of the destination folder, as returned by mail_folders. Required on move.",
+      ),
+    add: z
+      .array(keyword)
+      .optional()
+      .describe('On flag, keywords to set, written without their leading `$`. Example: ["seen"].'),
+    remove: z
+      .array(keyword)
+      .optional()
+      .describe("On flag, keywords to clear, written without their leading `$`."),
+  })
+  .refine((input) => input.action !== "move" || input.mailboxId !== undefined, {
+    message: "Name the destination folder with `mailboxId`.",
+    path: ["mailboxId"],
+  })
+  .refine(
+    (input) =>
+      input.action !== "flag" || (input.add?.length ?? 0) + (input.remove?.length ?? 0) > 0,
+    {
+      message:
+        "Name at least one keyword to add or to remove, otherwise there is nothing to change.",
+      path: ["add"],
+    },
+  );
 
-/** Only what a refusal, a confirmation and a rendered outcome name. */
-export const ORGANIZE_MAILBOX_PROPERTIES = [
-  "id",
-  "name",
-  "parentId",
-  "role",
-  "totalEmails",
-] as const;
+export const mailOrganize = defineTool({
+  name: "mail_organize",
+  title: "Move or mark messages",
+  description:
+    "Files the named messages into one folder, or sets and clears their keywords: read, flagged, " +
+    "answered, forwarded, junk, not junk, phishing. " +
+    "A move takes each message out of every folder it was in — it files a message, it does not " +
+    "add a copy alongside the original. A marking moves nothing: the messages stay where they are. " +
+    "It acts on message ids only — run mail_search first and pass the ids it returns, because a " +
+    "search rerun here could match messages you never saw. " +
+    "Both directions are reversible, but a large move asks first while a marking never does.",
+  inputSchema,
+  // Reversible and never sends, whichever action is asked for: what makes a
+  // large move worth a question is its volume, and that is the escalation's
+  // business rather than the class's.
+  classes: ["draft"],
+  classify: () => "draft",
+  summarize: async (input, context) =>
+    input.action === "move"
+      ? `Move ${countOf(input.ids)} into ${await nameOf(input.mailboxId, context)}, out of every folder they are in now.`
+      : `${sentenceOf(input.add ?? [], input.remove ?? [])} on ${countOf(input.ids)}.`,
+  precheck: async (input, context) => {
+    const oversized = refuseOversizedBatch(input.ids);
+    if (oversized !== undefined) return oversized;
 
-/** One read per handler invocation, whichever hook asks for it first. */
-const MAILBOXES_KEY = "mail:mailboxes";
+    if (input.action !== "move") return undefined;
+    if (input.mailboxId === undefined) {
+      return "Refused: name the destination folder with `mailboxId` to move messages.";
+    }
 
-/**
- * The refusal an unusable batch of messages raises, or `undefined` to go ahead.
- *
- * A thin naming of the shared check, so the three filing tools keep calling it
- * without repeating what a mail batch is made of at each call site.
- */
-export function refuseOversizedBatch(ids: readonly Id[]): string | undefined {
-  return refuseBatch(ids, MESSAGES);
+    const target = await findMailbox(input.mailboxId, context);
+    return target === undefined ? unknownMailbox(input.mailboxId) : undefined;
+  },
+  // The first escalation in this project to branch on an action rather than on
+  // a volume alone, and the branch is the point of the merge. A marking at any
+  // scale is undone by the opposite marking on the same ids; a move at scale
+  // leaves no record of the folders it emptied, so putting it back means
+  // knowing something the call never wrote down.
+  confirmWhen: async (input, context) =>
+    input.action === "move" && input.ids.length > context.bulkConfirmAbove
+      ? `This moves ${input.ids.length} messages into ${await nameOf(input.mailboxId, context)} at once, ` +
+        `past the ${context.bulkConfirmAbove} this server files without asking.`
+      : undefined,
+  run: async (input, context) =>
+    input.action === "move" ? move(input, context) : flag(input, context),
+});
+
+interface OrganizeInput {
+  ids: string[];
+  mailboxId?: string | undefined;
+  add?: StandardKeyword[] | undefined;
+  remove?: StandardKeyword[] | undefined;
 }
 
-/**
- * Every folder of the account, read once per handler invocation.
- *
- * The whole list rather than the one folder a call names: naming the folder a
- * message came from, refusing a duplicate name, or walking a parent chain all
- * need the neighbours, and asking for them one by one would spend a round trip
- * each time.
- */
-export function resolveMailboxes(context: ToolContext): Promise<Mailbox[]> {
-  return context.once(MAILBOXES_KEY, async () => {
-    const args: MailboxGetArguments = {
-      accountId: context.session.accountId,
-      ids: null,
-      properties: [...ORGANIZE_MAILBOX_PROPERTIES],
-    };
+async function move(input: OrganizeInput, context: ToolContext): Promise<{ text: string }> {
+  if (input.mailboxId === undefined) {
+    return { text: "Refused: name the destination folder with `mailboxId` to move messages." };
+  }
 
-    const response = await context.client.request<GetResponse<Mailbox>>(
-      [CAPABILITY_CORE, CAPABILITY_MAIL],
-      ["Mailbox/get", args, "0"],
-    );
+  // Read before writing, and not only because `precheck` already looked: the
+  // perimeter check in `mail_send` is redone in `run` for the same reason —
+  // a hook that swallows a failed read must not have the last word.
+  const target = await findMailbox(input.mailboxId, context);
+  if (target === undefined) {
+    return { text: unknownMailbox(input.mailboxId) };
+  }
 
-    return response.list;
-  });
+  // The whole property, not a `mailboxIds/<id>` path: patching one entry adds
+  // the folder and leaves the message where it was, which is a copy, not a move.
+  const patch: EmailSetUpdate = { mailboxIds: { [input.mailboxId]: true } };
+
+  const response = await write(patch, input.ids, context);
+  return { text: describeUpdateOutcome(response, input.ids, `moved to ${target.name}`) };
 }
 
-/**
- * The folder the account puts deleted messages in, or `undefined`.
- *
- * Found by its role and never by its name: a French account calls it Corbeille,
- * and a folder someone named "Trash" by hand is not the one the mail client
- * empties. A missing role is a refusal upstream, never a folder created here —
- * `mail_delete` does not write in the tree.
- */
-export async function resolveTrash(context: ToolContext): Promise<Mailbox | undefined> {
-  const mailboxes = await resolveMailboxes(context);
-  return mailboxes.find((mailbox) => mailbox.role === "trash");
+async function flag(input: OrganizeInput, context: ToolContext): Promise<{ text: string }> {
+  const add = input.add ?? [];
+  const remove = input.remove ?? [];
+
+  // Removals first: a keyword named in both lists ends up set, which is the
+  // reading that matches "mark these as read" over any competing intent.
+  const patch: EmailSetUpdate = {
+    ...Object.fromEntries(remove.map((word) => [`keywords/$${word}`, null])),
+    ...Object.fromEntries(add.map((word) => [`keywords/$${word}`, true])),
+  };
+
+  const response = await write(patch, input.ids, context);
+  return { text: describeUpdateOutcome(response, input.ids, sentenceOf(add, remove)) };
 }
 
-/**
- * The refusal a folder the account does not hold raises, in its own words.
- *
- * `consequence` carries what the caller loses, because the same missing folder
- * means a different thing each time it is named: a destination nothing can be
- * filed into, a parent no folder can sit under, a folder there is nothing to
- * rename. The default states the filing case, which is the common one.
- */
-export function unknownMailbox(mailboxId: Id, consequence = "nothing can be filed there"): string {
-  return (
-    `Refused: folder ${mailboxId} is not in this account, so ${consequence}. ` +
-    "Run mail_folders to see the folders that exist and their ids."
+/** The same patch on every id: one `Email/set`, whichever action built it. */
+function write(
+  patch: EmailSetUpdate,
+  ids: readonly Id[],
+  context: ToolContext,
+): Promise<SetResponse<Email>> {
+  const args: EmailSetArguments = {
+    accountId: context.session.accountId,
+    update: Object.fromEntries(ids.map((id) => [id, patch])),
+  };
+
+  return context.client.request<SetResponse<Email>>(
+    [CAPABILITY_CORE, CAPABILITY_MAIL],
+    ["Email/set", args, "0"],
   );
 }
 
+function countOf(ids: readonly Id[]): string {
+  return `${ids.length} ${ids.length === 1 ? "message" : "messages"}`;
+}
+
+async function findMailbox(mailboxId: Id, context: ToolContext): Promise<Mailbox | undefined> {
+  const mailboxes = await resolveMailboxes(context);
+  return mailboxes.find((mailbox) => mailbox.id === mailboxId);
+}
+
 /**
- * Accounts for an `Email/set` update, id by id.
+ * The folder's name for a sentence a person reads, falling back on the id.
  *
- * `done` reads as a past participle — "moved to Archive", "marked $seen" — so
- * the same rendering serves every tool. An id absent from `notUpdated` counts
- * as done: the server names what it refused, and reading success off `updated`
- * instead would report a message as untouched on a server that answers with a
- * null patch.
+ * A summary is written before the refusals run, so it has to survive a folder
+ * that does not exist rather than assume `precheck` already caught it.
  */
-export function describeUpdateOutcome(
-  response: SetResponse<unknown>,
-  ids: readonly Id[],
-  done: string,
-): string {
-  return describeOutcome(ids, response.notUpdated ?? {}, done);
+async function nameOf(mailboxId: Id | undefined, context: ToolContext): Promise<string> {
+  if (mailboxId === undefined) return "no folder";
+
+  const target = await findMailbox(mailboxId, context);
+  return target === undefined ? mailboxId : target.name;
 }
 
-/** The same account, for the `destroy` half of an `Email/set`. */
-export function describeDestroyOutcome(
-  response: SetResponse<unknown>,
-  ids: readonly Id[],
-  done = "destroyed",
-): string {
-  return describeOutcome(ids, response.notDestroyed ?? {}, done);
+/** "marked $seen and $flagged, cleared $junk" — the same words in both places. */
+function sentenceOf(add: readonly StandardKeyword[], remove: readonly StandardKeyword[]): string {
+  const parts: string[] = [];
+  if (add.length > 0) parts.push(`marked ${dollarize(add)}`);
+  if (remove.length > 0) parts.push(`cleared ${dollarize(remove)}`);
+  return parts.join(", ");
 }
 
-/**
- * The headline never claims a success the server did not grant: a batch the
- * server refused in part is reported as a part, and one it refused whole is
- * reported as nothing done at all.
- */
-function describeOutcome(ids: readonly Id[], refused: Record<Id, SetError>, done: string): string {
-  const rows = ids.map((id) => {
-    const error = refused[id];
-    return { id, outcome: error === undefined ? done : `refused: ${describeSetError(error)}` };
-  });
-
-  // Counted off the server's answer, never off the cell that was rendered from
-  // it: a `done` wording that happened to read like a refusal would otherwise
-  // move the headline.
-  const failed = ids.filter((id) => refused[id] !== undefined).length;
-  const succeeded = rows.length - failed;
-
-  const headline =
-    failed === 0
-      ? `${succeeded} ${plural(succeeded)} ${done}.`
-      : succeeded === 0
-        ? `No message was ${done}: the mail server refused all ${rows.length}.`
-        : `${succeeded} of ${rows.length} messages ${done}, ${failed} refused by the mail server.`;
-
-  return `${headline}\n\n${renderTable(rows, ["id", "outcome"])}`;
-}
-
-function plural(count: number): string {
-  return count === 1 ? "message" : "messages";
+function dollarize(keywords: readonly StandardKeyword[]): string {
+  return keywords.map((word) => `$${word}`).join(" and ");
 }

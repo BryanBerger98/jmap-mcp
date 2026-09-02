@@ -233,13 +233,20 @@ Ni corbeille ni versioning dans la spécification.
 `ShareNotification/set` n'accepte que `destroy`.
 Le partage lui-même passe par la propriété `shareWith`, portée par `Mailbox`, `Calendar`, `AddressBook` et `FileNode`.
 
-Les droits diffèrent par type d'objet, mais les quatre exposent `mayShare`.
-`Principal/query` retourne zéro résultat tant que `allowDirectoryQueries` reste désactivé.
+Les droits diffèrent par type d'objet — dix pour une boîte, huit pour un agenda, six pour un nœud de fichier, quatre pour un carnet — et les quatre jeux ont `mayShare` et `mayDelete` en commun.
+Deux droits qui retombent sur la même permission interne ne se distinguent pas à la lecture : `api/acl.rs:196` rend un droit vrai si toutes ses ACL sont détenues, donc `maySetSeen` et `maySetKeywords` d'une boîte bougent ensemble, comme `mayWriteAll` et `mayDelete` d'un agenda.
+
+`allowDirectoryQueries` désactivé ne ferme pas `Principal/query` à lui seul.
+Le refus demande aussi que le jeton n'ait pas `JmapPrincipalQuery` — `principal/query.rs:44-45` — or le rôle utilisateur par défaut reçoit toute permission dont le nom commence par `jmap` — `common/src/auth/permissions.rs:263-274`.
+Le même ET gouverne `Principal/get` et `Principal/getAvailability`.
+
+Le nombre de bénéficiaires par objet est plafonné, à dix par défaut : `max_shares_per_item`, posé en `crates/registry/src/schema/structs_impl.rs:36076-36083` et appliqué en `crates/jmap/src/api/acl.rs:242-245`.
 
 **Asymétrie à connaître**
 
 Aucune méthode de révocation n'existe : révoquer, c'est retirer une clé de la map `shareWith`.
 Une écriture qui remplace la map au lieu de la patcher révoque silencieusement tous les autres partages.
+La carte des droits est dépliée en ne gardant que les entrées valant `true` — `jmap-tools/src/json/value.rs:236-242` — donc un nom de droit que le type ne connaît pas, écrit à `false`, ne produit aucune erreur : une révocation mal orthographiée réussit sans rien révoquer.
 
 ## ⚙️ Sieve, RFC 9661
 

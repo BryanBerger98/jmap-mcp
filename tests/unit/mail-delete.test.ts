@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mailDelete } from "../../src/domains/mail/delete.js";
-import { MAX_IDS_PER_CALL } from "../../src/domains/mail/organize.js";
+import { MAX_IDS_PER_CALL } from "../../src/domains/mail/filing.js";
 import type { GetResponse, SetResponse } from "../../src/jmap/types/core.js";
 import type { Email, Mailbox } from "../../src/jmap/types/mail.js";
 import { fakeTransport, loadFixture } from "../fixtures/client.js";

@@ -66,6 +66,17 @@ const EVERY_NODE_DESTRUCTION: NodeInput[] = [
 
 const SOURCES = new URL("../../src/", import.meta.url);
 
+/** The one module allowed to write a share into an object of another domain. */
+const SHARING_EMITTER = "domains/sharing/edit.ts";
+
+/** Where each `/set` method belongs, so a foreign emitter stands out by path. */
+const HOME_OF: Record<string, string> = {
+  "Mailbox/set": "domains/mail/",
+  "Calendar/set": "domains/calendar/",
+  "AddressBook/set": "domains/contacts/",
+  "FileNode/set": "domains/files/",
+};
+
 /**
  * A cascade written to anything but `false`.
  *
@@ -153,11 +164,15 @@ async function emitBook(input: BookInput): Promise<Invocation[]> {
 
 describe("no folder write can take messages with it", () => {
   it("is emitted from one place only, which the cases below cover", () => {
-    // The cases are written by hand against a single module. They only stand for
-    // *every* emitted `Mailbox/set` for as long as that module is the only place
-    // naming the method: this goes red the day a second emitter appears, and the
-    // three assertions under it stop being exhaustive by coincidence of surface.
-    expect(filesNaming("Mailbox/set")).toEqual(["domains/mail/folder-manage.ts"]);
+    // The cases are written by hand against `folder-manage.ts`. They only stand
+    // for *every* emitted `Mailbox/set` while the list below is exactly these
+    // two: a third emitter goes red here, and the assertions under it stop being
+    // exhaustive by coincidence of surface. The sharing one is a foreign writer,
+    // held to the same flag by `sharing-write-guard.test.ts` over its own surface.
+    expect(filesNaming("Mailbox/set")).toEqual([
+      "domains/mail/folder-manage.ts",
+      "domains/sharing/edit.ts",
+    ]);
   });
 
   it("states the cascade, false, on every action", async () => {
@@ -212,8 +227,11 @@ describe("no folder write can take messages with it", () => {
 describe("no address book write can take contact cards with it", () => {
   it("is emitted from one place only, which the cases below cover", () => {
     // Same reasoning as the folder above: the hand-written cases stand for every
-    // emitted `AddressBook/set` only while one module names the method.
-    expect(filesNaming("AddressBook/set")).toEqual(["domains/contacts/book-manage.ts"]);
+    // emitted `AddressBook/set` only while these two are the whole list.
+    expect(filesNaming("AddressBook/set")).toEqual([
+      "domains/contacts/book-manage.ts",
+      "domains/sharing/edit.ts",
+    ]);
   });
 
   it("states the cascade, false, on every action", async () => {
@@ -266,13 +284,16 @@ describe("no address book write can take contact cards with it", () => {
 });
 
 describe("no file write takes a subtree with it unless it was asked to", () => {
-  it("is emitted from two places, both building their arguments in one factory", () => {
-    // Two modules name the method, and the hand-written cases below cover both.
-    // What keeps them exhaustive is the second assertion: neither writes the
-    // arguments itself, so the flag and `onExists` are decided in one place.
+  it("is emitted from three places, all building their arguments in one factory", () => {
+    // Three modules name the method, and the hand-written cases below cover the
+    // two that live in this domain. What keeps them exhaustive is the second
+    // assertion: none of the three writes the arguments itself, so the flag and
+    // `onExists` are decided in one place — including for the foreign writer,
+    // which shares a node's `shareWith` and delegates the rest.
     expect(filesNaming("FileNode/set")).toEqual([
       "domains/files/delete.ts",
       "domains/files/write.ts",
+      "domains/sharing/edit.ts",
     ]);
 
     for (const file of filesNaming("FileNode/set")) {
@@ -353,5 +374,46 @@ describe("no file write takes a subtree with it unless it was asked to", () => {
     expect(args?.destroy).toEqual(["fn-3"]);
     expect(args?.update).toBeUndefined();
     expect(args?.create).toBeUndefined();
+  });
+});
+
+describe("one module writes into objects it does not own the domain of", () => {
+  it("is the only place naming a calendar write at all", () => {
+    // Nothing in the calendar domain writes a `Calendar/set`: managing calendars
+    // themselves is out of scope there, and `calendar-write-guard.test.ts` holds
+    // that over its own manifest. This extends the same ban to the whole tree,
+    // where sharing is the one module with a reason to send it.
+    expect(filesNaming("Calendar/set")).toEqual(["domains/sharing/edit.ts"]);
+  });
+
+  it("names all four foreign set methods from that module and no other", () => {
+    // The emitter held from the top rather than method by method. A share is
+    // written into four object types whose domains are elsewhere, and letting a
+    // second module reach one of them would put a `shareWith` write outside the
+    // confirmation and outside the patch rules that keep a third party's access
+    // from being erased.
+    const outsiders = Object.entries(HOME_OF).map(([method, home]) => [
+      method,
+      filesNaming(method).filter((file) => !file.startsWith(home)),
+    ]);
+
+    expect(Object.fromEntries(outsiders)).toEqual({
+      "Mailbox/set": [SHARING_EMITTER],
+      "Calendar/set": [SHARING_EMITTER],
+      "AddressBook/set": [SHARING_EMITTER],
+      "FileNode/set": [SHARING_EMITTER],
+    });
+  });
+
+  it("writes no whole sharing map and no set of its own arguments", () => {
+    const source = readFileSync(new URL(SHARING_EMITTER, SOURCES), "utf8");
+
+    // Every path it writes goes under one beneficiary. A `shareWith` written as
+    // a plain property would carry back whatever a read returned, third parties
+    // included, which is the one mistake this module exists to make impossible.
+    expect(source).not.toMatch(/shareWith:\s/);
+    // The two keys a share has no business carrying, whatever the type.
+    expect(source).not.toMatch(/\bdestroy:/);
+    expect(source).not.toMatch(/\bcreate:/);
   });
 });

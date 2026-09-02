@@ -8,8 +8,8 @@ owner: bryan
 # Tests
 
 > [!NOTE]
-> 1166 tests passent sur 67 fichiers, dont 18 de contrat, chiffres relevés sur une exécution de `pnpm test`.
-> Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact, les agendas, les nœuds de fichier et les scripts Sieve, en lecture comme en écriture.
+> 1344 tests passent sur 72 fichiers, dont 20 de contrat, chiffres relevés sur une exécution de `pnpm test`.
+> Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact, les agendas, les nœuds de fichier, les scripts Sieve et les partages, en lecture comme en écriture.
 
 ## 🎯 Stratégie
 
@@ -33,7 +33,7 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | `organizing-takes-ids.test.ts` | Aucun outil de rangement ne prend un critère de recherche |
 | `bulk-confirmation.test.ts` | Au-delà du seuil : question avant écriture |
 | `destroy-needs-confirmation.test.ts` | Destruction non confirmée : aucune méthode émise |
-| `no-cascade-destroy.test.ts` | Les trois drapeaux de cascade sont toujours écrits, et seul celui des fichiers peut valoir vrai |
+| `no-cascade-destroy.test.ts` | Les quatre drapeaux de cascade sont toujours écrits, et seul celui des fichiers peut valoir vrai |
 | `contacts-read-only.test.ts` | Contacts en lecture : rien hors `get` et `query` |
 | `contacts-write-guard.test.ts` | Écriture des contacts : confirmation, identifiants, lot, création sans destruction |
 | `calendar-read-only.test.ts` | Agendas : rien hors les lectures nommées |
@@ -43,6 +43,8 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | `sieve-read-only.test.ts` | Sieve en lecture : rien hors `get` et `query`, aucun filtre ni tri que le serveur refuserait |
 | `sieve-write-guard.test.ts` | Écriture des scripts : `isActive` jamais écrite, les deux arguments d'activation toujours écrits, le script `vacation` hors d'atteinte |
 | `vacation-guard.test.ts` | Absence : `isEnabled` écrite seulement si l'appel l'a demandée, et aucun `SieveScript/` émis |
+| `sharing-read-only.test.ts` | Partages en lecture : rien hors les sept lectures nommées, aucun `/set` sur aucune branche |
+| `sharing-write-guard.test.ts` | Écriture des partages : un tiers non nommé préservé, carte jamais écrite entière, drapeau de cascade toujours présent |
 
 Le contrat sur la lecture des contacts sépare deux affirmations : la classe déclarée d'une part, ce qui part réellement sur le fil d'autre part.
 Il exécute chaque outil du manifeste sur des arguments minimaux tirés de son propre schéma, donc il tient un outil ajouté au domaine sans être réécrit.
@@ -50,8 +52,11 @@ Il tient aussi le gating : sans la capacité contacts, aucun des deux manifestes
 
 Le contrat sur l'écriture parcourt lui aussi le manifeste, avec une exception assumée : les arguments qui atteignent la branche destructrice de chaque outil sont écrits à la main, une dérivation générique ne pouvant pas produire un appel qui franchisse le `precheck`.
 Un test d'exhaustivité tient cette table honnête : un outil qui déclare `destroy` sans y figurer fait tomber le contrat.
-La non-cascade porte désormais trois drapeaux : `onDestroyRemoveEmails` sur un dossier, `onDestroyRemoveContents` sur un carnet, `onDestroyRemoveChildren` sur un nœud de fichier.
-Les deux premiers sont écrits à faux sans exception ; le troisième répond à une règle plus étroite, énoncée plus bas.
+La non-cascade porte désormais quatre drapeaux : `onDestroyRemoveEmails` sur un dossier, `onDestroyRemoveContents` sur un carnet, `onDestroyRemoveChildren` sur un nœud de fichier, `onDestroyRemoveEvents` sur un agenda.
+Trois sont écrits à faux sans exception ; celui des fichiers répond à une règle plus étroite, énoncée plus bas.
+
+Le quatrième vient des partages et porte sa propre assertion d'émetteur unique.
+`Calendar/set` ne sort que de `domains/sharing/edit.ts`, ce qu'un test vérifie en lisant les sources plutôt qu'en faisant confiance à la revue.
 
 Le contrat sur les agendas reprend ce patron et durcit un point : sa liste blanche nomme des méthodes entières, jamais des suffixes.
 `Principal/getAvailability` ne finit pas par `/get`, et une règle assez lâche pour l'admettre admettrait aussi `CalendarEvent/set`.
@@ -85,6 +90,14 @@ C'est le seul refus du module que le serveur ne double pas : il garde le nom en 
 Le contrat de l'absence sépare deux gestes que la même méthode porte : reformuler la réponse et décider qu'elle répond.
 Un changement de sujet, de corps ou de fenêtre n'émet jamais `isEnabled`, un basculement écrit exactement ce que l'appel a demandé, et aucun des deux ne fait partir de `SieveScript/`.
 Ce dernier point tient le gating : le manifeste s'enregistre sur une session qui n'annonce que l'absence, donc il ne peut pas dépendre d'une méthode que cette permission-là ne couvre pas.
+
+Les deux contrats des partages tiennent ce qu'aucun nom d'argument ne trahit : le tiers que l'appel ne nomme pas.
+Tout chemin écrit commence par `shareWith/{le bénéficiaire de l'appel}`, aucun ne mentionne un autre principal, et la clé `shareWith` nue n'apparaît jamais — elle remplacerait la carte entière et effacerait des accès dont la confirmation n'a pas parlé.
+L'assertion tourne sur les quatre types partageables, parce qu'un octroi voyage dans quatre méthodes dont aucune n'appartient à ce domaine.
+
+Chaque `/set` émis y porte un `update` seul, sans `create` ni `destroy`, et le drapeau de cascade de son type à faux.
+Un partage ne fait naître aucun objet et n'en retire aucun : il écrit une propriété de ce qui existe déjà, et ni une création ni une destruction n'a à voyager sous une confirmation qui parlait d'accès.
+La seule exception est `dismiss`, qui détruit des notifications et rien d'autre : un `ShareNotification/set` portant un `destroy` seul, sans qu'aucune écriture d'objet l'accompagne.
 
 Le contrat sur le périmètre va plus loin que le refus : il assert aussi qu'aucune méthode JMAP n'a été émise, et que la question de confirmation n'a jamais été posée.
 

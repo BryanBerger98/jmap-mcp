@@ -3,6 +3,30 @@
 import type { Id } from "./core.js";
 
 /**
+ * What a principal may do to one folder (RFC 8621 §2, RFC 9670 §3).
+ *
+ * Every right is optional: a `Mailbox/get` that does not name `shareWith` or
+ * `myRights` carries neither, and a response is allowed to be partial. Only the
+ * sharing domain asks for them.
+ *
+ * `maySetSeen` and `maySetKeywords` are indistinguishable on this server: both
+ * alias the same internal ACL set, so writing one and reading back the other
+ * returns `true`. `sharing/rights.ts` carries the note that says so.
+ */
+export interface MailboxRights {
+  mayReadItems?: boolean;
+  mayAddItems?: boolean;
+  mayRemoveItems?: boolean;
+  maySetSeen?: boolean;
+  maySetKeywords?: boolean;
+  mayCreateChild?: boolean;
+  mayRename?: boolean;
+  maySubmit?: boolean;
+  mayDelete?: boolean;
+  mayShare?: boolean;
+}
+
+/**
  * A folder. JMAP stores the tree as a `parentId` chain and never as a path, so
  * a readable path has to be rebuilt from the whole list.
  *
@@ -18,6 +42,10 @@ export interface Mailbox {
   totalEmails: number;
   /** Only `mail_folders` asks for it; the organizing tools never render it. */
   unreadEmails?: number;
+  /** Beneficiary principal id to the rights it holds. Only the sharing domain reads it. */
+  shareWith?: Record<Id, MailboxRights>;
+  /** What this account may do to the folder, as the server computes it. */
+  myRights?: MailboxRights;
 }
 
 /**

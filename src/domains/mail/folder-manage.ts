@@ -3,7 +3,7 @@ import type { Id, SetError, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CORE, CAPABILITY_MAIL } from "../../jmap/types/core.js";
 import type { Mailbox, MailboxSetArguments } from "../../jmap/types/mail.js";
 import { defineTool, type ToolContext } from "../../registry/define-tool.js";
-import { resolveMailboxes, unknownMailbox } from "./organize.js";
+import { resolveMailboxes, unknownMailbox } from "./filing.js";
 
 /** The key a creation is filed under: JMAP hands back the real id in `created`. */
 const CREATION_KEY = "new";
@@ -224,7 +224,7 @@ function refuseNonEmptyDelete(target: Mailbox, mailboxes: readonly Mailbox[]): s
   if (target.totalEmails > 0) {
     return (
       `Refused: the folder ${target.name} holds ${target.totalEmails} ${target.totalEmails === 1 ? "message" : "messages"}, ` +
-      "and deleting a folder never deletes what is in it. Move them elsewhere with mail_move, or " +
+      "and deleting a folder never deletes what is in it. Move them elsewhere with mail_organize, or " +
       "delete them with mail_delete, then delete the folder."
     );
   }

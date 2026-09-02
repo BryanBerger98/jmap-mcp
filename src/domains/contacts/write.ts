@@ -161,7 +161,7 @@ export const contactsWrite = defineTool({
   run: async (input, context) => {
     // Read before writing, and not only because `precheck` already looked: a
     // hook that swallowed a failed read must not have the last word, exactly as
-    // in `mail_move` and in the recipient perimeter.
+    // in `mail_organize` and in the recipient perimeter.
     const refusal = await refuse(input, context);
     if (refusal !== undefined) return { text: refusal };
 

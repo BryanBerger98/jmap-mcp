@@ -9,7 +9,7 @@ import {
   describeUpdateOutcome,
   refuseOversizedBatch,
   resolveTrash,
-} from "./organize.js";
+} from "./filing.js";
 
 /** How many subjects a confirmation spells out before it counts the rest. */
 const SUBJECTS_NAMED = 5;
@@ -33,7 +33,7 @@ export const mailDelete = defineTool({
   title: "Delete messages",
   description:
     "Moves the named messages to the trash folder, where they stay readable and can be moved " +
-    "back out with mail_move. Set `permanent` to destroy them instead: that erases them from " +
+    "back out with mail_organize. Set `permanent` to destroy them instead: that erases them from " +
     "the mail server for good, with no trash to recover them from and no way to undo it. " +
     "It acts on message ids only — run mail_search first and pass the ids it returns.",
   inputSchema,
@@ -60,7 +60,7 @@ export const mailDelete = defineTool({
     return trash === undefined
       ? "Refused: this account has no folder with the `trash` role, so there is nowhere to put a " +
           "deleted message. This server does not create one. Either create a trash folder in your " +
-          "mail client, move the messages to a folder of your choice with mail_move, or call " +
+          "mail client, move the messages to a folder of your choice with mail_organize, or call " +
           "mail_delete again with `permanent` to erase them for good."
       : undefined;
   },
