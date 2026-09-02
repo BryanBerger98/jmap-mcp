@@ -16,7 +16,7 @@ Twenty-nine tools across six domains: mail, calendar, contacts, files, sharing, 
 | `mail_read` | `read` | Reads one message, body included |
 | `mail_folders` | `read` | Lists the folder tree |
 | `mail_identities` | `read` | Lists the addresses the account may send from |
-| `mail_compose` | `draft` | Writes a draft, sends nothing |
+| `mail_compose` | `draft` | Writes a draft in text, HTML or both, sends nothing |
 | `mail_send` | `send` | Sends an existing draft |
 | `mail_organize` | `draft` | Files messages into one folder, or sets and clears their standard keywords |
 | `mail_delete` | `draft` or `destroy` | Moves to the trash; `permanent` erases instead |

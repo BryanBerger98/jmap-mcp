@@ -15,6 +15,7 @@ import type {
 } from "../../jmap/types/mail.js";
 import { defineTool, type ToolContext } from "../../registry/define-tool.js";
 import { renderFields } from "../../shared/render.js";
+import { describeHtmlBody } from "./html.js";
 import {
   buildSubmission,
   DRAFT_CREATION_ID,
@@ -28,8 +29,16 @@ import {
   uniqueRecipients,
 } from "./submission.js";
 
-/** The single body part. One part, plain text: creation refuses `headers`. */
+/** The plain-text body part. */
 const BODY_PART_ID = "body";
+
+/**
+ * The HTML body part.
+ *
+ * Distinct from the text one because `bodyValues` is a map: two bodies are two
+ * entries, and one key could only hold one of them.
+ */
+const HTML_PART_ID = "html";
 
 /** Only what the threading and the fallback recipient need off the origin. */
 const REPLY_SOURCE_PROPERTIES = ["id", "messageId", "references", "subject", "from", "replyTo"];
@@ -45,7 +54,19 @@ export const composeInputShape = {
   subject: z.string().optional().describe("Left off a reply, it is derived from the message."),
   body: z
     .string()
-    .describe("The message, as plain text. Markdown is not rendered by mail clients."),
+    .optional()
+    .describe(
+      "The message, as plain text. Markdown is not rendered by mail clients. " +
+        "Give this, htmlBody, or both.",
+    ),
+  htmlBody: z
+    .string()
+    .optional()
+    .describe(
+      "The message, as HTML. It is sent exactly as given: nothing is stripped, escaped or " +
+        "rewritten, and no plain-text version is derived from it. Giving body as well is " +
+        "worth it for clients that only display text, but it is not required.",
+    ),
   identityId: z
     .string()
     .optional()
@@ -65,11 +86,24 @@ export const composeInputShape = {
     ),
 };
 
-const inputSchema = z.object(composeInputShape).refine(
-  (input) => input.to !== undefined || input.replyToEmailId !== undefined,
-  // Without either, there is nobody to write to and no message to answer.
-  { message: "Give `to`, or `replyToEmailId` to answer a message.", path: ["to"] },
-);
+const inputSchema = z
+  .object(composeInputShape)
+  .refine(
+    (input) => input.to !== undefined || input.replyToEmailId !== undefined,
+    // Without either, there is nobody to write to and no message to answer.
+    { message: "Give `to`, or `replyToEmailId` to answer a message.", path: ["to"] },
+  )
+  .refine(
+    (input) => input.body !== undefined || input.htmlBody !== undefined,
+    // The server's own guard against an empty message counts headers as content
+    // — `email/set.rs:728-740` — and a draft always carries `from`, `to` and
+    // `subject`. So it would accept this one, and the recipient would get a
+    // message with nothing in it.
+    {
+      message: "Give `body`, `htmlBody`, or both: a message with no body at all is not written.",
+      path: ["body"],
+    },
+  );
 
 type ComposeInput = z.infer<typeof inputSchema>;
 
@@ -77,7 +111,8 @@ export const mailCompose = defineTool({
   name: "mail_compose",
   title: "Compose a draft",
   description:
-    "Writes a plain-text message into the drafts folder and returns its id. Nothing is sent " +
+    "Writes a message into the drafts folder and returns its id. The body can be plain text, " +
+    "HTML, or both, and at least one of the two is required. Nothing is sent " +
     "unless send is true, and sending is confirmed before it happens. " +
     "The sender is taken from the chosen identity, never from an address given here. " +
     "Pass replyToEmailId to answer a message: the reply is threaded onto it and the subject is " +
@@ -288,6 +323,14 @@ export async function resolveContext(
  * Neither `headers` nor any `header:*` property appears: RFC 8621 refuses both
  * at creation. `inReplyTo` and `references` are the convenience properties that
  * carry the threading instead.
+ *
+ * `bodyStructure` and `attachments` are absent for a second reason, and it is
+ * not the same one: the server reads the body properties only when neither is
+ * given — `email/set.rs:128-129` — so writing either would silently drop the
+ * bodies below.
+ *
+ * The body values are the arguments as received. Nothing renders, truncates or
+ * escapes them on the way through: what the caller wrote is what leaves.
  */
 function buildDraft(
   input: ComposeInput,
@@ -297,15 +340,27 @@ function buildDraft(
 ): EmailCreate {
   const to = input.to ?? repliedTo(source);
 
+  const bodyValues: Record<string, { value: string }> = {};
+  if (input.body !== undefined) bodyValues[BODY_PART_ID] = { value: input.body };
+  if (input.htmlBody !== undefined) bodyValues[HTML_PART_ID] = { value: input.htmlBody };
+
   const draft: EmailCreate = {
     mailboxIds: { [draftsId]: true },
     keywords: { $draft: true },
     from: [{ name: identity.name === "" ? null : identity.name, email: identity.email }],
     to: to.map(toAddress),
     subject: subjectFor(input, source),
-    bodyValues: { [BODY_PART_ID]: { value: input.body } },
-    textBody: [{ partId: BODY_PART_ID, type: "text/plain" }],
+    bodyValues,
   };
+
+  // An absent part is an absent property, never an empty list: the server reads
+  // "one part at most", and a list with no element is not the same statement.
+  if (input.body !== undefined) {
+    draft.textBody = [{ partId: BODY_PART_ID, type: "text/plain" }];
+  }
+  if (input.htmlBody !== undefined) {
+    draft.htmlBody = [{ partId: HTML_PART_ID, type: "text/html" }];
+  }
 
   if (input.cc !== undefined) draft.cc = input.cc.map(toAddress);
   if (input.bcc !== undefined) draft.bcc = input.bcc.map(toAddress);
@@ -397,6 +452,8 @@ export function summarizeCompose(
     cc?: string[] | undefined;
     bcc?: string[] | undefined;
     subject?: string | undefined;
+    body?: string | undefined;
+    htmlBody?: string | undefined;
     replyToEmailId?: string | undefined;
     send?: boolean | undefined;
   },
@@ -405,7 +462,31 @@ export function summarizeCompose(
   const who = recipients.length > 0 ? recipients.join(", ") : "the sender of the message answered";
   const what = input.subject === undefined ? "no subject yet" : `subject "${input.subject}"`;
 
-  return input.send === true
-    ? `Send a message to ${who}, ${what}. It leaves the account as soon as this is confirmed.`
-    : `Save a draft to ${who}, ${what}.`;
+  const opening =
+    input.send === true
+      ? `Send a message to ${who}, ${what}. It leaves the account as soon as this is confirmed.`
+      : `Save a draft to ${who}, ${what}.`;
+
+  return [opening, ...bodyLines(input.body, input.htmlBody)].join("\n\n");
+}
+
+/**
+ * What the body is made of, said before it leaves.
+ *
+ * Three statements rather than two, because "HTML" alone does not tell the one
+ * thing the user arbitrates on: whether a client that only shows text has
+ * anything left to show. Nothing filters the markup, so this and the excerpt
+ * below it are the whole of what stands between a generated body and a signed
+ * message.
+ */
+function bodyLines(body: string | undefined, htmlBody: string | undefined): string[] {
+  if (htmlBody === undefined) return ["The body is plain text."];
+
+  const format =
+    body === undefined
+      ? "The body is HTML, with no plain-text part beside it: a client that only displays text " +
+        "will show little or nothing of it."
+      : "The body is HTML, with a plain-text part beside it.";
+
+  return [format, describeHtmlBody(htmlBody)];
 }

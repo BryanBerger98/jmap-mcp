@@ -1,14 +1,14 @@
 ---
 title: Tests
 status: draft
-updated: 2026-09-02
+updated: 2026-09-03
 owner: bryan
 ---
 
 # Tests
 
 > [!NOTE]
-> 1353 tests passent sur 72 fichiers, dont 20 de contrat, chiffres relevés sur une exécution de `pnpm test`.
+> 1397 tests passent sur 74 fichiers, dont 21 de contrat, chiffres relevés sur une exécution de `pnpm test`.
 > Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact, les agendas, les nœuds de fichier, les scripts Sieve et les partages, en lecture comme en écriture.
 
 ## 🎯 Stratégie
@@ -29,6 +29,7 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | `read-only-surface.test.ts` | Aucun outil du manifeste mail ne déclare ni ne classe autre chose que `read` |
 | `elicitation-required.test.ts` | Sans élicitation : refus, pas exécution ; et la question part par un seul émetteur, quelle que soit la révision |
 | `send-never-destroys.test.ts` | Jamais d'`onSuccessDestroyEmail` à l'envoi |
+| `html-body-untouched.test.ts` | Corps HTML reproduit à l'identique, aucun repli texte dérivé |
 | `recipient-scope.test.ts` | Hors périmètre : refus avant confirmation |
 | `organizing-takes-ids.test.ts` | Aucun outil de rangement ne prend un critère de recherche |
 | `bulk-confirmation.test.ts` | Au-delà du seuil : question avant écriture |
@@ -102,6 +103,11 @@ L'assertion tourne sur les quatre types partageables, parce qu'un octroi voyage 
 Chaque `/set` émis y porte un `update` seul, sans `create` ni `destroy`, et le drapeau de cascade de son type à faux.
 Un partage ne fait naître aucun objet et n'en retire aucun : il écrit une propriété de ce qui existe déjà, et ni une création ni une destruction n'a à voyager sous une confirmation qui parlait d'accès.
 La seule exception est `dismiss`, qui détruit des notifications et rien d'autre : un `ShareNotification/set` portant un `destroy` seul, sans qu'aucune écriture d'objet l'accompagne.
+
+Le contrat sur le corps HTML tient ce qu'aucun nom d'argument ne trahit : une réécriture silencieuse.
+Rien n'assainit le corps, donc le seul défaut possible est qu'un filtre apparaisse plus tard sans que rien d'autre ne s'en aperçoive : l'appel réussit, le message part, et seul le destinataire voit la différence.
+Les quatre chemins d'écriture de `mail_compose` sont parcourus — brouillon, envoi direct, réponse, réponse envoyée — et une assertion lit les sources pour tenir `compose.ts` seul déclarant d'une partie de corps.
+Il garde aussi ce qui viderait le message au lieu de le réécrire : `bodyStructure` et `attachments` envoient toute la création dans une branche où aucun corps n'est lu.
 
 Le contrat sur le périmètre va plus loin que le refus : il assert aussi qu'aucune méthode JMAP n'a été émise, et que la question de confirmation n'a jamais été posée.
 
