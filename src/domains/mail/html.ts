@@ -18,13 +18,23 @@
  * returns a string.
  */
 
-import { htmlToText } from "../../shared/render.js";
+import { htmlToText, truncate } from "../../shared/render.js";
 
 /** How much of the degraded text the confirmation shows before it cuts. */
 export const MAX_PREVIEW_CHARS = 1500;
 
 /** How many links the confirmation lists before it says how many are left. */
 export const MAX_LINKS = 20;
+
+/**
+ * How much of a single target the confirmation shows before it cuts.
+ *
+ * The count of links is capped, its length was not: one tracking URL or one
+ * `data:` value entered whole, and twenty of them buried the very thing this
+ * block exists to show. The cut takes the tail, which leaves the scheme, the
+ * host and the start of the path — what a reader actually arbitrates on.
+ */
+export const MAX_LINK_CHARS = 120;
 
 /**
  * Every `href` a body names, deduplicated, in the order they appear.
@@ -81,7 +91,7 @@ function previewText(html: string): string {
 
 /** The targets, one per line, saying how many are not listed rather than stopping. */
 function linkList(links: readonly string[]): string {
-  const shown = links.slice(0, MAX_LINKS).map((link) => `- ${link}`);
+  const shown = links.slice(0, MAX_LINKS).map((link) => `- ${truncate(link, MAX_LINK_CHARS)}`);
   const rest = links.length - shown.length;
 
   return rest === 0 ? shown.join("\n") : [...shown, `- […and ${rest} more not shown]`].join("\n");

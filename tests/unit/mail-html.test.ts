@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   describeHtmlBody,
   htmlLinks,
+  MAX_LINK_CHARS,
   MAX_LINKS,
   MAX_PREVIEW_CHARS,
 } from "../../src/domains/mail/html.js";
@@ -89,5 +90,15 @@ describe("describeHtmlBody", () => {
     expect(described).toContain(`https://example.org/${MAX_LINKS - 1}`);
     expect(described).not.toContain(`https://example.org/${MAX_LINKS}"`);
     expect(described).toContain("and 5 more not shown");
+  });
+
+  it("cuts a target longer than the cap, keeping its scheme and host", () => {
+    const target = `https://tracker.example/click?id=${"z".repeat(MAX_LINK_CHARS)}`;
+    const described = describeHtmlBody(`<a href="${target}">x</a>`);
+
+    expect(described).toContain("https://tracker.example/click?id=");
+    expect(described).not.toContain(target);
+    for (const line of described.split("\n"))
+      expect(line.length).toBeLessThanOrEqual(MAX_LINK_CHARS + 2);
   });
 });
