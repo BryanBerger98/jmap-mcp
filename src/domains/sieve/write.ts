@@ -424,6 +424,11 @@ function describeReplaced(active: SieveScript | undefined, id: Id): string {
 async function summarizeDeactivate(context: ToolContext): Promise<string> {
   const active = await activeScript(context);
 
+  // Unreachable in practice: `precheckDeactivate` refuses this call before the
+  // registry ever asks for a summary, and it decides on the same cached read, so
+  // the two cannot disagree. The branch survives for the type — what follows
+  // needs a script, not a `SieveScript | undefined` — and its sentence is there
+  // only so the narrowing has something to return.
   if (active === undefined) {
     return "Switch off Sieve filtering, though nothing is filtering right now.";
   }
@@ -472,6 +477,9 @@ async function runDeactivate(context: ToolContext): Promise<ToolResult> {
     text: renderFields({
       asked: "switch Sieve filtering off, so that no script filters incoming mail",
       before:
+        // Unreachable for the same reason as the summary above: `precheck`
+        // refused the no-active-script case on this same cached read. Kept for
+        // the narrowing, not for a case that arrives.
         previous === undefined
           ? "nothing was active when this call read the account"
           : `${describeScript(previous)} was filtering when this call read the account`,
