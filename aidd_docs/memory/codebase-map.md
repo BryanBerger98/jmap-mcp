@@ -8,9 +8,9 @@ owner: bryan
 # Carte du code
 
 > [!NOTE]
-> Vingt-cinq outils sont exposés, le mail en portant dix : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` ; les contacts cinq, deux en lecture et trois en écriture : `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage` ; les agendas six, trois en lecture et trois en écriture : `calendar_search`, `calendar_read`, `calendar_availability`, `calendar_write`, `calendar_respond`, `calendar_delete` ; les fichiers quatre, deux en lecture et deux en écriture : `files_browse`, `files_fetch`, `files_write`, `files_delete`.
-> Les deux autres domaines, partages et Sieve, restent des manifestes à `tools: []`.
-> Le chiffre se relève sur le rapport de composition, jamais en comptant les fichiers sources ; la place qui reste sous la cible est arbitrée par `internal/tool-budget.md`.
+> Vingt-huit outils sont exposés, le mail en portant dix : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_move`, `mail_flag`, `mail_delete`, `mail_folder_manage` ; les contacts cinq, deux en lecture et trois en écriture : `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage` ; les agendas six, trois en lecture et trois en écriture : `calendar_search`, `calendar_read`, `calendar_availability`, `calendar_write`, `calendar_respond`, `calendar_delete` ; les fichiers quatre, deux en lecture et deux en écriture : `files_browse`, `files_fetch`, `files_write`, `files_delete` ; Sieve et l'absence trois : `sieve_scripts`, `sieve_write`, `vacation_manage`.
+> Le dernier domaine, les partages, reste un manifeste à `tools: []`.
+> Le chiffre se relève sur le rapport de composition, jamais en comptant les fichiers sources ; la cible de vingt-six est dépassée de deux, et `internal/tool-budget.md` porte ce constat.
 
 ## 🗺️ Découpe
 
@@ -47,7 +47,7 @@ flowchart TD
 
 Les types JMAP vivent sous `src/jmap/types/`, un fichier par spécification.
 Chaque domaine sous `src/domains/` regroupe ses outils par verbe métier, jamais par méthode JMAP.
-Un domaine peut se scinder en plusieurs manifestes : le mail en a trois, les contacts deux, les agendas trois, les fichiers deux.
+Un domaine peut se scinder en plusieurs manifestes : le mail en a trois, les contacts deux, les agendas trois, les fichiers deux, Sieve trois.
 
 | Manifeste | Capacités | Outils |
 | --- | --- | --- |
@@ -61,6 +61,9 @@ Un domaine peut se scinder en plusieurs manifestes : le mail en a trois, les con
 | `calendarWritingDomain` | `calendars` | `calendar_write`, `calendar_respond`, `calendar_delete` |
 | `filesDomain` | `filenode` | `files_browse`, `files_fetch` |
 | `filesWritingDomain` | `filenode` | `files_write`, `files_delete` |
+| `sieveDomain` | `sieve` | `sieve_scripts` |
+| `sieveWritingDomain` | `sieve` | `sieve_write` |
+| `sieveVacationDomain` | `vacationresponse` | `vacation_manage` |
 
 Sans ce découpage, un serveur qui n'expédie pas ferait taire aussi les outils de lecture.
 Le rangement est séparé de la lecture sur la même capacité, pour une autre raison : `mailDomain` reste ainsi prouvablement en lecture seule, et le contrat qui l'affirme vaut mieux qu'un fichier de moins.
@@ -90,6 +93,21 @@ Quatre modules portent ce qu'ils se partagent, dont un seul touche le disque loc
 | `name.ts` | Contrôle du nom et type MIME déduit de l'extension |
 | `delete.ts` | Comptage du sous-arbre, partagé par `precheck` et `summarize` |
 
+Sieve se scinde sur deux axes à la fois, et c'est le seul domaine dans ce cas.
+Le premier est celui de partout : la lecture séparée de l'écriture, `sieveDomain` restant prouvablement sans écriture.
+Le second n'a rien à voir avec l'écriture : l'absence est portée par une capacité distincte, et Stalwart accorde les deux permissions séparément — `JmapSieveScriptGet` et `JmapVacationResponseGet`, `api/session.rs:113` et `:118`.
+Un administrateur qui retire la première et garde la seconde est un compte plausible, qu'un manifeste unique aurait privé de son absence en même temps que de ses scripts.
+
+Trois modules portent ce que les outils se partagent, et aucun ne touche au réseau sauf le premier.
+
+| Module | Ce qu'il porte |
+| --- | --- |
+| `script.ts` | Propriétés lues, rendu d'une ligne, résolution mise en cache |
+| `edit.ts` | Arguments de `SieveScript/set`, seul émetteur, refus traduits |
+| `radius.ts` | Actions à large rayon d'un texte Sieve, par gravité |
+
+`radius.ts` est une fonction pure sur une chaîne : elle nomme ce qu'un script fait avant qu'il ne le fasse, puisque son nom n'en dit rien.
+
 Le canal d'octets vit dans `src/jmap/blob.ts` et non dans le domaine, parce qu'il ferme sur le jeton et sur les deux gabarits d'URL du noyau.
 Un outil qui atteindrait les blobs lui-même aurait le jeton en main ; ce qui lui parvient est deux méthodes, `upload` et `download`, et rien qu'il puisse divulguer.
 
@@ -98,8 +116,8 @@ Trois choses vivent sous `src/shared/` parce qu'un second domaine les lit déjà
 | Module | Ce qu'il porte | Lu par |
 | --- | --- | --- |
 | `pagination.ts` | Ordre des identifiants demandés | Mail, contacts, agendas, fichiers |
-| `batch.ts` | Plafond de cinquante identifiants par appel | Rangement du mail, trois écritures |
-| `render.ts` | Rendu compact, `SetError` en une ligne | Les quatre mêmes domaines |
+| `batch.ts` | Plafond de cinquante identifiants par appel | Rangement du mail, quatre écritures |
+| `render.ts` | Rendu compact, `SetError` en une ligne | Les cinq domaines livrés |
 
 Quatre plafonds auraient divergé au premier ajustement, et le `SetError` avait déjà quatre copies identiques à l'octet près.
 Aucune ne mappait le moindre code : elles concaténaient le type et la description, donc les remonter n'a rien changé à ce qui s'affiche.

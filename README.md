@@ -4,11 +4,11 @@ Local MCP server that exposes a [Stalwart](https://stalw.art) mail server's JMAP
 
 No data leaves your machine except the exchange with your own server.
 
-> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable and writable: cards and the address books that hold them. Calendars are readable and writable: searching, reading, checking availability, creating, correcting, answering an invitation and deleting. File storage is readable and writable: browsing, fetching, depositing, organizing and deleting. Sharing and Sieve register nothing yet.
+> **Status: early.** Mail is implemented end to end: searching, reading, locating, composing, sending, filing and deleting. Contacts are readable and writable: cards and the address books that hold them. Calendars are readable and writable: searching, reading, checking availability, creating, correcting, answering an invitation and deleting. File storage is readable and writable: browsing, fetching, depositing, organizing and deleting. Sieve is readable and writable: listing scripts, storing one, switching which one filters, and the vacation response that answers while you are away. Sharing registers nothing yet.
 
 ## Tools
 
-Twenty-five tools across four domains, mail, calendar, contacts and files. The class is what the write policy below gates.
+Twenty-eight tools across five domains: mail, calendar, contacts, files, and Sieve with the vacation response. The class is what the write policy below gates.
 
 | Tool | Class | Does |
 | --- | --- | --- |
@@ -37,6 +37,9 @@ Twenty-five tools across four domains, mail, calendar, contacts and files. The c
 | `files_fetch` | `read` | Writes a stored file to your disk and returns its path |
 | `files_write` | `draft` | Deposits a local file, creates a folder, renames or moves nodes |
 | `files_delete` | `destroy` | Erases files and folders for good; file storage has no trash |
+| `sieve_scripts` | `read` | Lists the Sieve scripts and names the active one; `show` returns one script's source |
+| `sieve_write` | `draft` or `destroy` | Stores a script; `activate`, `deactivate` and `delete` change what filters incoming mail |
+| `vacation_manage` | `draft` or `send` | Reads the automatic reply, or changes it; naming `isEnabled` switches it on or off |
 
 A contact write only ever touches the fields the call names: it patches the paths given and leaves every other field of the card untouched. `contacts_delete` has no reversible form, which is why it carries a single class — no folder holds a destroyed card and no later call brings it back. Deleting an address book never destroys the cards inside it: a book still holding cards is refused, as are the default book and the last remaining one.
 
@@ -53,6 +56,14 @@ File bytes never travel through the conversation. `files_fetch` writes the file 
 `files_browse` only sends the nine filter conditions Stalwart actually executes. The other thirteen its parser accepts — full-text, MIME type, role, dates — are silently dropped server-side, which would return more results than asked for, so they are not offered at all.
 
 `files_delete` is the one tool here whose cascade may be turned on. A folder that still holds something is refused unless `withChildren` is set, and that flag is never assumed: the subtree is counted first, the confirmation says how many files and folders go with it, and a count the server will not produce is a refusal rather than a guess. Nothing recovers a destroyed node.
+
+Three of `sieve_write`'s four actions classify as `destroy`, and storing is not one of them. Storing changes what the account holds and nothing about what it does; activating, deactivating and deleting all change what happens to every message that arrives afterwards. A script that carries `discard` loses mail with no copy anywhere, switching filtering off may remove the only thing keeping the inbox usable, and Sieve has no trash. Storing stays a `draft` — except when it replaces the text of the script that is currently filtering, which is confirmed with that reason named rather than with its class.
+
+The confirmation says what a script does, not just what it is called: before activating one, its source is read and the wide-radius actions it contains — discarding, redirecting, rejecting, filing away — are named in the question. A name tells you nothing about that. Only one script filters at a time, so activating one always stops the one before it, and the question names that script too.
+
+The script named `vacation` is the vacation response's own, and `sieve_write` refuses to store, activate or destroy it by that id — Stalwart guards the first two itself, but not the third. Switching the automatic reply on through `vacation_manage` makes it the active script, which stops whatever was filtering; switching it off leaves the account with no active script rather than restoring the previous one. Changing the subject, the bodies or the window never switches the reply on or off: only naming `isEnabled` does, which is also what turns the call from a `draft` into a `send`.
+
+Sieve reading and the vacation response sit behind separate capabilities, and Stalwart grants their permissions independently, so a server may expose one without the other. `vacation_manage` sends no `SieveScript` method at all, which is what lets it register on an account that holds only the vacation permission.
 
 ### Batch limits
 

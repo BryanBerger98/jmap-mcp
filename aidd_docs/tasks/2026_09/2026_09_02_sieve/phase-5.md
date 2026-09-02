@@ -1,6 +1,6 @@
 ---
 title: Instruction — Budget d'outils, mémoire projet et deux corrections
-status: pending
+status: done
 updated: 2026-09-02
 owner: bryan
 ---

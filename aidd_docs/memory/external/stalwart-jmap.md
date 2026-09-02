@@ -1,7 +1,7 @@
 ---
 title: Surface JMAP de Stalwart
 status: draft
-updated: 2026-09-01
+updated: 2026-09-02
 owner: bryan
 ---
 
@@ -247,7 +247,16 @@ Les quatre méthodes de la RFC sont implémentées : `SieveScript/get`, `set`, `
 Le support est actif par défaut, désactivable par les permissions utilisateur.
 
 L'absence est un objet `VacationResponse` matérialisé en script Sieve nommé `vacation`.
-Ce script est lisible par `SieveScript/get`, mais toute écriture dessus est refusée : `VacationResponse/set` est le seul chemin.
+Ce script est lisible par `SieveScript/get`, mais son écriture et sa création sont refusées — `sieve/set.rs:416-424` et `:443-448` — donc `VacationResponse/set` est le seul chemin.
+Sa destruction, elle, n'est gardée par rien : `sieve/set.rs:329-351` ne contrôle que la condition du script actif, ce qui laisse le client seul garde sur ce chemin.
+
+**Ce que `get` et `query` rendent**
+
+`SieveScript/get` ne rend que quatre propriétés — `id`, `name`, `blobId`, `isActive` — et jamais le texte : `sieve/get.rs:40-44`.
+Le corps voyage en blob, comme un fichier, la section du `BlobId` étant bornée à `sieve.size` pour que le téléchargement rende la source sans l'archive compilée stockée à côté — `sieve/get.rs:117-121`.
+
+`SieveScript/query` n'honore que deux conditions, `name` en sous-chaîne et `isActive`, et ne trie que sur ces deux propriétés.
+Au-delà, Stalwart lève une vraie erreur `UnsupportedFilter` ou `UnsupportedSort`, contrairement au domaine des fichiers qui abandonne la condition en silence.
 
 **Gravité par argument**
 
@@ -255,6 +264,7 @@ Ce script est lisible par `SieveScript/get`, mais toute écriture dessus est ref
 | --- | --- |
 | `validate` | Nul, aucun stockage |
 | `create` ou `update` d'un script inactif | Nul |
+| Propriété `isActive` écrite | Active le script, troisième chemin |
 | `onSuccessActivateScript` | Réécrit le traitement du courrier entrant |
 | `onSuccessDeactivateScript` | Coupe le filtrage et l'absence |
 | `destroy` d'un script | Contenu perdu, actif refusé |
@@ -262,7 +272,33 @@ Ce script est lisible par `SieveScript/get`, mais toute écriture dessus est ref
 Un `discard` dans un script activé jette le mail sans stockage ni corbeille.
 Stalwart refuse de détruire un script actif, ce qui interdit le double effet en un appel.
 
-`isEnabled` retombe à `false` dès qu'une propriété de l'absence change.
+**Trois chemins d'activation, pas deux**
+
+Les deux arguments `onSuccess…` sont ceux que tout le monde attend. Le troisième est la propriété `isActive` elle-même : écrite dans une création ou une mise à jour, Stalwart la capture — `sieve/set.rs:482-484` — la pousse dans les activations en attente et la retraduit en l'un des deux arguments — `sieve/set.rs:358-368`.
+Un appel qui l'émet active donc un script en croyant seulement le nommer.
+
+**Exclusivité du filtrage et de l'absence**
+
+Un seul script est actif à la fois — `sieve/set.rs:328`.
+L'absence étant matérialisée par un script, activer un filtre éteint l'absence, et allumer l'absence désactive le filtre — `vacation/set.rs:281-283`.
+`isEnabled` n'est pas un drapeau à part : `vacation/set.rs:144` l'initialise depuis le script actif courant.
+
+**Ce que `VacationResponse/set` préserve**
+
+`isEnabled` ne retombe pas seul : seule une propriété `isEnabled` explicite le change — `vacation/set.rs:186-191`.
+Une clé absente et une valeur nulle sont deux choses distinctes, la première ne touchant à rien et la seconde effaçant — `vacation/set.rs:214-218`.
+
+Conséquence pratique : réécrire `isEnabled` à chaque changement de texte fondrait deux gestes qu'il faut séparer, reformuler le message d'absence d'une part, décider qu'il répond d'autre part.
+Les bornes vivent dans le script généré — `vacation/set.rs:330` — donc une absence allumée hors de sa fenêtre ne répond à personne.
+
+**Les codes du fil ne sont pas ceux de la RFC**
+
+| Sur le fil | RFC 9661 |
+| --- | --- |
+| `invalidScript` | `invalidSieve` |
+| `scriptIsActive` | `sieveIsActive` |
+
+Un mapping écrit sur les noms de la RFC ne reconnaîtrait aucun des deux refus.
 
 ## ⚠️ Le motif transverse
 
