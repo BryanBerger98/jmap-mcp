@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/server";
 import { OPEN_SCOPE, type RecipientScope, restrictTo } from "./config/recipients.js";
 import type { Config, RecipientsSetting } from "./config/schema.js";
@@ -17,7 +18,12 @@ import { type ComposeReport, compose, selectTools } from "./registry/compose.js"
 import { buildInstructions } from "./registry/instructions.js";
 
 export const SERVER_NAME = "jmap-mcp";
-export const SERVER_VERSION = "0.1.0";
+/**
+ * Read from the package manifest so a release bumps what the client sees:
+ * a literal here drifted one version behind the published one.
+ */
+const manifest = createRequire(import.meta.url)("../package.json") as { version: string };
+export const SERVER_VERSION: string = manifest.version;
 
 /** How many objects to ask for at once when the session states no limit. */
 const DEFAULT_PAGE = 500;
