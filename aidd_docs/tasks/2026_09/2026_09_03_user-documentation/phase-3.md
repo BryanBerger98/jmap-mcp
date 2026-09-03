@@ -1,6 +1,6 @@
 ---
 title: Instruction — La référence des vingt-neuf outils, domaine par domaine
-status: pending
+status: done
 updated: 2026-09-03
 owner: bryan
 ---
