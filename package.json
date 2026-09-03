@@ -1,6 +1,6 @@
 {
   "name": "@bryanberger/jmap-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Local MCP server exposing a Stalwart JMAP server (mail, calendar, contacts, files, sharing, Sieve) to an AI assistant, with a configurable write policy.",
   "keywords": [
     "mcp",
