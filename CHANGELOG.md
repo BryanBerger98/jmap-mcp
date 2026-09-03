@@ -1,5 +1,11 @@
 # @bryanberger/jmap-mcp
 
+## 0.2.1
+
+### Patch Changes
+
+- dec042d: Report the published package version to the MCP client instead of a literal that had drifted one release behind.
+
 ## 0.2.0
 
 ### Minor Changes
