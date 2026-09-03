@@ -1,7 +1,7 @@
 ---
 objective: "Une personne qui découvre le paquet obtient un jeton sur son Stalwart, enregistre le serveur dans Claude Code, Claude Desktop ou Cursor, comprend ce que chaque outil fait et quand il demande confirmation, et trouve la cause d'un refus sans lire le code."
 title: Plan — Documentation du MCP et de son usage
-status: in-progress
+status: blocked
 updated: 2026-09-03
 owner: bryan
 ---
