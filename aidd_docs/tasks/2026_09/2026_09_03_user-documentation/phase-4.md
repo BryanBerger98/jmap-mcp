@@ -1,6 +1,6 @@
 ---
 title: Instruction — Le README en page d'accueil, l'index et la mémoire
-status: pending
+status: done
 updated: 2026-09-03
 owner: bryan
 ---

@@ -44,6 +44,7 @@ flowchart TD
 | `src/domains/` | Les six domaines métier |
 | `src/shared/` | Pagination, plafond de lot, rendu compact |
 | `tests/` | Unitaires, contrat, fixtures |
+| `docs/` | Documentation utilisateur en anglais, sur GitHub seulement, hors du paquet |
 
 Les types JMAP vivent sous `src/jmap/types/`, un fichier par spécification.
 Chaque domaine sous `src/domains/` regroupe ses outils par verbe métier, jamais par méthode JMAP.
