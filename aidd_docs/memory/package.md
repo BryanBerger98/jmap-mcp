@@ -1,7 +1,7 @@
 ---
 title: Paquet
 status: draft
-updated: 2026-09-02
+updated: 2026-09-03
 owner: bryan
 ---
 
@@ -15,6 +15,9 @@ Le nom nu `jmap-mcp` est hors d'atteinte : il appartient à un tiers sur npm dep
 Le paquet ne ship qu'un exécutable, aucun point d'import.
 `bin.jmap-mcp` est le contrat public : tout ce qui vit sous `src/` reste interne et peut changer sans préavis.
 Le binaire garde son nom court, la portée ne vivant que dans le nom du paquet.
+
+`docs/` reste hors du paquet : `files` ne nomme que `dist/`, et le `README.md` est la seule vitrine que le registre affiche.
+Il y renvoie par des liens GitHub, jamais par une copie, et la documentation ne déclenche donc aucun changeset.
 
 ## 👥 Consommateurs
 

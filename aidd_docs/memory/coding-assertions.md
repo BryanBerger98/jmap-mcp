@@ -1,7 +1,7 @@
 ---
 title: Assertions de code
 status: draft
-updated: 2026-09-01
+updated: 2026-09-03
 owner: bryan
 ---
 
@@ -24,17 +24,21 @@ Sans ce découpage, l'éditeur signale `vitest/config` introuvable dans les test
 
 ## 📄 La vitrine hors contrat
 
-`README.md` est exempté du contrat Markdown : c'est la vitrine anglophone publiée sur GitHub et sur npm, pas un document de `aidd_docs/`.
+`README.md` et toute page sous `docs/**` sont exemptés du contrat Markdown : c'est la vitrine anglophone publiée sur GitHub et sur npm, pas un document de `aidd_docs/`.
 Le contrat y imposerait un contenu français, un bloc de front-matter et des H2 emoji, trois choses qui n'ont pas leur place sur une page de dépôt public.
 
-| Règle | Code | Sur `README.md` |
+| Règle | Code | Sur `README.md` et `docs/**` |
 | --- | --- | --- |
 | Front-matter obligatoire | `FM001` | Ne s'applique pas |
 | Emoji devant chaque H2 | `EMO001` | Ne s'applique pas |
 
-Le vérificateur s'y lance donc avec `--ignore=FM001,EMO001`.
+Le vérificateur s'y lance donc avec `--ignore=FM001,EMO001`, sur le README comme sur chaque page de `docs/`.
 C'est le seul mécanisme disponible : il n'offre aucun profil README, seulement `repo` et `wiki`.
-Les huit erreurs qu'il signale sans ce drapeau sont attendues, jamais une régression à corriger.
+Les erreurs `FM001` et `EMO001` qu'il signale sans ce drapeau sont attendues, jamais une régression à corriger.
+Toute autre erreur reste une régression, et les avertissements `TBL002` sur les cellules longues sont tolérés.
+
+Deux vérifications complètent le vérificateur sur `docs/` : chaque `.md` du dossier est lié depuis `docs/README.md`, et chaque lien relatif résout.
+La référence des outils tient une troisième : les vingt-neuf `name:` des définitions sous `src/domains/` sont exactement les H3 des six pages de domaine et les lignes de `docs/reference/tools/README.md`, avec les classes du tableau `classes` de chacune.
 
 ## 🛠️ Comportement
 
