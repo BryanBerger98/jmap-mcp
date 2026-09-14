@@ -38,4 +38,22 @@ describe("truncate", () => {
   it("marks a cut with an ellipsis", () => {
     expect(truncate("abcdef", 4)).toBe("abc…");
   });
+
+  it("keeps an emoji fully inside the cut intact", () => {
+    // "🎯" is a surrogate pair; well within max, it is not touched by the cut.
+    const result = truncate("a🎯bcdef", 6);
+
+    expect(result.isWellFormed()).toBe(true);
+    expect(result).toContain("🎯");
+  });
+
+  it("cuts before an emoji straddling the boundary, rather than splitting it", () => {
+    // "a🎯" is 3 UTF-16 units (1 + surrogate pair): a naive slice(0, 2) would
+    // keep only the emoji's lone high surrogate.
+    const result = truncate("a🎯bcdef", 3);
+
+    expect(result.isWellFormed()).toBe(true);
+    expect(result.length).toBeLessThanOrEqual(3);
+    expect(result).toBe("a…");
+  });
 });
