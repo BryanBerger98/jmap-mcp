@@ -48,6 +48,12 @@ export interface ToolSelection {
   denied: string[];
 }
 
+/** The slice of the SDK's per-request context the guard pipeline reads. */
+interface ToolRequest {
+  inputResponses?: Record<string, unknown>;
+  envelope?: Record<string, unknown>;
+}
+
 const confirmationSchema = z.object({ confirm: z.boolean() });
 
 /**
@@ -121,15 +127,7 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
       // The definition owns the schema; the SDK wants it as a Standard Schema.
       inputSchema: tool.inputSchema as unknown as StandardSchemaWithJSON<unknown, unknown>,
     },
-    async (
-      args: unknown,
-      ctx: {
-        mcpReq: {
-          inputResponses?: Record<string, unknown>;
-          envelope?: Record<string, unknown>;
-        };
-      },
-    ) => {
+    async (args: unknown, ctx: { mcpReq: ToolRequest }) => {
       const context: ToolContext = {
         client: input.client,
         session: input.session,
@@ -143,68 +141,7 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
         once: perInvocationCache(),
       };
       try {
-        const operation = tool.classify(args);
-        let level = input.policy[operation];
-
-        if (level === "deny") {
-          return errorResult(
-            `Refused: ${tool.name} is a ${operation} operation and the policy denies that class.`,
-          );
-        }
-
-        // Before the confirmation, not after: a call that is going to be refused
-        // whatever the answer must never be put to the user as a question.
-        const refusal = await tool.precheck?.(args, context);
-        if (refusal !== undefined) return errorResult(refusal);
-
-        // The second path to a confirmation, opened by the tool rather than by the
-        // policy: an allowed class can still carry a call worth asking about.
-        // Consulted after `precheck` and never before, for the same reason the
-        // perimeter comes first — a doomed call is not made into a question by
-        // being bulky. A class already at `confirm` is going to ask anyway, and a
-        // denied one has long returned.
-        const escalation = level === "allow" ? await tool.confirmWhen?.(args, context) : undefined;
-        if (escalation !== undefined) level = "confirm";
-
-        if (level === "confirm") {
-          // Decided before the request is built, never after: a refusal that comes
-          // once the call is out is not a refusal.
-          if (!clientCanElicit(input.server, ctx.mcpReq)) {
-            return errorResult(
-              escalation === undefined
-                ? `Refused: ${tool.name} is a ${operation} operation, which this server only runs after you confirm it. ` +
-                    "Your MCP client did not declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused."
-                : `Refused: ${escalation} This server only runs that after you confirm it, and your MCP client did not ` +
-                    "declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused.",
-            );
-          }
-
-          const answer = acceptedContent(ctx.mcpReq.inputResponses, "confirm", confirmationSchema);
-          if (answer?.confirm !== true) {
-            return inputRequired({
-              inputRequests: {
-                confirm: inputRequired.elicit({
-                  // The reason the tool gave, when it gave one: telling someone
-                  // "this is a draft operation" says nothing about the volume
-                  // they are being asked to arbitrate. `tool.summarize` can echo
-                  // server data (a subject, a name), so it crosses the same
-                  // well-formed guard as a run result before it reaches the wire.
-                  message: wellFormed(
-                    `${await tool.summarize(args, context)}\n\n${escalation ?? `This is a ${operation} operation.`} Proceed?`,
-                  ),
-                  requestedSchema: {
-                    type: "object",
-                    properties: { confirm: { type: "boolean" } },
-                    required: ["confirm"],
-                  },
-                }),
-              },
-            });
-          }
-        }
-
-        const result = await tool.run(args, context);
-        return { content: [{ type: "text" as const, text: renderResult(result) }] };
+        return await handle(input, tool, args, ctx.mcpReq, context);
       } catch (error) {
         // Rethrown as `McpServer`'s own `tools/call` handler does: a legacy-era
         // tool signals a URL-mode elicitation by throwing it, and `Server` passes
@@ -225,6 +162,82 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
       }
     },
   );
+}
+
+/**
+ * The guard pipeline, in its fixed order: policy, precheck, confirmWhen,
+ * elicitation, run. Kept out of `register` so the output guard around it
+ * stays a wrapper rather than a level of indentation.
+ */
+async function handle(
+  input: CompositionInput,
+  tool: ToolDefinition,
+  args: unknown,
+  mcpReq: ToolRequest,
+  context: ToolContext,
+) {
+  const operation = tool.classify(args);
+  let level = input.policy[operation];
+
+  if (level === "deny") {
+    return errorResult(
+      `Refused: ${tool.name} is a ${operation} operation and the policy denies that class.`,
+    );
+  }
+
+  // Before the confirmation, not after: a call that is going to be refused
+  // whatever the answer must never be put to the user as a question.
+  const refusal = await tool.precheck?.(args, context);
+  if (refusal !== undefined) return errorResult(refusal);
+
+  // The second path to a confirmation, opened by the tool rather than by the
+  // policy: an allowed class can still carry a call worth asking about.
+  // Consulted after `precheck` and never before, for the same reason the
+  // perimeter comes first — a doomed call is not made into a question by
+  // being bulky. A class already at `confirm` is going to ask anyway, and a
+  // denied one has long returned.
+  const escalation = level === "allow" ? await tool.confirmWhen?.(args, context) : undefined;
+  if (escalation !== undefined) level = "confirm";
+
+  if (level === "confirm") {
+    // Decided before the request is built, never after: a refusal that comes
+    // once the call is out is not a refusal.
+    if (!clientCanElicit(input.server, mcpReq)) {
+      return errorResult(
+        escalation === undefined
+          ? `Refused: ${tool.name} is a ${operation} operation, which this server only runs after you confirm it. ` +
+              "Your MCP client did not declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused."
+          : `Refused: ${escalation} This server only runs that after you confirm it, and your MCP client did not ` +
+              "declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused.",
+      );
+    }
+
+    const answer = acceptedContent(mcpReq.inputResponses, "confirm", confirmationSchema);
+    if (answer?.confirm !== true) {
+      return inputRequired({
+        inputRequests: {
+          confirm: inputRequired.elicit({
+            // The reason the tool gave, when it gave one: telling someone
+            // "this is a draft operation" says nothing about the volume
+            // they are being asked to arbitrate. `tool.summarize` can echo
+            // server data (a subject, a name), so it crosses the same
+            // well-formed guard as a run result before it reaches the wire.
+            message: wellFormed(
+              `${await tool.summarize(args, context)}\n\n${escalation ?? `This is a ${operation} operation.`} Proceed?`,
+            ),
+            requestedSchema: {
+              type: "object",
+              properties: { confirm: { type: "boolean" } },
+              required: ["confirm"],
+            },
+          }),
+        },
+      });
+    }
+  }
+
+  const result = await tool.run(args, context);
+  return { content: [{ type: "text" as const, text: renderResult(result) }] };
 }
 
 /**
