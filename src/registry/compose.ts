@@ -206,10 +206,11 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
         const result = await tool.run(args, context);
         return { content: [{ type: "text" as const, text: renderResult(result) }] };
       } catch (error) {
-        // The SDK rethrows this one deliberately (mcp-DXXb3Vv3.mjs:889-892,
-        // :1405): a legacy-era tool signals a URL-mode elicitation by throwing
-        // it, and converting it to a text result here would swallow that signal
-        // before the SDK can act on it.
+        // Rethrown as `McpServer`'s own `tools/call` handler does: a legacy-era
+        // tool signals a URL-mode elicitation by throwing it, and `Server` passes
+        // it through unchanged on 2025-era revisions (and steers to
+        // `inputRequired.elicitUrl` on 2026-07-28). A text result here would
+        // swallow that signal before the SDK can act on it.
         if (
           error instanceof ProtocolError &&
           error.code === ProtocolErrorCode.UrlElicitationRequired
