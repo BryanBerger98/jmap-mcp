@@ -1,7 +1,7 @@
 ---
 title: Budget d'outils
 status: draft
-updated: 2026-09-02
+updated: 2026-09-19
 owner: bryan
 ---
 
@@ -18,10 +18,11 @@ Le chiffre vient du rapport de composition, capacités toutes présentes, jamais
 | Après Sieve et l'absence | 28 |
 | Après les partages | 30 |
 | Après la fusion du rangement | 29 |
+| Après la lecture des pièces jointes | 30 |
 | Cible que le projet s'est donnée | 26 |
 
-La cible est dépassée de trois, et c'est écrit ici tel quel plutôt qu'arrondi.
-Les deux dernières lignes sont dans l'ordre où elles se sont produites : les partages ont porté le compte à trente, la fusion l'a ramené à vingt-neuf.
+La cible est dépassée de quatre, et c'est écrit ici tel quel plutôt qu'arrondi.
+Les trois dernières lignes sont dans l'ordre où elles se sont produites : les partages ont porté le compte à trente, la fusion l'a ramené à vingt-neuf, la lecture des pièces jointes l'a remonté à trente.
 
 **🔒 Pourquoi la place n'a pas suffi**
 
@@ -35,12 +36,18 @@ La découpe par classe la remplace : `sharing_access` lit, `sharing_manage` écr
 
 **⚡ Ce que le dépassement coûte réellement**
 
-Le seuil de dégradation observé est trente, pas vingt-six : la cible était une marge, et vingt-neuf reste sous le seuil, d'une place.
-Ce qu'un client donné voit est de surcroît borné par le gating — un serveur sans Sieve ni partages n'expose aucun des cinq outils des modules 10 et 11, et son compte reste à vingt-quatre.
+Le seuil de dégradation observé est trente, pas vingt-six : la cible était une marge, et le compte l'a consommée entière, trente étant le seuil lui-même.
+Ce qu'un client donné voit est de surcroît borné par le gating — un serveur sans Sieve ni partages n'expose aucun des cinq outils des modules 10 et 11, et son compte reste à vingt-cinq.
+
+**⚖️ La trentième place**
+
+`mail_attachment_fetch` l'a prise, alors que le critère 3 permettait de l'éviter en le fondant dans `mail_read` : les deux lisent, et la classe ne change pas.
+La fusion n'a pas été faite, parce qu'elle aurait donné deux modes au schéma publié de `mail_read` : une liste d'identifiants de message d'un côté, un message et un `blobId` avec `decode` et `maxBytes` de l'autre.
+Le coût est assumé par la troisième issue, et il se mesure : le compte est au seuil, et le prochain outil le franchit.
 
 ## 🎯 D'où vient la cible
 
-La dégradation de sélection se voit dès trente outils exposés : au-delà, le client choisit moins bien, et un outil de plus rend les vingt-neuf autres un peu moins fiables.
+La dégradation de sélection se voit dès trente outils exposés : au-delà, le client choisit moins bien, et un outil de plus rend les trente autres un peu moins fiables.
 Vingt-six est la marge que le projet a prise sous ce seuil, pas une limite du protocole.
 
 Ce qui compte est le nombre d'outils qu'un client donné voit, pas le total du dépôt.
@@ -63,7 +70,7 @@ Le module 11 l'a confirmé plutôt qu'assoupli : c'est cette interdiction, et ri
 
 ## 🧭 Le dernier module, placé
 
-Il ne reste rien à placer : les onze modules de la roadmap sont livrés, et le compte ci-dessus est définitif tant qu'aucun outil ne s'ajoute.
+Il ne reste rien à placer : les onze modules de la roadmap sont livrés, et `mail_attachment_fetch` est le seul outil ajouté depuis, hors roadmap.
 
 | Module | Surface retenue | Coût réel |
 | --- | --- | --- |
@@ -89,7 +96,7 @@ Deux autres paires reviennent naturellement — `contacts_search` avec `contacts
 ## 🚧 Si la place manque
 
 Rien n'oblige à trancher au-delà de vingt-six par un refus.
-Trois issues restent ouvertes, et les trois ont servi : le module 10 a pris la troisième, le module 11 les deux premières.
+Trois issues restent ouvertes, et les trois ont servi : le module 10 a pris la troisième, le module 11 les deux premières, la lecture des pièces jointes la troisième à son tour.
 
 - Fondre deux verbes voisins sous un discriminant, tant qu'ils gardent la même classe d'opération.
 - Laisser le gating faire le travail : un domaine derrière une capacité absente ne pèse que sur les serveurs qui l'annoncent.
@@ -97,5 +104,5 @@ Trois issues restent ouvertes, et les trois ont servi : le module 10 a pris la t
 
 Ce qui n'est pas une issue : retirer un outil déjà publié.
 C'est une rupture semver, et le nom d'un outil est le contrat public du paquet.
-Une fusion se décide donc avant la publication du paquet, ou pas du tout : les vingt-neuf outils actuels ne sont fusionnables que tant que rien ne les a exposés sous ces noms-là.
+Une fusion se décide donc avant la publication du paquet, ou pas du tout : un outil n'est fusionnable que tant que rien ne l'a exposé sous son nom.
 C'est la fenêtre que la fusion du rangement a utilisée, et elle se referme à la première publication.
