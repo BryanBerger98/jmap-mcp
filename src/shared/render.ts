@@ -77,6 +77,32 @@ export function truncate(text: string, max: number): string {
  * a reader can follow, not a faithful rendering. Blocks that carry no prose are
  * dropped whole, block-level tags become line breaks, the rest is stripped.
  */
+/** Binary units, spelled as such: 180 KiB is 184320 bytes and says so. */
+const UNITS = ["B", "KiB", "MiB", "GiB", "TiB"];
+
+/**
+ * A size a human reads, not a byte count they have to divide.
+ *
+ * Kept exact below a kibibyte, and given one decimal only where it carries
+ * information: "180 KiB" is as precise as anybody needs, "180.0 KiB" is noise.
+ *
+ * Hoisted out of the files domain the day mail needed the same rendering for
+ * an attachment's size: a second copy would have drifted at the first
+ * correction, exactly as `describeSetError` above.
+ */
+export function formatSize(bytes: number): string {
+  let value = bytes;
+  let unit = 0;
+
+  while (value >= 1024 && unit < UNITS.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+
+  const shown = unit === 0 || value >= 10 ? String(Math.round(value)) : value.toFixed(1);
+  return `${shown} ${UNITS[unit]}`;
+}
+
 export function htmlToText(html: string): string {
   return (
     html
