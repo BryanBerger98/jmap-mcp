@@ -331,12 +331,19 @@ function cutBytes(bytes: Uint8Array, maxBytes: number): { text: string; isTrunca
   return { text: new TextDecoder().decode(bytes.subarray(0, maxBytes)), isTruncated: true };
 }
 
-/** Base64 is ASCII, so a character count is a byte count and the cut needs no decoder. */
+/**
+ * Base64 is ASCII, so a character count is a byte count and the cut needs no
+ * decoder. Only the bytes the kept characters encode are encoded: every three
+ * bytes become four characters, so `ceil(maxBytes / 4) * 3` bytes cover the cut
+ * and the output matches the whole payload's base64 sliced at `maxBytes`.
+ */
 function cutBase64(bytes: Uint8Array, maxBytes: number): { text: string; isTruncated: boolean } {
-  const full = Buffer.from(bytes).toString("base64");
-  return full.length <= maxBytes
-    ? { text: full, isTruncated: false }
-    : { text: full.slice(0, maxBytes), isTruncated: true };
+  const isTruncated = Math.ceil(bytes.byteLength / 3) * 4 > maxBytes;
+  const covered = bytes.subarray(0, Math.ceil(maxBytes / 4) * 3);
+  const encoded = Buffer.from(covered.buffer, covered.byteOffset, covered.byteLength).toString(
+    "base64",
+  );
+  return { text: encoded.slice(0, maxBytes), isTruncated };
 }
 
 function describeError(error: unknown): string {

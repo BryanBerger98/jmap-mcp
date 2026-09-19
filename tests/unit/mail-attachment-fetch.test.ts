@@ -369,6 +369,28 @@ describe("mail_attachment_fetch truncation", () => {
     expect(result.text).toContain("raising maxBytes");
   });
 
+  it("cuts base64 output at maxBytes, even when maxBytes is not a multiple of four", async () => {
+    const bytes = Uint8Array.from({ length: 1000 }, (_, i) => (i * 7) % 256);
+    const { context } = fakeTransport(
+      [
+        only(
+          messageWith([attachment({ blobId: "blob-bin", type: "image/png", name: "photo.png" })]),
+        ),
+      ],
+      { blobs: blobsServing({ "blob-bin": bytes }) },
+    );
+
+    const result = await mailAttachmentFetch.run(
+      { messageId: "em-300", blobId: "blob-bin", maxBytes: 203 },
+      context,
+    );
+    const full = Buffer.from(bytes).toString("base64");
+
+    expect(result.text).toContain(full.slice(0, 203));
+    expect(result.text).not.toContain(full.slice(0, 204));
+    expect(result.text).toContain("output cut at 203 bytes");
+  });
+
   it("does not announce a cut when the output fits", async () => {
     const { context } = fakeTransport(
       [
