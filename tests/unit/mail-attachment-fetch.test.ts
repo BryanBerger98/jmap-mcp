@@ -548,7 +548,38 @@ describe("mail_attachment_fetch truncation", () => {
     expect(result.text).toContain(content.slice(0, 200));
     expect(result.text).not.toContain(content.slice(200));
     expect(result.text).toContain("output cut at 200 bytes");
-    expect(result.text).toContain("raising maxBytes");
+    expect(result.text).toContain("raising maxBytes, up to 100000");
+  });
+
+  it("bounds maxBytes by a fixed ceiling, not by the download ceiling", () => {
+    const parse = (maxBytes: number) =>
+      mailAttachmentFetch.inputSchema.safeParse({ messageId: "em-300", blobId: "b", maxBytes });
+
+    expect(parse(100_000).success).toBe(true);
+    expect(parse(100_001).success).toBe(false);
+  });
+
+  it("says nothing moves the cut once maxBytes sits at the ceiling", async () => {
+    const gzipped = gzipSync(Buffer.alloc(200_000, "a"));
+    const { context } = fakeTransport(
+      [
+        only(
+          messageWith([
+            attachment({ blobId: "blob-gz", type: "application/gzip", name: "big.log.gz" }),
+          ]),
+        ),
+      ],
+      { blobs: blobsServing({ "blob-gz": gzipped }) },
+    );
+
+    const result = await mailAttachmentFetch.run(
+      { messageId: "em-300", blobId: "blob-gz", maxBytes: 100_000 },
+      context,
+    );
+
+    expect(result.text).toContain("output cut at 100000 bytes, the most this tool returns");
+    expect(result.text).not.toContain("raising maxBytes");
+    expect(result.text).not.toContain("configuration");
   });
 
   it("cuts base64 output at maxBytes, even when maxBytes is not a multiple of four", async () => {

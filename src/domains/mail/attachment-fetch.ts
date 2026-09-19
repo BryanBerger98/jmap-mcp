@@ -13,9 +13,20 @@ import { MAX_BODY_VALUE_BYTES } from "./read.js";
  *
  * Reuses `mail_read`'s own default rather than inventing a second number: both
  * bound one tool call's worth of text handed back to the model, for the same
- * reason. `maxBytes` lowers it or raises it, up to `files.maxDownloadSize`.
+ * reason. `maxBytes` lowers it or raises it, up to `MAX_ATTACHMENT_TEXT_BYTES`.
  */
 const DEFAULT_ATTACHMENT_TEXT_BYTES = MAX_BODY_VALUE_BYTES;
+
+/**
+ * The most decoded output one call returns, in bytes, whatever the download
+ * ceiling allows.
+ *
+ * This tool reads text-like attachments into the conversation, where file
+ * bytes otherwise never travel: a base64 excerpt is a hint of what a binary
+ * attachment holds, never a way to carry it. The ceiling is fixed so no
+ * configuration turns the reply into a transport for a whole file.
+ */
+const MAX_ATTACHMENT_TEXT_BYTES = 100_000;
 
 /** What an attachment is downloaded as when the server declares no type. */
 const FALLBACK_MIME = "application/octet-stream";
@@ -41,10 +52,11 @@ const inputSchema = z.object({
     .number()
     .int()
     .min(200)
+    .max(MAX_ATTACHMENT_TEXT_BYTES)
     .optional()
     .describe(
-      `Bytes of decoded output to keep, ${DEFAULT_ATTACHMENT_TEXT_BYTES} by default. Bounded by ` +
-        `${MAX_DOWNLOAD_SIZE_KEY}, the same ceiling that refuses the download itself.`,
+      `Bytes of decoded output to keep, ${DEFAULT_ATTACHMENT_TEXT_BYTES} by default and ` +
+        `${MAX_ATTACHMENT_TEXT_BYTES} at most.`,
     ),
 });
 
@@ -112,17 +124,16 @@ export const mailAttachmentFetch = defineTool({
 
     // A second, independent ceiling from the transfer guard above: a `.zip` or
     // `.gz` attachment can decode to far more bytes than it was downloaded as,
-    // and the cut on the way out must hold whatever the cut on the way in did.
-    const maxBytes = Math.min(input.maxBytes ?? DEFAULT_ATTACHMENT_TEXT_BYTES, ceiling);
+    // and what reaches the conversation stays an excerpt whatever came in.
+    const maxBytes = input.maxBytes ?? DEFAULT_ATTACHMENT_TEXT_BYTES;
     const decoded =
       input.decode === "raw"
         ? decodeRaw(bytes, maxBytes)
         : decodeAuto(bytes, attachment, maxBytes, ceiling);
 
-    const notes = [
-      decoded.note,
-      decoded.isTruncated ? truncationNote(maxBytes, ceiling) : undefined,
-    ].filter((note): note is string => note !== undefined);
+    const notes = [decoded.note, decoded.isTruncated ? truncationNote(maxBytes) : undefined].filter(
+      (note): note is string => note !== undefined,
+    );
     const footer = notes.length > 0 ? `\n\n[${notes.join(" — ")}]` : "";
 
     return {
@@ -142,15 +153,14 @@ function describeAttachment(name: string | null, blobId: string): string {
 }
 
 /**
- * `maxBytes` only lowers or raises the ceiling within `files.maxDownloadSize`,
+ * `maxBytes` only lowers or raises the cut within `MAX_ATTACHMENT_TEXT_BYTES`,
  * so inviting the caller to raise it is only sound below that ceiling. At the
- * ceiling the same advice buys a wasted round trip: the way past it is the
- * configuration, not the argument.
+ * ceiling the same advice buys a wasted round trip, and nothing moves it.
  */
-function truncationNote(maxBytes: number, ceiling: number): string {
-  return maxBytes < ceiling
-    ? `output cut at ${maxBytes} bytes; ask for the rest by raising maxBytes, up to ${ceiling}`
-    : `output cut at ${maxBytes} bytes, the ${MAX_DOWNLOAD_SIZE_KEY} ceiling; raise it in your configuration to see more`;
+function truncationNote(maxBytes: number): string {
+  return maxBytes < MAX_ATTACHMENT_TEXT_BYTES
+    ? `output cut at ${maxBytes} bytes; ask for more by raising maxBytes, up to ${MAX_ATTACHMENT_TEXT_BYTES}`
+    : `output cut at ${maxBytes} bytes, the most this tool returns in one reply`;
 }
 
 interface DecodedOutput {
