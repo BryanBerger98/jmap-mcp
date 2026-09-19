@@ -215,6 +215,84 @@ describe("mail_attachment_fetch decoding", () => {
     expect(result.text).toContain("plain notes");
   });
 
+  it("decodes a text attachment in the charset it declares", async () => {
+    // "café;naïve" in windows-1252: é is 0xE9, ï is 0xEF, both invalid as UTF-8.
+    const bytes = Uint8Array.from([0x63, 0x61, 0x66, 0xe9, 0x3b, 0x6e, 0x61, 0xef, 0x76, 0x65]);
+    const { context } = fakeTransport(
+      [
+        only(
+          messageWith([
+            attachment({
+              blobId: "blob-csv",
+              type: "text/csv",
+              charset: "windows-1252",
+              name: "export.csv",
+            }),
+          ]),
+        ),
+      ],
+      { blobs: blobsServing({ "blob-csv": bytes }) },
+    );
+
+    const result = await mailAttachmentFetch.run(
+      { messageId: "em-300", blobId: "blob-csv" },
+      context,
+    );
+
+    expect(result.text).toContain("café;naïve");
+    expect(result.text).not.toContain("\uFFFD");
+  });
+
+  it("falls back to UTF-8 on a charset label it does not know, and says so", async () => {
+    const { context } = fakeTransport(
+      [
+        only(
+          messageWith([
+            attachment({
+              blobId: "blob-text",
+              type: "text/plain",
+              charset: "x-no-such-charset",
+              name: "notes.txt",
+            }),
+          ]),
+        ),
+      ],
+      { blobs: blobsServing({ "blob-text": new TextEncoder().encode("café") }) },
+    );
+
+    const result = await mailAttachmentFetch.run(
+      { messageId: "em-300", blobId: "blob-text" },
+      context,
+    );
+
+    expect(result.text).toContain("café");
+    expect(result.text).toContain("x-no-such-charset is not supported, decoded as UTF-8");
+  });
+
+  it.each([null, "us-ascii", "US-ASCII"])(
+    "reads UTF-8 bytes as UTF-8 under a %s charset",
+    async (charset) => {
+      const { context } = fakeTransport(
+        [
+          only(
+            messageWith([
+              attachment({ blobId: "blob-text", type: "text/plain", charset, name: "notes.txt" }),
+            ]),
+          ),
+        ],
+        { blobs: blobsServing({ "blob-text": new TextEncoder().encode("naïve café") }) },
+      );
+
+      const result = await mailAttachmentFetch.run(
+        { messageId: "em-300", blobId: "blob-text" },
+        context,
+      );
+
+      expect(result.text).toContain("naïve café");
+      expect(result.text).not.toContain("is not supported");
+    },
+  );
+
   it("falls back to base64 for a binary attachment, and says so", async () => {
     const bytes = new Uint8Array([0, 1, 2, 3, 255, 254]);
     const { context } = fakeTransport(

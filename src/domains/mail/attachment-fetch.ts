@@ -201,7 +201,8 @@ function decodeAuto(
   }
 
   if (isTextLike(attachment.type)) {
-    return cutBytes(bytes, maxBytes);
+    const { encoding, note } = encodingFor(attachment.charset);
+    return { ...cutBytes(bytes, maxBytes, encoding), ...(note === undefined ? {} : { note }) };
   }
 
   return { ...cutBase64(bytes, maxBytes), note: "binary content, shown as base64" };
@@ -318,17 +319,50 @@ function concatBytes(chunks: Uint8Array[]): Uint8Array {
 }
 
 /**
+ * Charset labels read as UTF-8 rather than by their WHATWG meaning. US-ASCII is
+ * the implicit charset of a `text/*` part that declares none (RFC 8621), and
+ * WHATWG maps that label to windows-1252: honouring it would garble every
+ * undeclared UTF-8 file, while UTF-8 reads true ASCII unchanged.
+ */
+const READ_AS_UTF8 = new Set(["us-ascii", "ascii"]);
+const UTF8 = "utf-8";
+
+/**
+ * The encoding a text part's declared charset asks for. A label the runtime
+ * does not know falls back to UTF-8, and the output says so.
+ */
+function encodingFor(charset: string | null): { encoding: string; note?: string } {
+  const label = charset?.trim().toLowerCase() ?? "";
+  if (label === "" || READ_AS_UTF8.has(label)) return { encoding: UTF8 };
+  try {
+    return { encoding: new TextDecoder(label).encoding };
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error;
+    return {
+      encoding: UTF8,
+      note: `declared charset ${charset} is not supported, decoded as UTF-8`,
+    };
+  }
+}
+
+/**
  * Cuts at a byte boundary, then decodes: cutting the decoded string instead
  * would count UTF-16 code units, not the bytes `maxBytes` promises. A cut that
  * lands inside a multi-byte character is not re-checked — `TextDecoder`
  * replaces the broken tail with a single U+FFFD, same as a truncated emoji
- * anywhere else in this server's output.
+ * anywhere else in this server's output. The encoding is UTF-8 unless the
+ * caller passes the one a declared charset asks for.
  */
-function cutBytes(bytes: Uint8Array, maxBytes: number): { text: string; isTruncated: boolean } {
+function cutBytes(
+  bytes: Uint8Array,
+  maxBytes: number,
+  encoding: string = UTF8,
+): { text: string; isTruncated: boolean } {
+  const decoder = new TextDecoder(encoding);
   if (bytes.byteLength <= maxBytes) {
-    return { text: new TextDecoder().decode(bytes), isTruncated: false };
+    return { text: decoder.decode(bytes), isTruncated: false };
   }
-  return { text: new TextDecoder().decode(bytes.subarray(0, maxBytes)), isTruncated: true };
+  return { text: decoder.decode(bytes.subarray(0, maxBytes)), isTruncated: true };
 }
 
 /**
