@@ -258,7 +258,7 @@ Ne nommer aucun droit sur une révocation n'est pas une révocation vide : c'est
 - `elicitInput` et `sendElicitation` lèvent sur une requête de l'ère 2026. Une confirmation poussée par le serveur ne marcherait que sur une révision, et l'ère est le choix du client : `inputRequired` est le seul émetteur, ce qu'un contrat vérifie en lisant les sources.
 - Claude Desktop ne supporte pas l'élicitation. Toute opération `send` ou `destroy` y échoue par conception.
 - Les annotations MCP, `destructiveHint` en tête, sont déclarées non fiables. Elles documentent, elles ne gardent rien.
-- La dégradation se voit dès trente outils exposés. La cible est vingt-six, la composition en enregistre vingt-neuf, et `internal/tool-budget.md` porte ce dépassement plutôt que de l'arrondir.
+- La dégradation se voit dès trente outils exposés. La cible est vingt-six, la composition en enregistre trente, et `internal/tool-budget.md` porte ce dépassement plutôt que de l'arrondir.
 - La classe d'opération ne se lit pas sur le nom de la méthode. Un argument suffit à faire basculer une écriture en destruction ou en envoi, dans les six domaines.
 - Une opération destructrice ne prend jamais un filtre en entrée. Stalwart abandonne silencieusement une condition `header` mal formée, et la requête rend alors plus de résultats que demandé.
 - Supprimer un dossier ne supprime jamais son contenu. `onDestroyRemoveEmails` est écrit à faux sur chaque `Mailbox/set` émis, y compris ceux qui ne détruisent rien : un défaut serveur n'est pas une garantie, et l'absence de l'argument ne se voit sur aucun test unitaire.

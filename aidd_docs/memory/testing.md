@@ -1,14 +1,14 @@
 ---
 title: Tests
 status: draft
-updated: 2026-09-14
+updated: 2026-09-19
 owner: bryan
 ---
 
 # Tests
 
 > [!NOTE]
-> 1408 tests passent sur 76 fichiers, dont 22 de contrat, chiffres relevés sur une exécution de `pnpm test`.
+> 1440 tests passent sur 77 fichiers, dont 22 de contrat, chiffres relevés sur une exécution de `pnpm test`.
 > Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact, les agendas, les nœuds de fichier, les scripts Sieve et les partages, en lecture comme en écriture.
 
 ## 🎯 Stratégie
