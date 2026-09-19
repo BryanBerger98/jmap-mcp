@@ -151,11 +151,32 @@ describe("mail_read rendering", () => {
 
     expect(text).toContain("Not found: em-999");
   });
+
+  it("lists a message's attachments as a table naming the blobId to fetch", async () => {
+    const { context } = fakeTransport([withText]);
+
+    const { text } = await mailRead.run({ ids: ["em-101"] }, context);
+    const block = blockOf(text, "em-101");
+
+    expect(block).toContain("Attachments:");
+    expect(block).toContain("weekly-digest.pdf");
+    expect(block).toContain("application/pdf");
+    expect(block).toContain("blob-101-digest");
+  });
+
+  it("prints no attachments table for a message that carries none", async () => {
+    const { context } = fakeTransport([withText]);
+
+    const { text } = await mailRead.run({ ids: ["em-100"] }, context);
+
+    expect(blockOf(text, "em-100")).not.toContain("Attachments:");
+  });
 });
 
 describe("mail domain surface", () => {
-  it("exposes exactly the three read tools", () => {
+  it("exposes exactly the four read tools", () => {
     expect(mailDomain.tools.map((tool) => tool.name).sort()).toEqual([
+      "mail_attachment_fetch",
       "mail_folders",
       "mail_read",
       "mail_search",
