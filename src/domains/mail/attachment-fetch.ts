@@ -1,5 +1,4 @@
-import { gunzipSync } from "node:zlib";
-import { unzipSync } from "fflate";
+import { gunzipSync, unzipSync } from "fflate";
 import { z } from "zod";
 import { MAX_DOWNLOAD_SIZE_KEY, maxDownloadSize } from "../../config/schema.js";
 import type { GetResponse } from "../../jmap/types/core.js";
@@ -115,7 +114,9 @@ export const mailAttachmentFetch = defineTool({
     // and the cut on the way out must hold whatever the cut on the way in did.
     const maxBytes = Math.min(input.maxBytes ?? DEFAULT_ATTACHMENT_TEXT_BYTES, ceiling);
     const decoded =
-      input.decode === "raw" ? decodeRaw(bytes, maxBytes) : decodeAuto(bytes, attachment, maxBytes);
+      input.decode === "raw"
+        ? decodeRaw(bytes, maxBytes)
+        : decodeAuto(bytes, attachment, maxBytes, ceiling);
 
     const notes = [
       decoded.note,
@@ -167,10 +168,19 @@ function decodeRaw(bytes: Uint8Array, maxBytes: number): DecodedOutput {
  * `decode: "auto"` (the default) — readable text wherever the attachment
  * allows it, base64 only where it does not.
  */
-function decodeAuto(bytes: Uint8Array, attachment: EmailBodyPart, maxBytes: number): DecodedOutput {
+function decodeAuto(
+  bytes: Uint8Array,
+  attachment: EmailBodyPart,
+  maxBytes: number,
+  ceiling: number,
+): DecodedOutput {
   if (isGzip(attachment)) {
     try {
-      return { ...cutBytes(gunzipSync(bytes), maxBytes), note: "gunzipped" };
+      // A fixed output buffer, one byte past the cut so the cut still shows:
+      // the inflater stops writing where the buffer ends, so a small archive
+      // that inflates to gigabytes never exists in memory beyond this prefix.
+      const prefix = gunzipSync(bytes, { out: new Uint8Array(maxBytes + 1) });
+      return { ...cutBytes(prefix, maxBytes), note: "gunzipped" };
     } catch (error) {
       return {
         ...cutBase64(bytes, maxBytes),
@@ -181,7 +191,7 @@ function decodeAuto(bytes: Uint8Array, attachment: EmailBodyPart, maxBytes: numb
 
   if (isZip(attachment)) {
     try {
-      return decodeZip(bytes, maxBytes);
+      return decodeZip(bytes, maxBytes, ceiling);
     } catch (error) {
       return {
         ...cutBase64(bytes, maxBytes),
@@ -216,16 +226,49 @@ function isTextLike(type: string): boolean {
 /**
  * Unpacks a zip archive: the one entry's bytes when it holds one, every entry
  * prefixed by its name when it holds several — never a silent pick among them.
+ *
+ * The unzipper allocates each entry at the size the archive declares for it,
+ * so the declared sizes are what bound memory. An entry is unpacked only while
+ * the running total stays within `ceiling`, the most this server already
+ * agreed to hold for one attachment; an entry past it is skipped and named.
+ * Once the total reaches `maxBytes`, later entries would land past the cut
+ * anyway and are left packed.
  */
-function decodeZip(bytes: Uint8Array, maxBytes: number): DecodedOutput {
-  const entries = unzipSync(bytes);
+function decodeZip(bytes: Uint8Array, maxBytes: number, ceiling: number): DecodedOutput {
+  let unpacked = 0;
+  let isPastCut = false;
+  const skipped: string[] = [];
+  const entries = unzipSync(bytes, {
+    filter: (file) => {
+      if (unpacked >= maxBytes) {
+        isPastCut = true;
+        return false;
+      }
+      // A stored entry is copied at its compressed size, a deflated one
+      // allocated at its original size: the larger of the two covers both.
+      const size = Math.max(file.size, file.originalSize);
+      if (unpacked + size > ceiling) {
+        skipped.push(file.name);
+        return false;
+      }
+      unpacked += size;
+      return true;
+    },
+  });
   const names = Object.keys(entries);
+  const skippedNote = describeSkipped(skipped, ceiling);
 
   if (names.length === 0) {
-    return { text: "(the zip archive is empty)", isTruncated: false };
+    return skippedNote === undefined
+      ? { text: "(the zip archive is empty)", isTruncated: false }
+      : {
+          text: "(no entry of the zip archive was unpacked)",
+          isTruncated: false,
+          note: skippedNote,
+        };
   }
 
-  if (names.length === 1) {
+  if (names.length === 1 && skipped.length === 0 && !isPastCut) {
     const [name] = names as [string];
     return { ...cutBytes(entries[name] as Uint8Array, maxBytes), note: `unzipped from ${name}` };
   }
@@ -237,7 +280,28 @@ function decodeZip(bytes: Uint8Array, maxBytes: number): DecodedOutput {
     chunks.push(entries[name] as Uint8Array);
   });
 
-  return { ...cutBytes(concatBytes(chunks), maxBytes), note: `unzipped, ${names.length} entries` };
+  const cut = cutBytes(concatBytes(chunks), maxBytes);
+  return {
+    text: cut.text,
+    isTruncated: cut.isTruncated || isPastCut,
+    note: [`unzipped, ${names.length} entries`, skippedNote]
+      .filter((part): part is string => part !== undefined)
+      .join("; "),
+  };
+}
+
+/** How many skipped entries a note names before it only counts the rest. */
+const SKIPPED_NAMES_SHOWN = 5;
+
+function describeSkipped(skipped: string[], ceiling: number): string | undefined {
+  if (skipped.length === 0) return undefined;
+  const shown = skipped.slice(0, SKIPPED_NAMES_SHOWN).join(", ");
+  const rest = skipped.length - SKIPPED_NAMES_SHOWN;
+  const count = skipped.length === 1 ? "1 entry" : `${skipped.length} entries`;
+  return (
+    `${count} skipped, the declared size passing the ${formatSize(ceiling)} ` +
+    `${MAX_DOWNLOAD_SIZE_KEY} ceiling: ${shown}${rest > 0 ? `, and ${rest} more` : ""}`
+  );
 }
 
 const TWO_NEWLINES = new TextEncoder().encode("\n\n");

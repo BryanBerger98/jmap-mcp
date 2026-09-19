@@ -258,6 +258,92 @@ describe("mail_attachment_fetch decoding", () => {
   });
 });
 
+describe("mail_attachment_fetch decompression bounds", () => {
+  it("inflates a high-ratio gzip only up to the cut, and announces it", async () => {
+    // 16 MiB of one byte compresses to about 16 KiB: a ratio of a thousand.
+    const gzipped = gzipSync(Buffer.alloc(16 * 1024 * 1024, "a"));
+    const { context } = fakeTransport(
+      [
+        only(
+          messageWith([
+            attachment({ blobId: "blob-bomb", type: "application/gzip", name: "bomb.gz" }),
+          ]),
+        ),
+      ],
+      { blobs: blobsServing({ "blob-bomb": gzipped }) },
+    );
+
+    const result = await mailAttachmentFetch.run(
+      { messageId: "em-300", blobId: "blob-bomb", maxBytes: 300 },
+      context,
+    );
+
+    expect(result.text).toContain(`${"a".repeat(300)}\n`);
+    expect(result.text).not.toContain("a".repeat(301));
+    expect(result.text).toContain("gunzipped");
+    expect(result.text).toContain("output cut at 300 bytes");
+  });
+
+  it("skips a zip entry whose declared size passes the ceiling, and names it", async () => {
+    const zipped = zipSync({
+      "small.txt": new TextEncoder().encode("small entry"),
+      "huge.txt": new Uint8Array(4096).fill(0x61),
+    });
+    const { context } = fakeTransport(
+      [
+        only(
+          messageWith([
+            attachment({
+              blobId: "blob-zip",
+              type: "application/zip",
+              name: "mixed.zip",
+              size: 200,
+            }),
+          ]),
+        ),
+      ],
+      { files: { maxDownloadSize: 1024 }, blobs: blobsServing({ "blob-zip": zipped }) },
+    );
+
+    const result = await mailAttachmentFetch.run(
+      { messageId: "em-300", blobId: "blob-zip" },
+      context,
+    );
+
+    expect(result.text).toContain("== small.txt ==");
+    expect(result.text).toContain("small entry");
+    expect(result.text).not.toContain("aaaa");
+    expect(result.text).toContain("1 entry skipped");
+    expect(result.text).toContain("huge.txt");
+  });
+
+  it("leaves entries past the cut packed, and announces the cut", async () => {
+    const zipped = zipSync({
+      "first.txt": new Uint8Array(400).fill(0x61),
+      "second.txt": new TextEncoder().encode("never reached"),
+    });
+    const { context } = fakeTransport(
+      [
+        only(
+          messageWith([
+            attachment({ blobId: "blob-zip", type: "application/zip", name: "two.zip", size: 200 }),
+          ]),
+        ),
+      ],
+      { blobs: blobsServing({ "blob-zip": zipped }) },
+    );
+
+    const result = await mailAttachmentFetch.run(
+      { messageId: "em-300", blobId: "blob-zip", maxBytes: 300 },
+      context,
+    );
+
+    expect(result.text).toContain("== first.txt ==");
+    expect(result.text).not.toContain("never reached");
+    expect(result.text).toContain("output cut at 300 bytes");
+  });
+});
+
 describe("mail_attachment_fetch truncation", () => {
   it("cuts decoded output at maxBytes and announces the cut", async () => {
     // Strictly increasing 4-digit numbers, not a repeating pattern: a slice
