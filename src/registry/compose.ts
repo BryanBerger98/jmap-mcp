@@ -141,7 +141,7 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
         once: perInvocationCache(),
       };
       try {
-        return await handle(input, tool, args, ctx.mcpReq, context);
+        return await runGuarded(input, tool, args, ctx.mcpReq, context);
       } catch (error) {
         // Rethrown as `McpServer`'s own `tools/call` handler does: a legacy-era
         // tool signals a URL-mode elicitation by throwing it, and `Server` passes
@@ -169,7 +169,7 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
  * elicitation, run. Kept out of `register` so the output guard around it
  * stays a wrapper rather than a level of indentation.
  */
-async function handle(
+async function runGuarded(
   input: CompositionInput,
   tool: ToolDefinition,
   args: unknown,
