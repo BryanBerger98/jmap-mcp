@@ -33,7 +33,8 @@
           "isEncodingProblem": false,
           "isTruncated": false
         }
-      }
+      },
+      "attachments": []
     },
     {
       "id": "em-101",
@@ -66,7 +67,17 @@
           "isEncodingProblem": false,
           "isTruncated": true
         }
-      }
+      },
+      "attachments": [
+        {
+          "partId": null,
+          "blobId": "blob-101-digest",
+          "type": "application/pdf",
+          "charset": null,
+          "size": 51200,
+          "name": "weekly-digest.pdf"
+        }
+      ]
     }
   ],
   "notFound": []

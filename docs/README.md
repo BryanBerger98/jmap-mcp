@@ -17,7 +17,7 @@ It lives on GitHub and is not shipped in the npm package: the package carries on
 | Page | Answers |
 | --- | --- |
 | [Configuration](./reference/configuration.md) | Every key of the configuration file, its variable, its default |
-| [Tools](./reference/tools/README.md) | The twenty-nine tools, their classes, and why a domain may be missing |
+| [Tools](./reference/tools/README.md) | The thirty tools, their classes, and why a domain may be missing |
 | [Mail tools](./reference/tools/mail.md) | Searching, reading, composing, sending, filing, deleting, folders |
 | [Contacts tools](./reference/tools/contacts.md) | Cards and address books |
 | [Calendar tools](./reference/tools/calendar.md) | Events, availability, invitations |

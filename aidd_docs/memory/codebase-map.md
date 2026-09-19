@@ -1,16 +1,16 @@
 ---
 title: Carte du code
 status: draft
-updated: 2026-09-14
+updated: 2026-09-19
 owner: bryan
 ---
 
 # Carte du code
 
 > [!NOTE]
-> Vingt-neuf outils sont exposés, le mail en portant neuf : `mail_search`, `mail_read`, `mail_folders`, `mail_identities`, `mail_compose`, `mail_send`, `mail_organize`, `mail_delete`, `mail_folder_manage` ; les contacts cinq, deux en lecture et trois en écriture : `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage` ; les agendas six, trois en lecture et trois en écriture : `calendar_search`, `calendar_read`, `calendar_availability`, `calendar_write`, `calendar_respond`, `calendar_delete` ; les fichiers quatre, deux en lecture et deux en écriture : `files_browse`, `files_fetch`, `files_write`, `files_delete` ; Sieve et l'absence trois : `sieve_scripts`, `sieve_write`, `vacation_manage` ; les partages deux, un en lecture et un en écriture : `sharing_access`, `sharing_manage`.
+> Trente outils sont exposés, le mail en portant dix : `mail_search`, `mail_read`, `mail_folders`, `mail_attachment_fetch`, `mail_identities`, `mail_compose`, `mail_send`, `mail_organize`, `mail_delete`, `mail_folder_manage` ; les contacts cinq, deux en lecture et trois en écriture : `contacts_search`, `contacts_read`, `contacts_write`, `contacts_delete`, `contacts_book_manage` ; les agendas six, trois en lecture et trois en écriture : `calendar_search`, `calendar_read`, `calendar_availability`, `calendar_write`, `calendar_respond`, `calendar_delete` ; les fichiers quatre, deux en lecture et deux en écriture : `files_browse`, `files_fetch`, `files_write`, `files_delete` ; Sieve et l'absence trois : `sieve_scripts`, `sieve_write`, `vacation_manage` ; les partages deux, un en lecture et un en écriture : `sharing_access`, `sharing_manage`.
 > Les six domaines sont livrés, aucun manifeste ne reste à `tools: []`.
-> Le chiffre se relève sur le rapport de composition, jamais en comptant les fichiers sources ; la cible de vingt-six est dépassée de trois, et `internal/tool-budget.md` porte ce constat.
+> Le chiffre se relève sur le rapport de composition, jamais en comptant les fichiers sources ; la cible de vingt-six est dépassée de quatre, et `internal/tool-budget.md` porte ce constat.
 
 ## 🗺️ Découpe
 
@@ -52,7 +52,7 @@ Un domaine peut se scinder en plusieurs manifestes : le mail en a trois, les con
 
 | Manifeste | Capacités | Outils |
 | --- | --- | --- |
-| `mailDomain` | `mail` | `mail_search`, `mail_read`, `mail_folders` |
+| `mailDomain` | `mail` | `mail_search`, `mail_read`, `mail_folders`, `mail_attachment_fetch` |
 | `mailOrganizingDomain` | `mail` | `mail_organize`, `mail_delete`, `mail_folder_manage` |
 | `mailSendingDomain` | `mail`, `submission` | `mail_identities`, `mail_compose`, `mail_send` |
 | `contactsDomain` | `contacts` | `contacts_search`, `contacts_read` |

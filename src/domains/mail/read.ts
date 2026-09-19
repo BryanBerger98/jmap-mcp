@@ -10,7 +10,7 @@ import type {
 } from "../../jmap/types/mail.js";
 import { defineTool } from "../../registry/define-tool.js";
 import { inRequestedOrder } from "../../shared/pagination.js";
-import { htmlToText, renderFields } from "../../shared/render.js";
+import { formatSize, htmlToText, renderFields, renderTable } from "../../shared/render.js";
 
 /**
  * The ceiling on one body, in bytes.
@@ -41,6 +41,7 @@ const MESSAGE_PROPERTIES = [
   "textBody",
   "htmlBody",
   "bodyValues",
+  "attachments",
 ] as const;
 
 /** Only what the rendering reads: `partId` keys the body value, `type` picks it. */
@@ -70,6 +71,8 @@ export const mailRead = defineTool({
     `Reads up to ${MAX_MESSAGES} messages by id: headers, then the body as text. ` +
     `Each body is cut at ${MAX_BODY_VALUE_BYTES} bytes and the cut is announced in the output. ` +
     "A message with no plain-text part is degraded from its HTML, so the reply is never empty. " +
+    "A message carrying attachments lists each one as a table of name, type, size and blobId; " +
+    "pass a blobId from that table to mail_attachment_fetch to download it. " +
     "This tool takes ids, never a filter: run mail_search first and read the ids it returned.",
   inputSchema,
   classes: ["read"],
@@ -126,7 +129,29 @@ function renderMessage(email: Email, maxBytes: number): string {
   );
 
   const footer = notes.length > 0 ? `\n\n[${notes.join(" — ")}]` : "";
-  return `${header}\n\n${body.text}${footer}`;
+  const attachments = renderAttachments(email.attachments);
+  return `${header}\n\n${body.text}${footer}${attachments}`;
+}
+
+/**
+ * "Attachments:" as a table of name, type, size and blobId — the blobId is
+ * what `mail_attachment_fetch` takes, so it has to survive to the reply as
+ * more than a "yes" in the header.
+ *
+ * Blank when the message carries none, rather than an empty table: a message
+ * with no attachment should not read as one whose attachments came back empty.
+ */
+function renderAttachments(attachments: EmailBodyPart[] | undefined): string {
+  if (attachments === undefined || attachments.length === 0) return "";
+
+  const rows = attachments.map((attachment) => ({
+    name: attachment.name ?? "(unnamed)",
+    type: attachment.type,
+    size: formatSize(attachment.size),
+    blobId: attachment.blobId ?? "",
+  }));
+
+  return `\n\nAttachments:\n${renderTable(rows, ["name", "type", "size", "blobId"])}`;
 }
 
 /**

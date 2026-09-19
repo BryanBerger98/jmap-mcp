@@ -1,5 +1,6 @@
 import { CAPABILITY_MAIL, CAPABILITY_SUBMISSION } from "../../jmap/types/core.js";
 import { defineDomain } from "../../registry/manifest.js";
+import { mailAttachmentFetch } from "./attachment-fetch.js";
 import { mailCompose } from "./compose.js";
 import { mailDelete } from "./delete.js";
 import { mailFolderManage } from "./folder-manage.js";
@@ -11,15 +12,15 @@ import { mailSearch } from "./search.js";
 import { mailSend } from "./send.js";
 
 /**
- * search, read, locate.
+ * search, read, locate, fetch an attachment.
  *
  * The manifest asks only for what its tools call. Requiring `submission` here
- * would silence three read tools on a server that does not send.
+ * would silence four read tools on a server that does not send.
  */
 export const mailDomain = defineDomain({
   name: "mail",
   requires: [CAPABILITY_MAIL],
-  tools: [mailSearch, mailRead, mailFolders],
+  tools: [mailSearch, mailRead, mailFolders, mailAttachmentFetch],
 });
 
 /**

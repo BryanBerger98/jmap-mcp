@@ -33,7 +33,8 @@
           "isEncodingProblem": false,
           "isTruncated": false
         }
-      }
+      },
+      "attachments": []
     },
     {
       "id": "em-201",
@@ -51,7 +52,17 @@
       "preview": "Your invoice for August 2026 is available in your account.",
       "textBody": [],
       "htmlBody": [],
-      "bodyValues": {}
+      "bodyValues": {},
+      "attachments": [
+        {
+          "partId": null,
+          "blobId": "blob-201-invoice",
+          "type": "application/pdf",
+          "charset": null,
+          "size": 40960,
+          "name": "invoice-august-2026.pdf"
+        }
+      ]
     }
   ],
   "notFound": ["em-999"]

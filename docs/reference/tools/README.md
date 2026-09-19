@@ -1,6 +1,6 @@
 # Tools
 
-Twenty-nine tools, in six domains.
+Thirty tools, in six domains.
 Each row names the operation classes a tool can reach; the page says which argument picks the class on a given call.
 
 ## Reading the classes
@@ -16,6 +16,7 @@ The [write policy](../../explanation/write-policy.md) says what each class may d
 | `mail_search` | `read` | [mail](./mail.md) |
 | `mail_read` | `read` | [mail](./mail.md) |
 | `mail_folders` | `read` | [mail](./mail.md) |
+| `mail_attachment_fetch` | `read` | [mail](./mail.md) |
 | `mail_identities` | `read` | [mail](./mail.md) |
 | `mail_compose` | `draft`, `send` | [mail](./mail.md) |
 | `mail_send` | `send` | [mail](./mail.md) |
@@ -50,7 +51,7 @@ A server without the submission capability keeps the mail reading tools and lose
 
 | Manifest | Capabilities | Tools |
 | --- | --- | --- |
-| `mail` | `mail` | `mail_search`, `mail_read`, `mail_folders` |
+| `mail` | `mail` | `mail_search`, `mail_read`, `mail_folders`, `mail_attachment_fetch` |
 | `mail-organizing` | `mail` | `mail_organize`, `mail_delete`, `mail_folder_manage` |
 | `mail-sending` | `mail`, `submission` | `mail_identities`, `mail_compose`, `mail_send` |
 | `contacts` | `contacts` | `contacts_search`, `contacts_read` |

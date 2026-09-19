@@ -1,14 +1,14 @@
 # Mail tools
 
-Nine tools, in three manifests.
+Ten tools, in three manifests.
 The reading and organizing manifests require `urn:ietf:params:jmap:mail`; the sending manifest requires `urn:ietf:params:jmap:submission` on top of it.
-A server that does not advertise one of these capabilities drops every tool of the manifest that requires it, so a server without `submission` keeps six mail tools and loses `mail_identities`, `mail_compose` and `mail_send`.
+A server that does not advertise one of these capabilities drops every tool of the manifest that requires it, so a server without `submission` keeps seven mail tools and loses `mail_identities`, `mail_compose` and `mail_send`.
 Every class named below is applied by the [write policy](../../explanation/write-policy.md), and every ceiling is listed in [Limits](../limits.md).
 
 ## Reading
 
 Manifest `mail`, requiring `urn:ietf:params:jmap:mail`.
-None of its three tools writes anything.
+None of its four tools writes anything.
 
 ### mail_search
 
@@ -51,6 +51,7 @@ Example prompts:
 
 Reads up to five messages by id: headers, then the body as text.
 Each body is cut at 8000 bytes and the cut is announced in the output; a message with no plain-text part is degraded from its HTML.
+A message carrying attachments prints a table of them — name, type, size, `blobId` — for `mail_attachment_fetch` to take.
 
 Class: `read`.
 
@@ -93,6 +94,36 @@ Example prompts:
 > List my mail folders with their unread counts.
 
 > Which folders are empty right now?
+
+### mail_attachment_fetch
+
+Downloads one attachment of one message and returns its content in the reply.
+Run `mail_read` first to list a message's attachments and read the `blobId` this tool takes.
+
+Class: `read`.
+
+| Argument | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `messageId` | string | yes | Message id, as `mail_search` or `mail_read` returns it |
+| `blobId` | string | yes | Attachment blobId, from the attachments table `mail_read` prints for this message |
+| `decode` | enum: auto, raw | no | `auto` (default) inflates a gzip attachment and unpacks a zip one, and returns a plain-text, XML or JSON attachment as-is; anything else, including archived content that is not UTF-8 text, falls back to base64. `raw` always returns base64 |
+| `maxBytes` | integer | no | Bytes of decoded output kept, 200 to 100000, 8000 by default |
+
+The attachment's declared size is checked against `files.maxDownloadSize` before any byte moves, the same guard `files_fetch` applies to a node.
+Decoded output is cut at `maxBytes` and the cut is announced in the output, the same convention as `mail_read`.
+The ceiling of 100000 holds whatever `files.maxDownloadSize` allows: a binary attachment comes back as a base64 excerpt, never whole.
+A zip archive with several entries returns every entry, each prefixed by its name; an entry that is not UTF-8 text comes back as base64 and the output names it.
+
+**Refuses or asks.**
+A `messageId` the account does not hold, or a `blobId` the message does not carry, is refused before any transfer.
+An attachment past `files.maxDownloadSize` is refused with its declared size and the ceiling to raise, and nothing is transferred.
+Nothing here asks a confirmation.
+
+Example prompts:
+
+> Open the gzipped DMARC report attached to that message and summarize which senders failed.
+
+> Download the log file from that email and show me what it says.
 
 ## Organizing
 

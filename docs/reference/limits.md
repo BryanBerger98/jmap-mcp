@@ -13,6 +13,7 @@ None of them is a configuration key, except the two marked so.
 | Rendered size of one search page | 3000 to 4000 characters | Each search tool | The page is cut and a cursor returned |
 | Messages per `mail_read` | 5 | `src/domains/mail/read.ts` | The schema refuses more ids |
 | Body bytes per message | 8000, `maxBodyBytes` from 200 to 8000 per call | `src/domains/mail/read.ts` | The body is cut and says so |
+| Decoded bytes per `mail_attachment_fetch` | 8000, `maxBytes` from 200 to 100000 per call | `src/domains/mail/attachment-fetch.ts` | The output is cut and says so |
 | Cards per `contacts_read` | 20 | `src/domains/contacts/read.ts` | The schema refuses more ids |
 | Events per `calendar_read` | 20 | `src/domains/calendar/read.ts` | The schema refuses more ids |
 | Download size | 100 MB, configurable as `files.maxDownloadSize` | `src/config/schema.ts` | Refused before any byte moves |

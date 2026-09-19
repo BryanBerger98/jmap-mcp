@@ -2,14 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   describeNodeOutcome,
   describeNodes,
-  formatSize,
   isDirectory,
   renderNodeRow,
   resolveNodes,
 } from "../../src/domains/files/node.js";
 import type { GetResponse, SetResponse } from "../../src/jmap/types/core.js";
 import type { FileNode } from "../../src/jmap/types/filenode.js";
-import { describeSetError } from "../../src/shared/render.js";
+import { describeSetError, formatSize } from "../../src/shared/render.js";
 import { fakeTransport, loadFixture } from "../fixtures/client.js";
 
 const NODES = loadFixture<GetResponse<FileNode>>("file-node-get.json");

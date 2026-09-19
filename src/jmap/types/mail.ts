@@ -150,6 +150,8 @@ export interface Email {
   textBody?: EmailBodyPart[];
   htmlBody?: EmailBodyPart[];
   bodyValues?: Record<string, EmailBodyValue>;
+  /** Every part with a `Content-Disposition` of `attachment` (RFC 8621 §4.1.4). */
+  attachments?: EmailBodyPart[];
 }
 
 /**

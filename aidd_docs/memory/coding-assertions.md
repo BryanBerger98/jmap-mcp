@@ -1,7 +1,7 @@
 ---
 title: Assertions de code
 status: draft
-updated: 2026-09-03
+updated: 2026-09-19
 owner: bryan
 ---
 
@@ -38,7 +38,7 @@ Les erreurs `FM001` et `EMO001` qu'il signale sans ce drapeau sont attendues, ja
 Toute autre erreur reste une régression, et les avertissements `TBL002` sur les cellules longues sont tolérés.
 
 Deux vérifications complètent le vérificateur sur `docs/` : chaque `.md` du dossier est lié depuis `docs/README.md`, et chaque lien relatif résout.
-La référence des outils tient une troisième : les vingt-neuf `name:` des définitions sous `src/domains/` sont exactement les H3 des six pages de domaine et les lignes de `docs/reference/tools/README.md`, avec les classes du tableau `classes` de chacune.
+La référence des outils tient une troisième : les trente `name:` des définitions sous `src/domains/` sont exactement les H3 des six pages de domaine et les lignes de `docs/reference/tools/README.md`, avec les classes du tableau `classes` de chacune.
 
 ## 🛠️ Comportement
 

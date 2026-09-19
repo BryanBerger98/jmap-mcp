@@ -15,7 +15,7 @@ import type { GetResponse, Id, SetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CORE, CAPABILITY_FILENODE } from "../../jmap/types/core.js";
 import type { FileNode, FileNodeGetArguments } from "../../jmap/types/filenode.js";
 import type { ToolContext } from "../../registry/define-tool.js";
-import { describeSetError, renderTable } from "../../shared/render.js";
+import { describeSetError, formatSize, renderTable } from "../../shared/render.js";
 
 /**
  * What a `FileNode/get` is asked for when the whole node is wanted.
@@ -39,31 +39,9 @@ export const NODE_COLUMNS = ["type", "name", "size", "mime", "id"];
 /** How many nodes a refusal or a summary names before it counts the rest. */
 const NODES_NAMED = 3;
 
-/** Binary units, spelled as such: 180 KiB is 184320 bytes and says so. */
-const UNITS = ["B", "KiB", "MiB", "GiB", "TiB"];
-
 /** The one test for a folder, so no tool spells the string itself. */
 export function isDirectory(node: FileNode): boolean {
   return node.nodeType === "directory";
-}
-
-/**
- * A size a human reads, not a byte count they have to divide.
- *
- * Kept exact below a kibibyte, and given one decimal only where it carries
- * information: "180 KiB" is as precise as anybody needs, "180.0 KiB" is noise.
- */
-export function formatSize(bytes: number): string {
-  let value = bytes;
-  let unit = 0;
-
-  while (value >= 1024 && unit < UNITS.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-
-  const shown = unit === 0 || value >= 10 ? String(Math.round(value)) : value.toFixed(1);
-  return `${shown} ${UNITS[unit]}`;
 }
 
 /** One row of a node table. A directory leaves size and MIME type blank. */

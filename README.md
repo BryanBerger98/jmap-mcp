@@ -4,14 +4,14 @@ Local MCP server that exposes a [Stalwart](https://stalw.art) mail server's JMAP
 
 ## What it covers
 
-- **Mail**: search, read, compose, send, file and delete messages, manage folders.
+- **Mail**: search, read, fetch attachments, compose, send, file and delete messages, manage folders.
 - **Contacts**: search and read cards, write them, manage address books.
 - **Calendar**: search and read events, check availability, create, correct, answer and delete.
 - **Files**: browse, fetch to disk, upload from disk, organize and delete.
 - **Sieve**: list scripts, store one, choose which one filters, manage the vacation response.
 - **Sharing**: read who an object is open to, grant and revoke rights, dismiss notifications.
 
-Twenty-nine tools in all, described one by one in [the tools reference](docs/reference/tools/README.md).
+Thirty tools in all, described one by one in [the tools reference](docs/reference/tools/README.md).
 
 ## Quick start with Claude Code
 
@@ -41,7 +41,7 @@ The question names what the call is about to do: the recipients, the messages, t
 | [Getting a token from Stalwart](docs/getting-started/stalwart-token.md) | Which bearer the server accepts, and how to check it |
 | [Claude Code](docs/getting-started/claude-code.md), [Claude Desktop](docs/getting-started/claude-desktop.md), [Cursor](docs/getting-started/cursor.md) | How to register the server in each client |
 | [Configuration](docs/reference/configuration.md) | Every key and variable, with its default |
-| [Tools](docs/reference/tools/README.md) | What each of the twenty-nine tools does, and when it asks |
+| [Tools](docs/reference/tools/README.md) | What each of the thirty tools does, and when it asks |
 | [Limits](docs/reference/limits.md) | Every ceiling, and what happens past it |
 | [Write policy](docs/explanation/write-policy.md) | Classes, levels, confirmation, recipient perimeter |
 | [Troubleshooting](docs/troubleshooting.md) | What a refusal or a startup error means |

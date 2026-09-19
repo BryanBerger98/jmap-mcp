@@ -71,7 +71,7 @@ A bare `example.com` is refused by the schema, with `Each recipients.allow entry
 Without it, both refuse and name the key; browsing, creating a folder, organizing and deleting need no directory and work as they are.
 Paths are resolved through every symlink before the check, so a link inside the root that points outside is refused too.
 
-`files.maxDownloadSize` bounds one fetch: a node the server declares larger is refused before any byte moves, and the refusal names the key to raise.
+`files.maxDownloadSize` bounds one fetch: a node `files_fetch` reads or an attachment `mail_attachment_fetch` downloads that the server declares larger is refused before any byte moves, and the refusal names the key to raise.
 
 ## Constraints the schema holds
 

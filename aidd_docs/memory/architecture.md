@@ -1,7 +1,7 @@
 ---
 title: Architecture
 status: draft
-updated: 2026-09-14
+updated: 2026-09-19
 owner: bryan
 ---
 
@@ -168,6 +168,11 @@ Stalwart avale l'envoi sans erreur quand iTIP est éteint, quand le compte n'a p
 Les octets d'un fichier ne passent jamais par la conversation.
 `files_fetch` écrit sur le disque et rend un chemin, `files_write` lit un chemin et téléverse : ce que le client voit est une ligne de compte rendu, jamais un contenu encodé.
 
+`mail_attachment_fetch` fait exception, et l'écart est voulu : il lit une pièce jointe textuelle, un rapport ou un journal, dont le texte est justement ce que l'utilisateur demande à voir.
+Une pièce jointe binaire n'en rend qu'un extrait en base64, un indice de ce qu'elle contient et jamais un moyen de la transporter.
+Le plafond de `maxBytes` est donc fixe, cent mille octets, et non `files.maxDownloadSize` : aucune configuration ne fait de la réponse le canal d'un fichier entier.
+Écrire la pièce jointe sur le disque est écarté, un outil de lecture du mail dépendant alors de `files.localRoot` et doublant `files_fetch`.
+
 Le canal d'octets est une paire de méthodes posée dans le contexte d'outil, `upload` et `download`.
 Il ferme sur le jeton et sur les deux gabarits d'URL du noyau, parce que les blobs voyagent en HTTP simple hors du point JMAP : un outil qui les atteindrait lui-même aurait le jeton en main, et un jeton passé en argument finit dans une trace.
 
@@ -253,7 +258,7 @@ Ne nommer aucun droit sur une révocation n'est pas une révocation vide : c'est
 - `elicitInput` et `sendElicitation` lèvent sur une requête de l'ère 2026. Une confirmation poussée par le serveur ne marcherait que sur une révision, et l'ère est le choix du client : `inputRequired` est le seul émetteur, ce qu'un contrat vérifie en lisant les sources.
 - Claude Desktop ne supporte pas l'élicitation. Toute opération `send` ou `destroy` y échoue par conception.
 - Les annotations MCP, `destructiveHint` en tête, sont déclarées non fiables. Elles documentent, elles ne gardent rien.
-- La dégradation se voit dès trente outils exposés. La cible est vingt-six, la composition en enregistre vingt-neuf, et `internal/tool-budget.md` porte ce dépassement plutôt que de l'arrondir.
+- La dégradation se voit dès trente outils exposés. La cible est vingt-six, la composition en enregistre trente, et `internal/tool-budget.md` porte ce dépassement plutôt que de l'arrondir.
 - La classe d'opération ne se lit pas sur le nom de la méthode. Un argument suffit à faire basculer une écriture en destruction ou en envoi, dans les six domaines.
 - Une opération destructrice ne prend jamais un filtre en entrée. Stalwart abandonne silencieusement une condition `header` mal formée, et la requête rend alors plus de résultats que demandé.
 - Supprimer un dossier ne supprime jamais son contenu. `onDestroyRemoveEmails` est écrit à faux sur chaque `Mailbox/set` émis, y compris ceux qui ne détruisent rien : un défaut serveur n'est pas une garantie, et l'absence de l'argument ne se voit sur aucun test unitaire.
