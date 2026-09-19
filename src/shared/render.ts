@@ -70,13 +70,6 @@ export function truncate(text: string, max: number): string {
   return `${text.slice(0, cut)}…`;
 }
 
-/**
- * Degrades an HTML body to readable text.
- *
- * Deliberately naive, and deliberately dependency-free: the goal is a message
- * a reader can follow, not a faithful rendering. Blocks that carry no prose are
- * dropped whole, block-level tags become line breaks, the rest is stripped.
- */
 /** Binary units, spelled as such: 180 KiB is 184320 bytes and says so. */
 const UNITS = ["B", "KiB", "MiB", "GiB", "TiB"];
 
@@ -103,6 +96,13 @@ export function formatSize(bytes: number): string {
   return `${shown} ${UNITS[unit]}`;
 }
 
+/**
+ * Degrades an HTML body to readable text.
+ *
+ * Deliberately naive, and deliberately dependency-free: the goal is a message
+ * a reader can follow, not a faithful rendering. Blocks that carry no prose are
+ * dropped whole, block-level tags become line breaks, the rest is stripped.
+ */
 export function htmlToText(html: string): string {
   return (
     html
