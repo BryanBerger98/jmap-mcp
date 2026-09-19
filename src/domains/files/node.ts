@@ -17,12 +17,6 @@ import type { FileNode, FileNodeGetArguments } from "../../jmap/types/filenode.j
 import type { ToolContext } from "../../registry/define-tool.js";
 import { describeSetError, formatSize, renderTable } from "../../shared/render.js";
 
-// Re-exported for every existing import of `formatSize` from this module: the
-// definition moved to `shared/render.ts` once mail needed the same rendering
-// for an attachment's size, and this domain's own callers should not have to
-// know that.
-export { formatSize };
-
 /**
  * What a `FileNode/get` is asked for when the whole node is wanted.
  *

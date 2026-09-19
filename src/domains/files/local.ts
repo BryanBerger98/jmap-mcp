@@ -17,11 +17,6 @@ import { CAPABILITY_CORE, type CoreCapability } from "../../jmap/types/core.js";
 /** The configuration key a refusal names, spelled once. */
 export const LOCAL_ROOT_KEY = "files.localRoot";
 
-// Re-exported for every existing import of these two from this module: both
-// moved to `config/schema.ts` once `mail_attachment_fetch` needed the same
-// download ceiling, which this domain's own callers should not have to know.
-export { MAX_DOWNLOAD_SIZE_KEY, maxDownloadSize } from "../../config/schema.js";
-
 export type LocalPath = { ok: true; path: string } | { ok: false; refusal: string };
 
 export type LocalBytes = { ok: true; bytes: Uint8Array } | { ok: false; refusal: string };

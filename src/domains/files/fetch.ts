@@ -1,17 +1,16 @@
 import { z } from "zod";
-import { refuseOversizedDownload } from "../../config/schema.js";
+import { maxDownloadSize, refuseOversizedDownload } from "../../config/schema.js";
 import { defineTool } from "../../registry/define-tool.js";
-import { renderFields } from "../../shared/render.js";
+import { formatSize, renderFields } from "../../shared/render.js";
 import {
   MISSING_ROOT_REFUSAL,
-  maxDownloadSize,
   refuseUnusableRoot,
   resolveWithinRoot,
   statLocalFile,
   writeWithoutOverwrite,
 } from "./local.js";
 import { FALLBACK_MIME } from "./name.js";
-import { describeNodes, formatSize, isDirectory, resolveNodes } from "./node.js";
+import { describeNodes, isDirectory, resolveNodes } from "./node.js";
 
 const inputSchema = z.strictObject({
   id: z

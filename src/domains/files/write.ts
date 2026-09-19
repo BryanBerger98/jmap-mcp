@@ -5,7 +5,7 @@ import { CAPABILITY_CORE, CAPABILITY_FILENODE } from "../../jmap/types/core.js";
 import type { FileNode } from "../../jmap/types/filenode.js";
 import { defineTool, type ToolContext, type ToolResult } from "../../registry/define-tool.js";
 import { refuseOversizedBatch } from "../../shared/batch.js";
-import { renderFields } from "../../shared/render.js";
+import { formatSize, renderFields } from "../../shared/render.js";
 import {
   buildNodeCreation,
   buildNodePatch,
@@ -25,13 +25,7 @@ import {
   statLocalFile,
 } from "./local.js";
 import { mimeTypeFor, refuseInvalidName } from "./name.js";
-import {
-  describeNodeOutcome,
-  describeNodes,
-  formatSize,
-  isDirectory,
-  resolveNodes,
-} from "./node.js";
+import { describeNodeOutcome, describeNodes, isDirectory, resolveNodes } from "./node.js";
 
 /**
  * The one schema of this module on `z.object` rather than `z.strictObject`.
