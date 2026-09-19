@@ -1,5 +1,6 @@
 import { dirname, isAbsolute, resolve } from "node:path";
 import { z } from "zod";
+import { formatSize } from "../shared/render.js";
 import { DEFAULT_POLICY, POLICY_LEVELS, type WritePolicy } from "./policy.js";
 
 const policyLevelSchema = z.enum(POLICY_LEVELS);
@@ -169,4 +170,24 @@ export type Config = z.infer<typeof configSchema>;
  */
 export function maxDownloadSize(files: Config["files"]): number {
   return files.maxDownloadSize ?? DEFAULT_MAX_DOWNLOAD_SIZE;
+}
+
+/**
+ * The refusal of a blob this server will not pull into memory, naming the key
+ * to raise. `undefined` when the declared size fits, or when there is none to
+ * check. `noun` says what is refused: a file, an attachment.
+ */
+export function refuseOversizedDownload(
+  size: number | null | undefined,
+  named: string,
+  noun: string,
+  ceiling: number,
+): string | undefined {
+  if (size === null || size === undefined || size <= ceiling) return undefined;
+
+  return (
+    `Refused: ${named} is ${formatSize(size)} and this server fetches at most ${formatSize(ceiling)} ` +
+    `per ${noun} (${ceiling} bytes). Nothing was transferred. Raise ${MAX_DOWNLOAD_SIZE_KEY} in your ` +
+    "configuration to fetch it."
+  );
 }

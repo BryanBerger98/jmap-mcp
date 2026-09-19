@@ -1,8 +1,8 @@
 import { z } from "zod";
+import { refuseOversizedDownload } from "../../config/schema.js";
 import { defineTool } from "../../registry/define-tool.js";
 import { renderFields } from "../../shared/render.js";
 import {
-  MAX_DOWNLOAD_SIZE_KEY,
   MISSING_ROOT_REFUSAL,
   maxDownloadSize,
   refuseUnusableRoot,
@@ -90,7 +90,12 @@ export const filesFetch = defineTool({
     // is nullable — is downloaded anyway: refusing on a number nobody gave would
     // make an unmeasured file unreachable, which is worse than the memory this
     // guards.
-    const oversized = refuseOversizedDownload(node.size, named, maxDownloadSize(context.files));
+    const oversized = refuseOversizedDownload(
+      node.size,
+      named,
+      "file",
+      maxDownloadSize(context.files),
+    );
     if (oversized !== undefined) return { text: oversized };
 
     const destination = await resolveWithinRoot(input.saveAs ?? node.name ?? node.id, localRoot);
@@ -140,18 +145,3 @@ export const filesFetch = defineTool({
     };
   },
 });
-
-/** A file this server will not pull into memory, refused with the number to raise. */
-function refuseOversizedDownload(
-  size: number | null | undefined,
-  named: string,
-  ceiling: number,
-): string | undefined {
-  if (size === null || size === undefined || size <= ceiling) return undefined;
-
-  return (
-    `Refused: ${named} is ${formatSize(size)} and this server fetches at most ${formatSize(ceiling)} ` +
-    `per file (${ceiling} bytes). Nothing was transferred. Raise ${MAX_DOWNLOAD_SIZE_KEY} in your ` +
-    "configuration to fetch it."
-  );
-}

@@ -1,6 +1,10 @@
 import { gunzipSync, unzipSync } from "fflate";
 import { z } from "zod";
-import { MAX_DOWNLOAD_SIZE_KEY, maxDownloadSize } from "../../config/schema.js";
+import {
+  MAX_DOWNLOAD_SIZE_KEY,
+  maxDownloadSize,
+  refuseOversizedDownload,
+} from "../../config/schema.js";
 import type { GetResponse } from "../../jmap/types/core.js";
 import { CAPABILITY_CORE, CAPABILITY_MAIL } from "../../jmap/types/core.js";
 import type { Email, EmailBodyPart, EmailGetArguments } from "../../jmap/types/mail.js";
@@ -107,14 +111,13 @@ export const mailAttachmentFetch = defineTool({
     // sees a byte of it, and the server already stated the size in the answer
     // that named the blobId.
     const ceiling = maxDownloadSize(context.files);
-    if (attachment.size > ceiling) {
-      return {
-        text:
-          `Refused: ${describeAttachment(attachment.name, input.blobId)} is ${formatSize(attachment.size)} ` +
-          `and this server fetches at most ${formatSize(ceiling)} per attachment (${ceiling} bytes). ` +
-          `Nothing was transferred. Raise ${MAX_DOWNLOAD_SIZE_KEY} in your configuration to fetch it.`,
-      };
-    }
+    const oversized = refuseOversizedDownload(
+      attachment.size,
+      describeAttachment(attachment.name, input.blobId),
+      "attachment",
+      ceiling,
+    );
+    if (oversized !== undefined) return { text: oversized };
 
     const bytes = await context.blobs.download(
       input.blobId,
