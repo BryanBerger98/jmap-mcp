@@ -121,7 +121,7 @@ Nothing here asks a confirmation.
 
 Example prompts:
 
-> Fetch the PDF attached to that invoice message.
+> Open the gzipped DMARC report attached to that message and summarize which senders failed.
 
 > Download the log file from that email and show me what it says.
 
