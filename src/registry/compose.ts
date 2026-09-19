@@ -2,6 +2,8 @@ import {
   acceptedContent,
   inputRequired,
   type McpServer,
+  ProtocolError,
+  ProtocolErrorCode,
   type StandardSchemaWithJSON,
 } from "@modelcontextprotocol/server";
 import { z } from "zod";
@@ -44,6 +46,12 @@ export interface ToolSelection {
   classes: Set<OperationClass>;
   skipped: { domain: string; missing: string[] }[];
   denied: string[];
+}
+
+/** The slice of the SDK's per-request context the guard pipeline reads. */
+interface ToolRequest {
+  inputResponses?: Record<string, unknown>;
+  envelope?: Record<string, unknown>;
 }
 
 const confirmationSchema = z.object({ confirm: z.boolean() });
@@ -119,15 +127,7 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
       // The definition owns the schema; the SDK wants it as a Standard Schema.
       inputSchema: tool.inputSchema as unknown as StandardSchemaWithJSON<unknown, unknown>,
     },
-    async (
-      args: unknown,
-      ctx: {
-        mcpReq: {
-          inputResponses?: Record<string, unknown>;
-          envelope?: Record<string, unknown>;
-        };
-      },
-    ) => {
+    async (args: unknown, ctx: { mcpReq: ToolRequest }) => {
       const context: ToolContext = {
         client: input.client,
         session: input.session,
@@ -140,66 +140,104 @@ function register(input: CompositionInput, tool: ToolDefinition): void {
         // and the one that carries the answer must not share a cached read.
         once: perInvocationCache(),
       };
-      const operation = tool.classify(args);
-      let level = input.policy[operation];
-
-      if (level === "deny") {
-        return errorResult(
-          `Refused: ${tool.name} is a ${operation} operation and the policy denies that class.`,
-        );
-      }
-
-      // Before the confirmation, not after: a call that is going to be refused
-      // whatever the answer must never be put to the user as a question.
-      const refusal = await tool.precheck?.(args, context);
-      if (refusal !== undefined) return errorResult(refusal);
-
-      // The second path to a confirmation, opened by the tool rather than by the
-      // policy: an allowed class can still carry a call worth asking about.
-      // Consulted after `precheck` and never before, for the same reason the
-      // perimeter comes first — a doomed call is not made into a question by
-      // being bulky. A class already at `confirm` is going to ask anyway, and a
-      // denied one has long returned.
-      const escalation = level === "allow" ? await tool.confirmWhen?.(args, context) : undefined;
-      if (escalation !== undefined) level = "confirm";
-
-      if (level === "confirm") {
-        // Decided before the request is built, never after: a refusal that comes
-        // once the call is out is not a refusal.
-        if (!clientCanElicit(input.server, ctx.mcpReq)) {
-          return errorResult(
-            escalation === undefined
-              ? `Refused: ${tool.name} is a ${operation} operation, which this server only runs after you confirm it. ` +
-                  "Your MCP client did not declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused."
-              : `Refused: ${escalation} This server only runs that after you confirm it, and your MCP client did not ` +
-                  "declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused.",
-          );
+      try {
+        return await runGuarded(input, tool, args, ctx.mcpReq, context);
+      } catch (error) {
+        // Rethrown as `McpServer`'s own `tools/call` handler does: a legacy-era
+        // tool signals a URL-mode elicitation by throwing it, and `Server` passes
+        // it through unchanged on 2025-era revisions (and steers to
+        // `inputRequired.elicitUrl` on 2026-07-28). A text result here would
+        // swallow that signal before the SDK can act on it.
+        if (
+          error instanceof ProtocolError &&
+          error.code === ProtocolErrorCode.UrlElicitationRequired
+        ) {
+          throw error;
         }
-
-        const answer = acceptedContent(ctx.mcpReq.inputResponses, "confirm", confirmationSchema);
-        if (answer?.confirm !== true) {
-          return inputRequired({
-            inputRequests: {
-              confirm: inputRequired.elicit({
-                // The reason the tool gave, when it gave one: telling someone
-                // "this is a draft operation" says nothing about the volume
-                // they are being asked to arbitrate.
-                message: `${await tool.summarize(args, context)}\n\n${escalation ?? `This is a ${operation} operation.`} Proceed?`,
-                requestedSchema: {
-                  type: "object",
-                  properties: { confirm: { type: "boolean" } },
-                  required: ["confirm"],
-                },
-              }),
-            },
-          });
-        }
+        // A thrown error's message can carry raw server text too: `JmapError`
+        // wraps a JMAP problem-details `detail` straight from the response body.
+        // Routed through `errorResult` for the same reason as any other text —
+        // see `wellFormed` below — rather than left to escape uncaught.
+        return errorResult(error instanceof Error ? error.message : String(error));
       }
-
-      const result = await tool.run(args, context);
-      return { content: [{ type: "text" as const, text: renderResult(result) }] };
     },
   );
+}
+
+/**
+ * The guard pipeline, in its fixed order: policy, precheck, confirmWhen,
+ * elicitation, run. Kept out of `register` so the output guard around it
+ * stays a wrapper rather than a level of indentation.
+ */
+async function runGuarded(
+  input: CompositionInput,
+  tool: ToolDefinition,
+  args: unknown,
+  mcpReq: ToolRequest,
+  context: ToolContext,
+) {
+  const operation = tool.classify(args);
+  let level = input.policy[operation];
+
+  if (level === "deny") {
+    return errorResult(
+      `Refused: ${tool.name} is a ${operation} operation and the policy denies that class.`,
+    );
+  }
+
+  // Before the confirmation, not after: a call that is going to be refused
+  // whatever the answer must never be put to the user as a question.
+  const refusal = await tool.precheck?.(args, context);
+  if (refusal !== undefined) return errorResult(refusal);
+
+  // The second path to a confirmation, opened by the tool rather than by the
+  // policy: an allowed class can still carry a call worth asking about.
+  // Consulted after `precheck` and never before, for the same reason the
+  // perimeter comes first — a doomed call is not made into a question by
+  // being bulky. A class already at `confirm` is going to ask anyway, and a
+  // denied one has long returned.
+  const escalation = level === "allow" ? await tool.confirmWhen?.(args, context) : undefined;
+  if (escalation !== undefined) level = "confirm";
+
+  if (level === "confirm") {
+    // Decided before the request is built, never after: a refusal that comes
+    // once the call is out is not a refusal.
+    if (!clientCanElicit(input.server, mcpReq)) {
+      return errorResult(
+        escalation === undefined
+          ? `Refused: ${tool.name} is a ${operation} operation, which this server only runs after you confirm it. ` +
+              "Your MCP client did not declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused."
+          : `Refused: ${escalation} This server only runs that after you confirm it, and your MCP client did not ` +
+              "declare the elicitation capability, so it cannot be asked for that confirmation and the operation is refused.",
+      );
+    }
+
+    const answer = acceptedContent(mcpReq.inputResponses, "confirm", confirmationSchema);
+    if (answer?.confirm !== true) {
+      return inputRequired({
+        inputRequests: {
+          confirm: inputRequired.elicit({
+            // The reason the tool gave, when it gave one: telling someone
+            // "this is a draft operation" says nothing about the volume
+            // they are being asked to arbitrate. `tool.summarize` can echo
+            // server data (a subject, a name), so it crosses the same
+            // well-formed guard as a run result before it reaches the wire.
+            message: wellFormed(
+              `${await tool.summarize(args, context)}\n\n${escalation ?? `This is a ${operation} operation.`} Proceed?`,
+            ),
+            requestedSchema: {
+              type: "object",
+              properties: { confirm: { type: "boolean" } },
+              required: ["confirm"],
+            },
+          }),
+        },
+      });
+    }
+  }
+
+  const result = await tool.run(args, context);
+  return { content: [{ type: "text" as const, text: renderResult(result) }] };
 }
 
 /**
@@ -211,11 +249,32 @@ function isFullyDenied(policy: WritePolicy, tool: ToolDefinition): boolean {
 }
 
 function renderResult(result: { text: string; nextCursor?: string }): string {
-  return result.nextCursor === undefined
-    ? result.text
-    : `${result.text}\n\n[more results — cursor: ${result.nextCursor}]`;
+  const text =
+    result.nextCursor === undefined
+      ? result.text
+      : `${result.text}\n\n[more results — cursor: ${result.nextCursor}]`;
+  return wellFormed(text);
 }
 
 function errorResult(message: string) {
-  return { content: [{ type: "text" as const, text: message }], isError: true };
+  return { content: [{ type: "text" as const, text: wellFormed(message) }], isError: true };
+}
+
+/**
+ * Every text the registry hands the client crosses here first.
+ *
+ * A lone UTF-16 surrogate — half of an emoji cut at a truncation boundary, or
+ * one written into any string a JMAP server returns — serializes fine through
+ * `JSON.stringify`, but a strict JSON parser on the other end (pydantic/jiter,
+ * used by the MCP Python client) rejects the whole line for it rather than the
+ * one bad character: the response is dropped and the call hangs until the
+ * client's own timeout. `toWellFormed` replaces each stray half with U+FFFD
+ * before the text leaves the process, which is native to Node 24.
+ *
+ * Known limit: text the SDK itself builds — an input validation error
+ * (parse errors included) or a legacy shim failure message — never reaches
+ * this function, because it never reaches the registry.
+ */
+function wellFormed(text: string): string {
+  return text.toWellFormed();
 }

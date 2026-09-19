@@ -1,14 +1,14 @@
 ---
 title: Tests
 status: draft
-updated: 2026-09-03
+updated: 2026-09-14
 owner: bryan
 ---
 
 # Tests
 
 > [!NOTE]
-> 1398 tests passent sur 75 fichiers, dont 21 de contrat, chiffres relevés sur une exécution de `pnpm test`.
+> 1408 tests passent sur 76 fichiers, dont 22 de contrat, chiffres relevés sur une exécution de `pnpm test`.
 > Les fixtures couvrent la session, les messages, les dossiers, les identités, les carnets d'adresses, les fiches de contact, les agendas, les nœuds de fichier, les scripts Sieve et les partages, en lecture comme en écriture.
 
 ## 🎯 Stratégie
@@ -35,6 +35,7 @@ Un module de domaine ne peut pas contourner le registre, et le test le prouve pl
 | `bulk-confirmation.test.ts` | Au-delà du seuil : question avant écriture |
 | `destroy-needs-confirmation.test.ts` | Destruction non confirmée : aucune méthode émise |
 | `no-cascade-destroy.test.ts` | Les quatre drapeaux de cascade sont toujours écrits, et seul celui des fichiers peut valoir vrai |
+| `well-formed-output.test.ts` | Texte de sortie toujours Unicode bien formé : résultat, refus, message d'élicitation, erreur levée |
 | `contacts-read-only.test.ts` | Contacts en lecture : rien hors `get` et `query` |
 | `contacts-write-guard.test.ts` | Écriture des contacts : confirmation, identifiants, lot, création sans destruction |
 | `calendar-read-only.test.ts` | Agendas : rien hors les lectures nommées |

@@ -235,4 +235,17 @@ describe("script rendering", () => {
     expect(rendered).toContain("[cut here: 4 more bytes of this script are not shown]");
     expect(rendered.startsWith("a".repeat(MAX_SCRIPT_CHARS))).toBe(true);
   });
+
+  it("cuts before an emoji straddling the ceiling, rather than splitting it", () => {
+    // The emoji's high surrogate lands exactly at index MAX_SCRIPT_CHARS - 1:
+    // a boundary chosen without surrogate awareness keeps that half alone,
+    // producing a lone high surrogate that breaks JSON on the way out.
+    const text = `${"a".repeat(MAX_SCRIPT_CHARS - 1)}🎯z`;
+
+    const rendered = renderScriptText(text);
+
+    expect(rendered.isWellFormed()).toBe(true);
+    expect(rendered).toContain("[cut here: 5 more bytes of this script are not shown]");
+    expect(rendered.startsWith("a".repeat(MAX_SCRIPT_CHARS - 1))).toBe(true);
+  });
 });

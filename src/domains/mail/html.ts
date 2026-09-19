@@ -18,7 +18,7 @@
  * returns a string.
  */
 
-import { htmlToText, truncate } from "../../shared/render.js";
+import { htmlToText, surrogateSafeCut, truncate } from "../../shared/render.js";
 
 /** How much of the degraded text the confirmation shows before it cuts. */
 export const MAX_PREVIEW_CHARS = 1500;
@@ -108,8 +108,9 @@ function previewText(html: string): string {
   const text = htmlToText(html);
   if (text.length <= MAX_PREVIEW_CHARS) return text;
 
-  const omitted = new TextEncoder().encode(text.slice(MAX_PREVIEW_CHARS)).byteLength;
-  return `${text.slice(0, MAX_PREVIEW_CHARS)}\n[cut here: ${omitted} more bytes of this text are not shown]`;
+  const cut = surrogateSafeCut(text, MAX_PREVIEW_CHARS);
+  const omitted = new TextEncoder().encode(text.slice(cut)).byteLength;
+  return `${text.slice(0, cut)}\n[cut here: ${omitted} more bytes of this text are not shown]`;
 }
 
 /** The targets, one per line, saying how many are not listed rather than stopping. */

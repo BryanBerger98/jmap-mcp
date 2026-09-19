@@ -17,6 +17,7 @@ import { CAPABILITY_CORE, CAPABILITY_SIEVE } from "../../jmap/types/core.js";
 import type { SieveScript, SieveScriptGetArguments } from "../../jmap/types/sieve.js";
 import { VACATION_SCRIPT_NAME } from "../../jmap/types/sieve.js";
 import type { ToolContext } from "../../registry/define-tool.js";
+import { surrogateSafeCut } from "../../shared/render.js";
 
 /**
  * What a `SieveScript/get` is asked for.
@@ -157,6 +158,7 @@ export async function scriptText(script: SieveScript, context: ToolContext): Pro
 export function renderScriptText(text: string, max = MAX_SCRIPT_CHARS): string {
   if (text.length <= max) return text;
 
-  const omitted = new TextEncoder().encode(text.slice(max)).byteLength;
-  return `${text.slice(0, max)}\n\n[cut here: ${omitted} more bytes of this script are not shown]`;
+  const cut = surrogateSafeCut(text, max);
+  const omitted = new TextEncoder().encode(text.slice(cut)).byteLength;
+  return `${text.slice(0, cut)}\n\n[cut here: ${omitted} more bytes of this script are not shown]`;
 }

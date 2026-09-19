@@ -1,7 +1,7 @@
 ---
 title: Carte du code
 status: draft
-updated: 2026-09-03
+updated: 2026-09-14
 owner: bryan
 ---
 
@@ -145,7 +145,7 @@ Trois choses vivent sous `src/shared/` parce qu'un second domaine les lit déjà
 | --- | --- | --- |
 | `pagination.ts` | Ordre des identifiants demandés | Mail, contacts, agendas, fichiers, partages |
 | `batch.ts` | Plafond de cinquante identifiants par appel | Rangement du mail, les écritures des cinq autres domaines |
-| `render.ts` | Rendu compact, `SetError` en une ligne | Les six domaines livrés |
+| `render.ts` | Rendu compact, `SetError` en une ligne, coupe sûre vis-à-vis des surrogates UTF-16 | Les six domaines livrés |
 
 Quatre plafonds auraient divergé au premier ajustement, et le `SetError` avait déjà quatre copies identiques à l'octet près.
 Aucune ne mappait le moindre code : elles concaténaient le type et la description, donc les remonter n'a rien changé à ce qui s'affiche.

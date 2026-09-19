@@ -1,7 +1,7 @@
 ---
 title: Architecture
 status: draft
-updated: 2026-09-03
+updated: 2026-09-14
 owner: bryan
 ---
 
@@ -286,3 +286,4 @@ Ne nommer aucun droit sur une révocation n'est pas une révocation vide : c'est
 - Le garde-fou serveur contre le message vide ne garde rien ici. `email/set.rs:728-740` ne refuse que le message sans en-tête, sans corps et sans pièce jointe, or une création écrit toujours `from`, `to` et `subject` : le refus d'un appel sans corps tombe donc dans le schéma d'entrée, jamais sur le fil.
 - Un corps n'arrive intact qu'à une normalisation près. L'encodage de transfert est choisi par détection — `mime.rs:393-404` — et la branche `7bit` transforme un saut de ligne nu en `\r\n` — `mime.rs:405-410` ; `quoted-printable` et `base64` restituent l'entrée à l'identique.
 - `changedBy.name` d'une notification n'est pas un nom d'affichage garanti. `sn-get.rs:205-206` rend la description de l'annuaire et retombe sur l'identifiant de connexion, donc ce champ n'est jamais vide mais peut ne porter qu'une adresse : le rendu ne suppose ni l'un ni l'autre.
+- Une coupe qui compte en unités de code UTF-16 peut laisser un surrogate isolé, et un analyseur JSON-RPC strict — le SDK Python MCP, via jiter — rejette alors la ligne entière : la réponse est perdue et l'appel ne se termine qu'au délai du client. Toute coupe passe donc par l'utilitaire de coupe sûre, et le registre fait transiter chaque texte qu'il rend par `toWellFormed`, sauf ceux que le SDK construit lui-même.

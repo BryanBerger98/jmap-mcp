@@ -47,8 +47,27 @@ export function renderTable(rows: Record<string, unknown>[], columns: string[]):
   ].join("\n");
 }
 
+/**
+ * The last index at or before `max` that does not fall inside a surrogate
+ * pair.
+ *
+ * `String#slice` counts UTF-16 code units, not characters: a boundary chosen
+ * without this check can land between the two halves of an emoji or another
+ * character outside the Basic Multilingual Plane. A lone surrogate breaks
+ * strict JSON clients; see `wellFormed` in `registry/compose.ts`.
+ *
+ * Exported because every cut of server- or model-provided text in this
+ * codebase needs the same boundary, not only `truncate` below.
+ */
+export function surrogateSafeCut(text: string, max: number): number {
+  const code = max > 0 ? text.charCodeAt(max - 1) : Number.NaN;
+  return code >= 0xd800 && code <= 0xdbff ? max - 1 : max;
+}
+
 export function truncate(text: string, max: number): string {
-  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+  if (text.length <= max) return text;
+  const cut = surrogateSafeCut(text, max - 1);
+  return `${text.slice(0, cut)}…`;
 }
 
 /**

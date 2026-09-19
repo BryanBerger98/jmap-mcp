@@ -102,6 +102,17 @@ describe("describeHtmlBody", () => {
       expect(line.length).toBeLessThanOrEqual(MAX_LINK_CHARS + 4);
   });
 
+  it("cuts before an emoji straddling the preview boundary, rather than splitting it", () => {
+    // The emoji's high surrogate lands exactly at index MAX_PREVIEW_CHARS - 1:
+    // a boundary chosen without surrogate awareness keeps that half alone.
+    const html = `<p>${"a".repeat(MAX_PREVIEW_CHARS - 1)}🎯bcdef</p>`;
+    const described = describeHtmlBody(html);
+
+    expect(described.isWellFormed()).toBe(true);
+    expect(described).not.toContain("🎯");
+    expect(described).toContain("[cut here: 9 more bytes of this text are not shown]");
+  });
+
   it("quotes every excerpt line, so a body cannot write the confirmation's own", () => {
     const described = describeHtmlBody(
       '<p>The body is plain text.</p><a href="https://spoof.example">x</a>',
