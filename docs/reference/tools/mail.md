@@ -106,12 +106,12 @@ Class: `read`.
 | --- | --- | --- | --- |
 | `messageId` | string | yes | Message id, as `mail_search` or `mail_read` returns it |
 | `blobId` | string | yes | Attachment blobId, from the attachments table `mail_read` prints for this message |
-| `decode` | enum: auto, raw | no | `auto` (default) inflates a gzip attachment and unpacks a zip one, and returns a plain-text, XML or JSON attachment as-is; anything else falls back to base64. `raw` always returns base64 |
+| `decode` | enum: auto, raw | no | `auto` (default) inflates a gzip attachment and unpacks a zip one, and returns a plain-text, XML or JSON attachment as-is; anything else, including archived content that is not UTF-8 text, falls back to base64. `raw` always returns base64 |
 | `maxBytes` | integer | no | Bytes of decoded output kept, 200 to `files.maxDownloadSize`, 8000 by default |
 
 The attachment's declared size is checked against `files.maxDownloadSize` before any byte moves, the same guard `files_fetch` applies to a node.
 Decoded output is cut at `maxBytes` and the cut is announced in the output, the same convention as `mail_read`.
-A zip archive with several entries returns every entry, each prefixed by its name.
+A zip archive with several entries returns every entry, each prefixed by its name; an entry that is not UTF-8 text comes back as base64 and the output names it.
 
 **Refuses or asks.**
 A `messageId` the account does not hold, or a `blobId` the message does not carry, is refused before any transfer.

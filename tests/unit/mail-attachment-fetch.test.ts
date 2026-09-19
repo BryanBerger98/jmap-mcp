@@ -336,6 +336,110 @@ describe("mail_attachment_fetch decoding", () => {
   });
 });
 
+describe("mail_attachment_fetch archived binary content", () => {
+  // The header of a PDF, then bytes that are not valid UTF-8.
+  const pdfBytes = Uint8Array.from([
+    0x25, 0x50, 0x44, 0x46, 0x2d, 0x0a, 0x25, 0xe2, 0xe3, 0xcf, 0xd3,
+  ]);
+
+  it("returns a binary zip entry as base64, and names it", async () => {
+    const zipped = zipSync({ "invoice.pdf": pdfBytes });
+    const { context } = fakeTransport(
+      [
+        only(
+          messageWith([
+            attachment({ blobId: "blob-zip", type: "application/zip", name: "invoice.zip" }),
+          ]),
+        ),
+      ],
+      { blobs: blobsServing({ "blob-zip": zipped }) },
+    );
+
+    const result = await mailAttachmentFetch.run(
+      { messageId: "em-300", blobId: "blob-zip" },
+      context,
+    );
+
+    expect(result.text).toContain(Buffer.from(pdfBytes).toString("base64"));
+    expect(result.text).toContain("unzipped from invoice.pdf, binary content shown as base64");
+    expect(result.text).not.toContain("\uFFFD");
+  });
+
+  it("returns a binary entry among text ones as base64, under a marked header", async () => {
+    const zipped = zipSync({
+      "readme.txt": new TextEncoder().encode("read me first"),
+      "invoice.pdf": pdfBytes,
+    });
+    const { context } = fakeTransport(
+      [
+        only(
+          messageWith([
+            attachment({ blobId: "blob-zip", type: "application/zip", name: "bundle.zip" }),
+          ]),
+        ),
+      ],
+      { blobs: blobsServing({ "blob-zip": zipped }) },
+    );
+
+    const result = await mailAttachmentFetch.run(
+      { messageId: "em-300", blobId: "blob-zip" },
+      context,
+    );
+
+    expect(result.text).toContain("== readme.txt ==\nread me first");
+    expect(result.text).toContain(
+      `== invoice.pdf (base64) ==\n${Buffer.from(pdfBytes).toString("base64")}`,
+    );
+    expect(result.text).toContain("binary entries shown as base64: invoice.pdf");
+  });
+
+  it("returns a binary gzip payload as base64 of the inflated bytes", async () => {
+    const gzipped = gzipSync(pdfBytes);
+    const { context } = fakeTransport(
+      [
+        only(
+          messageWith([
+            attachment({ blobId: "blob-gz", type: "application/gzip", name: "invoice.pdf.gz" }),
+          ]),
+        ),
+      ],
+      { blobs: blobsServing({ "blob-gz": gzipped }) },
+    );
+
+    const result = await mailAttachmentFetch.run(
+      { messageId: "em-300", blobId: "blob-gz" },
+      context,
+    );
+
+    expect(result.text).toContain(Buffer.from(pdfBytes).toString("base64"));
+    expect(result.text).toContain("gunzipped, binary content shown as base64");
+  });
+
+  it("keeps a gzipped text cut inside a multi-byte character as text", async () => {
+    // Two bytes per "é": a cut at an odd byte count splits one of them.
+    const gzipped = gzipSync(Buffer.from("é".repeat(400)));
+    const { context } = fakeTransport(
+      [
+        only(
+          messageWith([
+            attachment({ blobId: "blob-gz", type: "application/gzip", name: "accents.txt.gz" }),
+          ]),
+        ),
+      ],
+      { blobs: blobsServing({ "blob-gz": gzipped }) },
+    );
+
+    const result = await mailAttachmentFetch.run(
+      { messageId: "em-300", blobId: "blob-gz", maxBytes: 301 },
+      context,
+    );
+
+    expect(result.text).toContain("é".repeat(150));
+    expect(result.text).not.toContain("shown as base64");
+    expect(result.text).toContain("output cut at 301 bytes");
+  });
+});
+
 describe("mail_attachment_fetch decompression bounds", () => {
   it("inflates a high-ratio gzip only up to the cut, and announces it", async () => {
     // 16 MiB of one byte compresses to about 16 KiB: a ratio of a thousand.

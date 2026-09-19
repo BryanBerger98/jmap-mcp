@@ -34,7 +34,8 @@ const inputSchema = z.object({
     .optional()
     .describe(
       '"auto" (default) inflates a gzip attachment and unpacks a zip one, and returns a plain-text, ' +
-        'XML or JSON attachment as-is; anything else falls back to base64. "raw" always returns base64.',
+        "XML or JSON attachment as-is; anything else, including archived content that is not UTF-8 " +
+        'text, falls back to base64. "raw" always returns base64.',
     ),
   maxBytes: z
     .number()
@@ -180,7 +181,9 @@ function decodeAuto(
       // the inflater stops writing where the buffer ends, so a small archive
       // that inflates to gigabytes never exists in memory beyond this prefix.
       const prefix = gunzipSync(bytes, { out: new Uint8Array(maxBytes + 1) });
-      return { ...cutBytes(prefix, maxBytes), note: "gunzipped" };
+      return isUtf8Text(prefix, maxBytes)
+        ? { ...cutBytes(prefix, maxBytes), note: "gunzipped" }
+        : { ...cutBase64(prefix, maxBytes), note: "gunzipped, binary content shown as base64" };
     } catch (error) {
       return {
         ...cutBase64(bytes, maxBytes),
@@ -271,38 +274,74 @@ function decodeZip(bytes: Uint8Array, maxBytes: number, ceiling: number): Decode
 
   if (names.length === 1 && skipped.length === 0 && !isPastCut) {
     const [name] = names as [string];
-    return { ...cutBytes(entries[name] as Uint8Array, maxBytes), note: `unzipped from ${name}` };
+    const entry = entries[name] as Uint8Array;
+    return isUtf8Text(entry, maxBytes)
+      ? { ...cutBytes(entry, maxBytes), note: `unzipped from ${name}` }
+      : {
+          ...cutBase64(entry, maxBytes),
+          note: `unzipped from ${name}, binary content shown as base64`,
+        };
   }
 
+  // A binary entry is spliced in as base64, already cut: the whole output is
+  // cut at `maxBytes` anyway, so no more of it could ever show.
+  const binary: string[] = [];
   const chunks: Uint8Array[] = [];
   names.forEach((name, index) => {
+    const entry = entries[name] as Uint8Array;
+    const isText = isUtf8Text(entry, maxBytes);
+    if (!isText) binary.push(name);
     if (index > 0) chunks.push(TWO_NEWLINES);
-    chunks.push(new TextEncoder().encode(`== ${name} ==\n`));
-    chunks.push(entries[name] as Uint8Array);
+    chunks.push(new TextEncoder().encode(`== ${name}${isText ? "" : " (base64)"} ==\n`));
+    chunks.push(isText ? entry : new TextEncoder().encode(cutBase64(entry, maxBytes).text));
   });
+  const binaryNote =
+    binary.length === 0 ? undefined : `binary entries shown as base64: ${listNames(binary)}`;
 
   const cut = cutBytes(concatBytes(chunks), maxBytes);
   return {
     text: cut.text,
     isTruncated: cut.isTruncated || isPastCut,
-    note: [`unzipped, ${names.length} entries`, skippedNote]
+    note: [`unzipped, ${names.length} entries`, binaryNote, skippedNote]
       .filter((part): part is string => part !== undefined)
       .join("; "),
   };
 }
 
-/** How many skipped entries a note names before it only counts the rest. */
-const SKIPPED_NAMES_SHOWN = 5;
+/** How many entry names a note lists before it only counts the rest. */
+const ENTRY_NAMES_SHOWN = 5;
+
+function listNames(names: string[]): string {
+  const shown = names.slice(0, ENTRY_NAMES_SHOWN).join(", ");
+  const rest = names.length - ENTRY_NAMES_SHOWN;
+  return rest > 0 ? `${shown}, and ${rest} more` : shown;
+}
 
 function describeSkipped(skipped: string[], ceiling: number): string | undefined {
   if (skipped.length === 0) return undefined;
-  const shown = skipped.slice(0, SKIPPED_NAMES_SHOWN).join(", ");
-  const rest = skipped.length - SKIPPED_NAMES_SHOWN;
   const count = skipped.length === 1 ? "1 entry" : `${skipped.length} entries`;
   return (
     `${count} skipped, the declared size passing the ${formatSize(ceiling)} ` +
-    `${MAX_DOWNLOAD_SIZE_KEY} ceiling: ${shown}${rest > 0 ? `, and ${rest} more` : ""}`
+    `${MAX_DOWNLOAD_SIZE_KEY} ceiling: ${listNames(skipped)}`
   );
+}
+
+/**
+ * Whether an archive's content reads as UTF-8 text, which an archive entry
+ * carries no charset to say. Only the first `maxBytes` are checked, the rest
+ * never reaching the output; when that is a cut, a character the cut splits
+ * is held back by the streaming decoder rather than read as a binary byte.
+ */
+function isUtf8Text(bytes: Uint8Array, maxBytes: number): boolean {
+  const isCut = bytes.byteLength > maxBytes;
+  try {
+    new TextDecoder(UTF8, { fatal: true }).decode(isCut ? bytes.subarray(0, maxBytes) : bytes, {
+      stream: isCut,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const TWO_NEWLINES = new TextEncoder().encode("\n\n");
